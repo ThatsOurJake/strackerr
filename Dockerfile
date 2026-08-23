@@ -10,7 +10,6 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 RUN pnpm run build
-RUN pnpm run tailwind:build
 RUN if [ -f prisma/schema.prisma ]; then pnpm prisma generate; fi
 
 FROM node:26-alpine AS runtime

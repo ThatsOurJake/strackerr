@@ -18,12 +18,14 @@ Apply these standards for all implementation work in this repository.
 
 ## Project Structure
 - Split code by primary responsibility.
-- Place reusable helpers in a suitable utilities folder.
-- Group files under clear directories by concern, such as:
-  - utilities
-  - services
-  - data
-  - routes
+- Use this repository structure:
+  - src/modules for domain/business capabilities (auth, users, search, media, etc.)
+  - src/web for page and route controllers (rendering, redirects, request/response concerns)
+  - src/infrastructure for technical/shared concerns (database, cache, logging, events, jobs)
+- Keep services close to their owning module. Do not create a global services folder.
+- Create utilities folders only when helpers are truly shared across modules.
+- Avoid mixing web page controller logic into domain modules.
+- Domain services must not depend on web controllers or Express response rendering.
 
 ## Delivery Workflow Expectations
 - Confirm feature scope before implementation if anything is ambiguous.

@@ -1,8 +1,8 @@
 import { Test, type TestingModule } from "@nestjs/testing";
-import { AppService } from "./app.service";
-import { AuthenticatedUser } from "./modules/auth/authenticated-user.interface";
-import { UsersService } from "./modules/users/users.service";
-import { AppController } from "./web/controllers/home.controller";
+import { AppService } from "../../app.service";
+import { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
+import { UsersService } from "../../modules/users/users.service";
+import { AppController } from "./home.controller";
 
 jest.mock("@paralleldrive/cuid2", () => ({
   createId: jest.fn(() => "mock-cuid-id"),
