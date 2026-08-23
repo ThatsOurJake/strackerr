@@ -2,6 +2,7 @@ import { readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { Logger } from "@nestjs/common";
 import type { ConfigService } from "@nestjs/config";
+import type { PrismaService } from "../prisma/prisma.service";
 import { ImageCleanupService } from "./image-cleanup.service";
 
 jest.mock("node:fs/promises", () => ({
@@ -9,15 +10,18 @@ jest.mock("node:fs/promises", () => ({
   rm: jest.fn(),
 }));
 
-const readdirMock = readdir as jest.MockedFunction<typeof readdir>;
+const readdirMock = readdir as unknown as jest.Mock<
+  Promise<string[]>,
+  [string, { encoding: "utf8" }?]
+>;
 const rmMock = rm as jest.MockedFunction<typeof rm>;
 
-const createService = (): ImageCleanupService => {
+const createService = (prisma: Partial<PrismaService> = {}): ImageCleanupService => {
   const configService = {
     get: jest.fn().mockReturnValue("./data"),
   } as unknown as ConfigService;
 
-  return new ImageCleanupService(configService);
+  return new ImageCleanupService(configService, prisma as PrismaService);
 };
 
 describe("ImageCleanupService", () => {

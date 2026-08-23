@@ -8,6 +8,7 @@
     "tailwind:build": "tailwindcss -i ./src/styles/tailwind.css -o ./public/css/app.css --minify",
     "tailwind:watch": "tailwindcss -i ./src/styles/tailwind.css -o ./public/css/app.css --watch",
     "format": "biome format --write src test",
+    "postinstall": "prisma generate",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",

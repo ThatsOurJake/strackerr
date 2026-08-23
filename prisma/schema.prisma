@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum MediaType {
+  TV_SHOW
+  TV_EPISODE
+  MOVIE
+  GAME
+  BOARD_GAME
+  MUSIC_TRACK
+}
+
+enum LogSource {
+  MANUAL
+  API
+}
+
+model User {
+  id           String            @id @default(cuid())
+  username     String            @unique
+  passwordHash String
+  apiKey       String            @unique @default(cuid())
+  isAdmin      Boolean           @default(false)
+  createdAt    DateTime          @default(now())
+  metadataKeys UserMetadataKey[]
+  skeletons    MediaItem[]       @relation("SkeletonOwner")
+  logEntries   LogEntry[]
+  settings     UserSetting[]
+  apiKeys      ApiKey[]
+}
+
+model UserMetadataKey {
+  id       String @id @default(cuid())
+  userId   String
+  provider String
+  keyEnc   String
+  keyIv    String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+}
+
+model MediaItem {
+  id              String            @id @default(cuid())
+  type            MediaType
+  title           String
+  sortTitle       String
+  isSkeleton      Boolean           @default(false)
+  createdByUserId String?
+  parentId        String?
+  seasonNumber    Int?
+  episodeNumber   Int?
+  description     String?
+  imageUrl        String?
+  imageSourceUrl  String?
+  year            Int?
+  duration        Int?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  createdByUser   User?             @relation("SkeletonOwner", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  parent          MediaItem?        @relation("EpisodeShow", fields: [parentId], references: [id], onDelete: SetNull)
+  episodes        MediaItem[]       @relation("EpisodeShow")
+  aliases         MediaAlias[]
+  externalIds     MediaExternalId[]
+  logEntries      LogEntry[]
+  cachedImages    CachedImage[]
+}
+
+model MediaAlias {
+  id          String    @id @default(cuid())
+  mediaItemId String
+  alias       String    @unique
+  mediaItem   MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+}
+
+model MediaExternalId {
+  id          String    @id @default(cuid())
+  mediaItemId String
+  provider    String
+  externalId  String
+  mediaItem   MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, externalId])
+}
+
+model LogEntry {
+  id          String    @id @default(cuid())
+  userId      String
+  mediaItemId String
+  loggedAt    DateTime
+  duration    Int?
+  platform    String?
+  playerCount Int?
+  won         Boolean?
+  source      LogSource @default(MANUAL)
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaItem   MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+
+  @@index([userId, loggedAt])
+  @@index([userId, mediaItemId, loggedAt])
+}
+
+model UserSetting {
+  id     String @id @default(cuid())
+  userId String
+  key    String
+  value  String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String?
+  keyHash   String   @unique
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CachedImage {
+  id          String    @id @default(cuid())
+  mediaItemId String
+  localPath   String
+  sourceUrl   String
+  createdAt   DateTime  @default(now())
+  mediaItem   MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+
+  @@unique([mediaItemId, sourceUrl])
+}

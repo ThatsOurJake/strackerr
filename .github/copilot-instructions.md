@@ -13,6 +13,8 @@ Apply these standards for all implementation work in this repository.
 - Prefer arrow functions (() => {}) over function declarations.
 - Use clear, domain-meaningful names for variables, functions, and files.
 - Avoid unnecessary abstractions and deep nesting.
+- Prefer async and await over promises
+- Avoid one line `if` statements (`if (x) return true;`)
 
 ## Project Structure
 - Split code by primary responsibility.
