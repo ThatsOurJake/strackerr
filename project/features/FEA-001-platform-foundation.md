@@ -15,10 +15,10 @@ STrackerr can be booted, developed, deployed, and operated with the shared infra
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-001](../backlog/todo/TICKET-001.md) | Project scaffold |
-| [TICKET-003](../backlog/todo/TICKET-003.md) | Docker and deployment setup |
-| [TICKET-032](../backlog/todo/TICKET-032.md) | Background job foundation |
-| [TICKET-033](../backlog/todo/TICKET-033.md) | Application cache infrastructure |
+| [TICKET-001](../backlog/done/TICKET-001.md) | Project scaffold |
+| [TICKET-003](../backlog/done/TICKET-003.md) | Docker and deployment setup |
+| [TICKET-032](../backlog/done/TICKET-032.md) | Background job foundation |
+| [TICKET-033](../backlog/done/TICKET-033.md) | Application cache infrastructure |
 
 ## Done Signal
 - The app runs locally in development.

@@ -14,9 +14,9 @@ STrackerr has a stable persistence model and core services for media items and u
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-002](../backlog/todo/TICKET-002.md) | Prisma schema and initial migration |
-| [TICKET-007](../backlog/todo/TICKET-007.md) | Media module |
-| [TICKET-008](../backlog/todo/TICKET-008.md) | Log entry module |
+| [TICKET-002](../backlog/done/TICKET-002.md) | Prisma schema and initial migration |
+| [TICKET-007](../backlog/done/TICKET-007.md) | Media module |
+| [TICKET-008](../backlog/done/TICKET-008.md) | Log entry module |
 
 ## Done Signal
 - Database schema supports all planned media types and user activity.

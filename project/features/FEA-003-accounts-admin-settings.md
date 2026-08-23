@@ -19,10 +19,10 @@ Users can register, sign in, manage account-level settings, and admins can manag
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-004](../backlog/todo/TICKET-004.md) | Authentication module |
-| [TICKET-005](../backlog/todo/TICKET-005.md) | Admin user management |
-| [TICKET-006](../backlog/todo/TICKET-006.md) | Encryption service and user settings |
-| [TICKET-010](../backlog/todo/TICKET-010.md) | Login and register pages |
+| [TICKET-004](../backlog/done/TICKET-004.md) | Authentication module |
+| [TICKET-005](../backlog/done/TICKET-005.md) | Admin user management |
+| [TICKET-006](../backlog/done/TICKET-006.md) | Encryption service and user settings |
+| [TICKET-010](../backlog/done/TICKET-010.md) | Login and register pages |
 
 ## Done Signal
 - Authenticated and unauthenticated routes behave correctly.
