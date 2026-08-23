@@ -1,0 +1,16 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: file:./data/prod.db
+      ENCRYPTION_KEY: change-me-32-byte-hex
+      JWT_SECRET: change-me-jwt-secret
+      PORT: 3000
+      NODE_ENV: production
+      DATA_DIR: ./data
+    volumes:
+      - ./data:/app/data

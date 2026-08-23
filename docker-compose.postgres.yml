@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: strackerr
+      POSTGRES_USER: strackerr
+      POSTGRES_PASSWORD: strackerr
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U strackerr -d strackerr"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://strackerr:strackerr@db:5432/strackerr?schema=public
+
+volumes:
+  postgres_data:

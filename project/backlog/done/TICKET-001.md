@@ -68,5 +68,5 @@ DATA_DIR=./data        # root for SQLite db file and cached images
 - [ ] `pnpm run tailwind:build` compiles Tailwind to `public/css/app.css`
 - [ ] `pnpm run lint` (Biome) passes with no errors
 - [ ] `.env.example` is present and documents all variables including `DATA_DIR`
-- [ ] `fuse.js` and `sharp` installed as npm dependencies
+- [x] `fuse.js` and `sharp` installed as npm dependencies
 - [ ] ECharts, Lucide, and Google Fonts loaded via CDN in the base layout `<head>`

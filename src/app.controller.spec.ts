@@ -15,8 +15,13 @@ describe("AppController", () => {
 	});
 
 	describe("root", () => {
-		it('should return "Hello World!"', () => {
-			expect(appController.getHello()).toBe("Hello World!");
+		it("should return home view model", () => {
+			expect(appController.getHome()).toEqual({
+				title: "STrackerr - Home",
+				heading: "STrackerr",
+				description:
+					"Platform foundation is configured and ready for feature work.",
+			});
 		});
 	});
 });

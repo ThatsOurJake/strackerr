@@ -1,7 +1,9 @@
 import type { INestApplication } from "@nestjs/common";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { Test, type TestingModule } from "@nestjs/testing";
 import request from "supertest";
 import type { App } from "supertest/types";
+import { configureApp } from "../src/app.bootstrap";
 import { AppModule } from "./../src/app.module";
 
 describe("AppController (e2e)", () => {
@@ -13,6 +15,7 @@ describe("AppController (e2e)", () => {
 		}).compile();
 
 		app = moduleFixture.createNestApplication();
+		configureApp(app as NestExpressApplication);
 		await app.init();
 	});
 
@@ -20,7 +23,10 @@ describe("AppController (e2e)", () => {
 		return request(app.getHttpServer())
 			.get("/")
 			.expect(200)
-			.expect("Hello World!");
+			.expect((response) => {
+				expect(response.text).toContain("STrackerr");
+				expect(response.text).toContain("Platform foundation is configured");
+			});
 	});
 
 	afterEach(async () => {
