@@ -8,7 +8,7 @@ export class AppService {
     description: string;
   } {
     return {
-      title: "STrackerr - Home",
+      title: "Home",
       heading: "STrackerr",
       description:
         "Platform foundation is configured and ready for feature work.",

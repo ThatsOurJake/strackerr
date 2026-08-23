@@ -1,0 +1,11 @@
+{{#if results.length}}
+<div class="rounded-lg border border-border-subtle bg-bg-elevated p-1">
+  {{#each results}}
+  <a href="/collection/{{type}}/{{id}}" class="block rounded px-3 py-2 text-sm hover:bg-bg-surface">{{title}} <span
+      class="text-xs text-text-secondary">{{type}}</span></a>
+  {{/each}}
+  <a href="/search?q={{query}}"
+    class="block border-t border-border-subtle px-3 py-2 text-xs text-text-secondary hover:text-text-primary">See all
+    results</a>
+</div>
+{{/if}}

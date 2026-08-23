@@ -19,8 +19,8 @@ The web UI has a shared shell that every page can extend, including navigation, 
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-009](../backlog/todo/TICKET-009.md) | Base layout and navigation |
-| [TICKET-018](../backlog/todo/TICKET-018.md) | Global search |
+| [TICKET-009](../backlog/done/TICKET-009.md) | Base layout and navigation |
+| [TICKET-018](../backlog/done/TICKET-018.md) | Global search |
 
 ## Done Signal
 - All later web views can render inside the shared layout.

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{title}} — STrackerr</title>
+  <title>STrackerr - {{title}}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -24,23 +24,9 @@
 
 <body class="min-h-screen bg-bg-base font-body text-text-primary">
   {{#if user}}
-  <nav class="border-b border-border bg-bg-surface">
-    <div class="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
-      <div class="text-heading font-heading font-semibold">
-        <a href="/" class="transition hover:text-type-tv">STrackerr</a>
-      </div>
-      <div class="flex items-center gap-4">
-        <a href="/settings" class="text-body transition hover:text-type-tv">Settings</a>
-        {{#if user.isAdmin}}
-        <a href="/admin/users" class="text-body transition hover:text-type-tv">Admin</a>
-        {{/if}}
-        <form method="POST" action="/auth/logout" style="display: inline;">
-          <button type="submit" class="text-body transition hover:text-type-tv">Logout</button>
-        </form>
-      </div>
-    </div>
-  </nav>
-  <main class="mx-auto max-w-4xl px-4 py-8">
+  {{> nav}}
+  {{> flash}}
+  <main class="min-h-screen px-4 py-6 md:ml-56 md:px-6 md:py-8">
     {{{body}}}
   </main>
   {{else}}
@@ -48,6 +34,19 @@
     {{{body}}}
   </main>
   {{/if}}
+  <script>
+    document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const isDark = document.documentElement.classList.toggle("dark");
+        localStorage.setItem("theme", isDark ? "dark" : "light");
+      });
+    });
+    document.querySelectorAll("[data-menu-toggle]").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelector("[data-mobile-drawer]")?.classList.toggle("hidden");
+      });
+    });
+  </script>
 </body>
 
 </html>

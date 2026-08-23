@@ -1,0 +1,15 @@
+{{#if flash.success}}
+<div
+  class="flash-message fixed right-4 top-4 z-50 rounded-lg border border-green-500/40 bg-green-500/15 px-4 py-3 text-sm text-green-400">
+  {{flash.success}}</div>
+{{/if}}
+{{#if flash.error}}
+<div
+  class="flash-message fixed right-4 top-4 z-50 rounded-lg border border-red-500/40 bg-red-500/15 px-4 py-3 text-sm text-red-400">
+  {{flash.error}}</div>
+{{/if}}
+<script>
+  document.querySelectorAll(".flash-message").forEach((message) => {
+    setTimeout(() => message.remove(), 4000);
+  });
+</script>

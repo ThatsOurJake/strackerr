@@ -1,0 +1,10 @@
+<form action="/search" method="GET" class="relative" role="search">
+  <label for="global-search" class="sr-only">Search</label>
+  <input id="global-search" name="q" type="search" minlength="3" value="{{query}}" placeholder="Search..."
+    autocomplete="off"
+    class="w-full rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-type-game"
+    hx-get="/search/partial" hx-trigger="keyup changed delay:300ms" hx-target="#search-dropdown"
+    hx-indicator="#search-indicator" />
+  <span id="search-indicator" class="htmx-indicator absolute right-3 top-2 text-xs text-text-secondary">...</span>
+  <div id="search-dropdown" class="absolute left-0 right-0 top-full z-50 mt-1"></div>
+</form>

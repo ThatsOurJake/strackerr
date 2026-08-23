@@ -1,0 +1,40 @@
+<aside class="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-border-subtle bg-bg-surface md:block">
+  <div class="flex h-full flex-col px-3 py-5">
+    <a href="/" class="mb-8 px-3 font-heading text-2xl font-extrabold tracking-tight text-type-game">STrackerr</a>
+    {{> search_bar}}
+    <nav class="mt-6 flex flex-1 flex-col gap-1" aria-label="Main navigation">
+      <a href="/" class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated">Dashboard</a>
+      <a href="/history" class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated">History</a>
+      <a href="/stats" class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated">Stats</a>
+      <a href="/collection" class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated">Collection</a>
+      <a href="/add" class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated">Add</a>
+      {{#if user.isAdmin}}
+      <div class="my-3 border-t border-border-subtle"></div>
+      <a href="/admin/users" class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated">Users</a>
+      {{/if}}
+    </nav>
+    <div class="border-t border-border-subtle pt-3">
+      <div class="px-3 pb-2 text-xs text-text-secondary">{{user.username}}</div>
+      <a href="/settings" class="block rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated">Settings</a>
+      <form method="POST" action="/auth/logout">
+        <button type="submit" class="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-bg-elevated">Logout</button>
+      </form>
+      <button type="button" data-theme-toggle
+        class="mt-2 rounded-lg px-3 py-2 text-sm text-text-secondary hover:bg-bg-elevated">Toggle theme</button>
+    </div>
+  </div>
+</aside>
+<header class="flex items-center justify-between border-b border-border-subtle bg-bg-surface px-4 py-3 md:hidden">
+  <button type="button" data-menu-toggle class="rounded-lg p-2 hover:bg-bg-elevated"
+    aria-label="Open navigation">Menu</button>
+  <a href="/" class="font-heading text-xl font-extrabold text-type-game">STrackerr</a>
+  <button type="button" data-theme-toggle class="rounded-lg p-2 hover:bg-bg-elevated"
+    aria-label="Toggle theme">Theme</button>
+</header>
+<div data-mobile-drawer class="fixed inset-0 z-30 hidden bg-bg-base/95 p-6 md:hidden">
+  <nav class="mt-16 flex flex-col gap-2 text-lg" aria-label="Mobile navigation">
+    <a href="/">Dashboard</a><a href="/history">History</a><a href="/stats">Stats</a><a
+      href="/collection">Collection</a><a href="/add">Add</a><a href="/settings">Settings</a>
+    {{#if user.isAdmin}}<a href="/admin/users">Users</a>{{/if}}
+  </nav>
+</div>

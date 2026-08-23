@@ -1,18 +1,19 @@
 import { CacheModule } from "@nestjs/cache-manager";
-import { Module, MiddlewareConsumer, RequestMethod } from "@nestjs/common";
+import { MiddlewareConsumer, Module, RequestMethod } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ScheduleModule } from "@nestjs/schedule";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
+import { AuthModule } from "./auth/auth.module";
 import { AppCacheModule } from "./cache/app-cache.module";
 import { ImageCleanupService } from "./jobs/image-cleanup.service";
 import { LogModule } from "./log/log.module";
 import { MediaModule } from "./media/media.module";
-import { PrismaModule } from "./prisma/prisma.module";
-import { AuthModule } from "./auth/auth.module";
-import { UsersModule } from "./users/users.module";
 import { JwtCookieMiddleware } from "./middleware/jwt-cookie.middleware";
+import { PrismaModule } from "./prisma/prisma.module";
+import { SearchModule } from "./search/search.module";
+import { UsersModule } from "./users/users.module";
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { JwtCookieMiddleware } from "./middleware/jwt-cookie.middleware";
     UsersModule,
     MediaModule,
     LogModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [AppService, ImageCleanupService],
