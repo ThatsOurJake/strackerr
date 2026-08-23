@@ -50,14 +50,19 @@ const createPrismaMock = (): MediaPrismaMock => {
     },
   };
 
-  prisma.$transaction.mockImplementation(async (callback: (transaction: MediaPrismaMock) => unknown) => callback(prisma));
+  prisma.$transaction.mockImplementation(
+    async (callback: (transaction: MediaPrismaMock) => unknown) =>
+      callback(prisma),
+  );
 
   return prisma;
 };
 
 describe("MediaService", () => {
   it("normalizes aliases and computes sort titles", () => {
-    expect(MediaService.normaliseAlias("  Severance (2022) ")).toBe("severance");
+    expect(MediaService.normaliseAlias("  Severance (2022) ")).toBe(
+      "severance",
+    );
     expect(MediaService.computeSortTitle("The Office")).toBe("office");
     expect(MediaService.computeSortTitle("A Bug's Life")).toBe("bug's life");
     expect(MediaService.computeSortTitle("進撃の巨人")).toBe("#進撃の巨人");
@@ -72,8 +77,16 @@ describe("MediaService", () => {
     prisma.mediaItem.create.mockResolvedValue(mediaItem);
     const service = new MediaService(prisma as unknown as PrismaService);
 
-    const created = await service.findOrCreateSkeleton("The Office", MediaType.TV_SHOW, "user-1");
-    const existing = await service.findOrCreateSkeleton("the office", MediaType.TV_SHOW, "user-1");
+    const created = await service.findOrCreateSkeleton(
+      "The Office",
+      MediaType.TV_SHOW,
+      "user-1",
+    );
+    const existing = await service.findOrCreateSkeleton(
+      "the office",
+      MediaType.TV_SHOW,
+      "user-1",
+    );
 
     expect(created).toEqual(mediaItem);
     expect(existing).toEqual(mediaItem);
@@ -102,8 +115,12 @@ describe("MediaService", () => {
     prisma.mediaItem.findUniqueOrThrow.mockResolvedValue(mediaItem);
     const service = new MediaService(prisma as unknown as PrismaService);
 
-    await expect(service.findByExternalId("tmdb", "123")).resolves.toEqual(mediaItem);
-    await expect(service.addExternalId("media-1", "tmdb", "123")).resolves.toEqual(mediaItem);
+    await expect(service.findByExternalId("tmdb", "123")).resolves.toEqual(
+      mediaItem,
+    );
+    await expect(
+      service.addExternalId("media-1", "tmdb", "123"),
+    ).resolves.toEqual(mediaItem);
     expect(prisma.mediaExternalId.upsert).toHaveBeenCalledWith({
       where: { provider_externalId: { provider: "tmdb", externalId: "123" } },
       create: { mediaItemId: "media-1", provider: "tmdb", externalId: "123" },

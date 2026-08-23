@@ -52,7 +52,7 @@ export class LogService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: EventEmitter2,
-  ) { }
+  ) {}
 
   async create(
     dto: CreateLogData,
@@ -68,11 +68,17 @@ export class LogService {
       throw new BadRequestException("Media item not found");
     }
 
-    if (mediaItem.type === MediaType.GAME && (!dto.platform || dto.duration === undefined)) {
+    if (
+      mediaItem.type === MediaType.GAME &&
+      (!dto.platform || dto.duration === undefined)
+    ) {
       throw new BadRequestException("Games require duration and platform");
     }
 
-    if (type === MediaType.TV_EPISODE && mediaItem.type !== MediaType.TV_EPISODE) {
+    if (
+      type === MediaType.TV_EPISODE &&
+      mediaItem.type !== MediaType.TV_EPISODE
+    ) {
       throw new BadRequestException("Media item must be a TV episode");
     }
 

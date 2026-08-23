@@ -16,7 +16,9 @@ const readdirMock = readdir as unknown as jest.Mock<
 >;
 const rmMock = rm as jest.MockedFunction<typeof rm>;
 
-const createService = (prisma: Partial<PrismaService> = {}): ImageCleanupService => {
+const createService = (
+  prisma: Partial<PrismaService> = {},
+): ImageCleanupService => {
   const configService = {
     get: jest.fn().mockReturnValue("./data"),
   } as unknown as ConfigService;

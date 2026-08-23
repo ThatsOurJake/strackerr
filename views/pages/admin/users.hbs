@@ -1,0 +1,86 @@
+{{#if success}}
+<div class="mb-6 rounded border-l-1.5 border-l-type-game bg-green-900 bg-opacity-20 p-4 text-text-primary">
+  {{success}}
+</div>
+{{/if}}
+
+{{#if error}}
+<div class="mb-6 rounded border-l-1.5 border-l-type-movie bg-red-900 bg-opacity-20 p-4 text-text-primary">
+  {{error}}
+</div>
+{{/if}}
+
+<div class="mb-8">
+  <h1 class="mb-6 text-display font-heading">User Management</h1>
+
+  <div class="mb-6 rounded border border-border bg-bg-surface p-4">
+    <h2 class="mb-4 text-subheading font-heading">Create New User</h2>
+    <form method="POST" action="/admin/users" class="space-y-4">
+      <div>
+        <label for="username" class="mb-2 block text-subheading font-heading">Username</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          required
+          class="w-full rounded border border-border bg-bg-base px-3 py-2 font-body text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-type-tv" />
+      </div>
+      <div>
+        <label for="password" class="mb-2 block text-subheading font-heading">Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          required
+          minlength="8"
+          class="w-full rounded border border-border bg-bg-base px-3 py-2 font-body text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-type-tv" />
+      </div>
+      <button
+        type="submit"
+        class="rounded bg-type-tv px-4 py-2 font-heading font-semibold text-white transition hover:opacity-90">
+        Create User
+      </button>
+    </form>
+  </div>
+
+  <div>
+    <h2 class="mb-4 text-subheading font-heading">All Users</h2>
+    {{#if users}}
+    <div class="space-y-2">
+      {{#each users}}
+      <div class="flex items-center justify-between rounded border border-border bg-bg-surface p-4">
+        <div class="flex-1">
+          <div class="text-body font-heading font-semibold">{{this.username}}</div>
+          <div class="text-meta text-text-secondary">ID: {{this.id}}</div>
+          {{#if this.isAdmin}}
+          <div class="mt-1 inline-block rounded bg-type-tv px-2 py-1 text-badge font-heading tracking-wide text-white uppercase">
+            Admin
+          </div>
+          {{/if}}
+        </div>
+        <div class="flex gap-2">
+          {{#unless (eq this.id ../currentUserId)}}
+          <button
+            hx-delete="/admin/users/{{this.id}}"
+            hx-confirm="Are you sure you want to delete this user?"
+            hx-target="body"
+            class="rounded bg-type-movie px-3 py-2 text-badge font-heading text-white transition hover:opacity-90">
+            Delete
+          </button>
+          {{/unless}}
+          <button
+            hx-get="/admin/users/{{this.id}}/change-password"
+            hx-target="closest div"
+            hx-swap="outerHTML"
+            class="rounded bg-type-game px-3 py-2 text-badge font-heading text-white transition hover:opacity-90">
+            Change Password
+          </button>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+    {{else}}
+    <p class="text-body text-text-secondary">No users found.</p>
+    {{/if}}
+  </div>
+</div>

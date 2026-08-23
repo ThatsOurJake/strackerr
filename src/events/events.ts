@@ -1,23 +1,23 @@
 export interface ShowIdentifiedEvent {
-	mediaItemId: string;
-	provider: string;
-	externalId: string;
-	userApiKey?: string;
+  mediaItemId: string;
+  provider: string;
+  externalId: string;
+  userApiKey?: string;
 }
 
 export interface ImageCacheRequestEvent {
-	mediaItemId: string;
-	sourceUrl: string;
+  mediaItemId: string;
+  sourceUrl: string;
 }
 
 export interface MediaItemChangedEvent {
-	userId: string;
+  userId: string;
 }
 
 export interface MediaItemDeletedEvent {
-	mediaItemId: string;
+  mediaItemId: string;
 }
 
 export interface LogEntryChangedEvent {
-	userId: string;
+  userId: string;
 }

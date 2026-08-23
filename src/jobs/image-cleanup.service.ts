@@ -12,7 +12,7 @@ export class ImageCleanupService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async cleanupOrphanedImages(): Promise<void> {

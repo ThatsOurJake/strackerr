@@ -25,11 +25,17 @@ describe("AppCacheService", () => {
   it("set registers key under user", async () => {
     await service.set("history:u1:1", { value: true }, 300, "u1");
 
-    expect(cacheMock.set).toHaveBeenCalledWith("history:u1:1", { value: true }, 300);
+    expect(cacheMock.set).toHaveBeenCalledWith(
+      "history:u1:1",
+      { value: true },
+      300,
+    );
 
-    const trackedKeys = (service as unknown as {
-      userKeys: Map<string, Set<string>>;
-    }).userKeys;
+    const trackedKeys = (
+      service as unknown as {
+        userKeys: Map<string, Set<string>>;
+      }
+    ).userKeys;
     expect(trackedKeys.get("u1")?.has("history:u1:1")).toBe(true);
   });
 
@@ -51,9 +57,11 @@ describe("AppCacheService", () => {
     expect(cacheMock.del).toHaveBeenCalledWith("history:u1:1");
     expect(cacheMock.del).toHaveBeenCalledWith("dashboard:u1");
 
-    const trackedKeys = (service as unknown as {
-      userKeys: Map<string, Set<string>>;
-    }).userKeys;
+    const trackedKeys = (
+      service as unknown as {
+        userKeys: Map<string, Set<string>>;
+      }
+    ).userKeys;
     expect(trackedKeys.has("u1")).toBe(false);
   });
 
@@ -63,9 +71,11 @@ describe("AppCacheService", () => {
     await service.onLogEntryChanged({ userId: "u1" });
 
     expect(cacheMock.del).toHaveBeenCalledWith("stats:u1:2026");
-    const trackedKeys = (service as unknown as {
-      userKeys: Map<string, Set<string>>;
-    }).userKeys;
+    const trackedKeys = (
+      service as unknown as {
+        userKeys: Map<string, Set<string>>;
+      }
+    ).userKeys;
     expect(trackedKeys.has("u1")).toBe(false);
   });
 });

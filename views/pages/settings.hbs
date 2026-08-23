@@ -1,0 +1,101 @@
+{{#if success}}
+<div class="mb-6 rounded border-l-1.5 border-l-type-game bg-green-900 bg-opacity-20 p-4 text-text-primary">
+  {{success}}
+  {{#if newApiKey}}
+  <div class="mt-3 rounded bg-bg-base p-3 font-mono text-body">
+    <div class="mb-2 text-text-secondary">API Key:</div>
+    <div class="break-all text-type-tv">{{newApiKey}}</div>
+  </div>
+  {{/if}}
+</div>
+{{/if}}
+
+{{#if error}}
+<div class="mb-6 rounded border-l-1.5 border-l-type-movie bg-red-900 bg-opacity-20 p-4 text-text-primary">
+  {{error}}
+</div>
+{{/if}}
+
+<div class="mb-8">
+  <h1 class="mb-6 text-display font-heading">Settings</h1>
+
+  <div class="mb-6 rounded border border-border bg-bg-surface p-4">
+    <h2 class="mb-4 text-subheading font-heading">Account</h2>
+    <div class="mb-4">
+      <span class="text-body text-text-secondary">Username:</span>
+      <span class="ml-2 text-body font-semibold">{{username}}</span>
+    </div>
+    <button hx-post="/settings/api-key/regenerate" hx-target="body"
+      class="rounded bg-type-tv px-4 py-2 font-heading font-semibold text-white transition hover:opacity-90">
+      Regenerate API Key
+    </button>
+  </div>
+
+  <div class="mb-6 rounded border border-border bg-bg-surface p-4">
+    <h2 class="mb-4 text-subheading font-heading">Metadata Provider Keys</h2>
+    <p class="mb-4 text-body text-text-secondary">
+      TMDB uses an API key. IGDB uses a Twitch client ID and client secret. Credentials are encrypted and never
+      displayed after saving.
+    </p>
+
+    {{#if providerKeys}}
+    <div class="mb-6 space-y-2">
+      {{#each providerKeys}}
+      <div class="flex items-center justify-between rounded border border-border bg-bg-base p-3">
+        <span class="text-body font-semibold uppercase">{{this.provider}}</span>
+        <button hx-delete="/settings/provider-key/{{this.provider}}" hx-confirm="Remove {{this.provider}} credentials?"
+          hx-target="body"
+          class="rounded bg-type-movie px-3 py-1 text-badge font-heading text-white transition hover:opacity-90">
+          Remove
+        </button>
+      </div>
+      {{/each}}
+    </div>
+    {{/if}}
+
+    <div class="grid gap-4 md:grid-cols-2">
+      <form method="POST" action="/settings/provider-key/tmdb" class="space-y-4 rounded bg-bg-base p-4">
+        <h3 class="text-subheading font-heading">TMDB</h3>
+        <div>
+          <label for="tmdbKey" class="mb-2 block text-subheading font-heading">API Key</label>
+          <input type="password" id="tmdbKey" name="key" required
+            class="w-full rounded border border-border bg-bg-base px-3 py-2 font-body text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-type-tv"
+            placeholder="Paste your API key here" />
+        </div>
+        <button type="submit"
+          class="rounded bg-type-game px-4 py-2 font-heading font-semibold text-white transition hover:opacity-90">
+          Save TMDB Key
+        </button>
+      </form>
+
+      <form method="POST" action="/settings/provider-key/igdb" class="space-y-4 rounded bg-bg-base p-4">
+        <h3 class="text-subheading font-heading">IGDB</h3>
+        <div>
+          <label for="igdbClientId" class="mb-2 block text-subheading font-heading">Client ID</label>
+          <input type="text" id="igdbClientId" name="clientId" required
+            class="w-full rounded border border-border bg-bg-base px-3 py-2 font-body text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-type-tv" />
+        </div>
+        <div>
+          <label for="igdbClientSecret" class="mb-2 block text-subheading font-heading">Client Secret</label>
+          <input type="password" id="igdbClientSecret" name="clientSecret" required
+            class="w-full rounded border border-border bg-bg-base px-3 py-2 font-body text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-type-tv" />
+        </div>
+        <button type="submit"
+          class="rounded bg-type-game px-4 py-2 font-heading font-semibold text-white transition hover:opacity-90">
+          Save IGDB Credentials
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="rounded border border-border bg-bg-surface p-4">
+    <h2 class="mb-4 text-subheading font-heading">Cache Management</h2>
+    <p class="mb-4 text-body text-text-secondary">
+      Clears all cached data for your account, including history, dashboard stats, and search indexes.
+    </p>
+    <button hx-post="/settings/cache/clear" hx-confirm="Clear all caches? This may take a moment." hx-target="body"
+      class="rounded bg-type-music px-4 py-2 font-heading font-semibold text-white transition hover:opacity-90">
+      Clear All Caches
+    </button>
+  </div>
+</div>

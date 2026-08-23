@@ -8,7 +8,7 @@ import type { LogEntryChangedEvent } from "../events/events";
 export class AppCacheService {
   private readonly userKeys = new Map<string, Set<string>>();
 
-  constructor(private readonly cacheManager: Cache) { }
+  constructor(private readonly cacheManager: Cache) {}
 
   async set(
     key: string,

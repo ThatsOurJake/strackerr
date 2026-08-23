@@ -28,7 +28,7 @@ export type UpdateMediaData = Partial<
 
 @Injectable()
 export class MediaService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async findOrCreateSkeleton(
     title: string,
@@ -128,12 +128,11 @@ export class MediaService {
     provider: string,
     externalId: string,
   ): Promise<MediaItem> {
-    const result = await this.prisma.mediaExternalId
-      .upsert({
-        where: { provider_externalId: { provider, externalId } },
-        create: { mediaItemId, provider, externalId },
-        update: { mediaItemId },
-      });
+    const result = await this.prisma.mediaExternalId.upsert({
+      where: { provider_externalId: { provider, externalId } },
+      create: { mediaItemId, provider, externalId },
+      update: { mediaItemId },
+    });
 
     return await this.prisma.mediaItem.findUniqueOrThrow({
       where: { id: result.mediaItemId },

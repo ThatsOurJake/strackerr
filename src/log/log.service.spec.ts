@@ -38,8 +38,10 @@ const createPrismaMock = (): LogPrismaMock => ({
   },
 });
 
-const createService = (prisma: LogPrismaMock, events: EventEmitter2): LogService =>
-  new LogService(prisma as unknown as PrismaService, events);
+const createService = (
+  prisma: LogPrismaMock,
+  events: EventEmitter2,
+): LogService => new LogService(prisma as unknown as PrismaService, events);
 
 const createEntry = (
   id: string,
@@ -99,7 +101,11 @@ describe("LogService", () => {
 
     await expect(
       service.create(
-        { mediaItemId: "show-1", loggedAt: new Date(), type: MediaType.TV_EPISODE },
+        {
+          mediaItemId: "show-1",
+          loggedAt: new Date(),
+          type: MediaType.TV_EPISODE,
+        },
         "user-1",
         LogSource.MANUAL,
       ),
@@ -146,7 +152,9 @@ describe("LogService", () => {
         duration: 120,
       },
     });
-    expect(events.emit).toHaveBeenCalledWith(Events.LOG_ENTRY_CHANGED, { userId: "user-1" });
+    expect(events.emit).toHaveBeenCalledWith(Events.LOG_ENTRY_CHANGED, {
+      userId: "user-1",
+    });
   });
 
   it("applies date and type filters", async () => {
@@ -156,7 +164,13 @@ describe("LogService", () => {
     const dateFrom = new Date("2026-08-01T00:00:00Z");
     const dateTo = new Date("2026-08-31T23:59:59Z");
 
-    await service.findByUser("user-1", { dateFrom, dateTo, type: MediaType.MOVIE, skip: 10, take: 5 });
+    await service.findByUser("user-1", {
+      dateFrom,
+      dateTo,
+      type: MediaType.MOVIE,
+      skip: 10,
+      take: 5,
+    });
 
     expect(prisma.logEntry.findMany).toHaveBeenCalledWith({
       where: {
@@ -184,7 +198,10 @@ describe("LogService", () => {
 
     expect(groups).toHaveLength(1);
     expect(groups[0].entries).toHaveLength(1);
-    expect(groups[0].musicGroup).toMatchObject({ trackCount: 2, totalDuration: 9 });
+    expect(groups[0].musicGroup).toMatchObject({
+      trackCount: 2,
+      totalDuration: 9,
+    });
   });
 
   it("emits a change event after deleting an entry", async () => {
@@ -195,6 +212,8 @@ describe("LogService", () => {
     const service = createService(prisma, events);
 
     await expect(service.delete("entry-1", "user-1")).resolves.toBe(entry);
-    expect(events.emit).toHaveBeenCalledWith(Events.LOG_ENTRY_CHANGED, { userId: "user-1" });
+    expect(events.emit).toHaveBeenCalledWith(Events.LOG_ENTRY_CHANGED, {
+      userId: "user-1",
+    });
   });
 });

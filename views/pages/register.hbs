@@ -1,0 +1,62 @@
+{{#if error}}
+<div class="mb-6 rounded border-l-1.5 border-l-type-movie bg-red-900 bg-opacity-20 p-4 text-text-primary">
+  {{error}}
+</div>
+{{/if}}
+
+<div class="w-full max-w-sm rounded border border-border bg-bg-surface p-8">
+  <h1 class="mb-2 text-center text-display font-heading">Create Account</h1>
+  <p class="mb-8 text-center text-body text-text-secondary">
+    This will create your admin account
+  </p>
+
+  <form method="POST" action="/auth/register" class="space-y-4">
+    <div>
+      <label for="username" class="mb-2 block text-subheading font-heading">Username</label>
+      <input type="text" id="username" name="username" required minlength="3"
+        class="w-full rounded border border-border bg-bg-base px-3 py-2 font-body text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-type-tv" />
+    </div>
+
+    <div>
+      <label for="password" class="mb-2 block text-subheading font-heading">Password</label>
+      <input type="password" id="password" name="password" required minlength="8"
+        class="w-full rounded border border-border bg-bg-base px-3 py-2 font-body text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-type-tv" />
+      <p class="mt-1 text-meta text-text-muted">Minimum 8 characters</p>
+    </div>
+
+    <div>
+      <label for="confirmPassword" class="mb-2 block text-subheading font-heading">Confirm Password</label>
+      <input type="password" id="confirmPassword" required minlength="8"
+        class="w-full rounded border border-border bg-bg-base px-3 py-2 font-body text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-type-tv" />
+    </div>
+
+    <button type="submit"
+      class="w-full rounded bg-type-game px-4 py-2 font-heading font-semibold text-white transition hover:opacity-90">
+      Create Account
+    </button>
+  </form>
+
+  <div class="mt-6 border-t border-border pt-6">
+    <p class="text-center text-body text-text-secondary">
+      Already have an account?
+      <a href="/login" class="font-semibold text-type-tv transition hover:opacity-90">Sign in</a>
+    </p>
+  </div>
+</div>
+
+<script>
+  (() => {
+    const form = document.querySelector("form");
+    if (!form) return;
+
+    form.addEventListener("submit", (e) => {
+      const password = document.querySelector("#password").value;
+      const confirmPassword = document.querySelector("#confirmPassword").value;
+
+      if (password !== confirmPassword) {
+        e.preventDefault();
+        alert("Passwords do not match");
+      }
+    });
+  })();
+</script>

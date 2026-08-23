@@ -6,3 +6,5 @@ coverage
 .env
 .env.*
 data
+notes.txt
+dev.db
