@@ -4,11 +4,15 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 import hbs from "hbs";
 
-export const configureApp = (app: NestExpressApplication): void => {
+export const configureApp = async (
+  app: NestExpressApplication,
+): Promise<void> => {
   const viewsPath = join(process.cwd(), "views");
   const pagesPath = join(viewsPath, "pages");
 
-  hbs.registerPartials(join(viewsPath, "partials"));
+  await new Promise<void>((resolve) => {
+    hbs.registerPartials(join(viewsPath, "partials"), resolve);
+  });
   hbs.registerHelper("eq", (left: unknown, right: unknown) => left === right);
 
   app.use(cookieParser());

@@ -7,6 +7,7 @@ import { AppCacheModule } from "./infrastructure/cache/app-cache.module";
 import { PrismaModule } from "./infrastructure/database/prisma.module";
 import { ImageCleanupService } from "./infrastructure/jobs/image-cleanup.service";
 import { LogModule } from "./infrastructure/logging/log.module";
+import { LogModule as ActivityLogModule } from "./modules/activity/log.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { JwtCookieMiddleware } from "./modules/auth/middleware/jwt-cookie.middleware";
 import { MediaModule } from "./modules/media/media.module";
@@ -25,6 +26,7 @@ import { WebModule } from "./web/web.module";
     AuthModule,
     UsersModule,
     MediaModule,
+    ActivityLogModule,
     LogModule,
     SearchModule,
     WebModule,

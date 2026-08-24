@@ -1,0 +1,24 @@
+<div class="mx-auto max-w-4xl">
+  <div class="mb-8 flex items-center justify-between gap-4">
+    <h1 class="font-heading text-3xl font-extrabold tracking-tight">History</h1>
+    <a href="/add"
+      class="inline-flex items-center gap-2 rounded-lg bg-type-game px-4 py-2 font-heading text-sm font-semibold text-black active:scale-[0.98]">
+      <i data-lucide="plus" class="h-4 w-4"></i>Add entry
+    </a>
+  </div>
+  {{#if days.length}}
+  <div id="history-list">{{> history_days}}</div>
+  <div id="history-pagination" class="mt-2 flex justify-center">
+    {{#if hasMore}}
+    <button type="button" hx-get="/history/partial?page={{nextPage}}" hx-target="#history-list" hx-swap="beforeend"
+      hx-indicator="#history-spinner"
+      class="rounded-lg border border-border-subtle bg-bg-elevated px-4 py-2 font-heading text-sm font-semibold transition-transform active:scale-[0.98]">
+      Load more
+      <span id="history-spinner" class="htmx-indicator ml-2">Loading...</span>
+    </button>
+    {{/if}}
+  </div>
+  {{else}}
+  {{> empty_history}}
+  {{/if}}
+</div>

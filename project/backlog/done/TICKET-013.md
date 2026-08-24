@@ -6,7 +6,7 @@
 Render the statistics page with time breakdowns per media type, an activity chart, and a top items list — scoped to a set of predefined time periods.
 
 ## Predefined Periods
-Stats are scoped to one of these fixed slugs only. Unrecognised slugs redirect to `this-year`.
+Stats are scoped to one of these fixed slugs only. Unrecognised slugs redirect to `this-week`.
 
 | Slug | Label | Date Range |
 |---|---|---|
@@ -21,7 +21,7 @@ Stats are scoped to one of these fixed slugs only. Unrecognised slugs redirect t
 
 ## Scope
 - `StatsController`:
-  - `GET /stats?period={slug}` — defaults to `this-year`; redirects to `this-year` on unrecognised slug
+  - `GET /stats?period={slug}` — defaults to `this-week`; redirects to `this-week` on unrecognised slug
 - `StatsService` methods:
   - `resolveDateRange(slug)` — returns `{ from: Date, to: Date } | null` (null = all-time)
   - `totalTimeByType(userId, range)` — returns `{ [MediaType]: minutes }` map
@@ -63,7 +63,7 @@ All bars flat colour (no gradients), no grid lines, ECharts tooltip styled to ma
 ## Acceptance Criteria
 - [ ] All stats reflect only the authenticated user's data
 - [ ] All 8 period slugs produce correct date-scoped results
-- [ ] Unrecognised `?period=` value redirects to `this-year`
+- [ ] Unrecognised `?period=` value redirects to `this-week`
 - [ ] Activity chart type matches the period (days / weeks / months / years)
 - [ ] Caching uses the slug as the key — no unbounded cache growth
 - [ ] Empty state shown when user has no entries for the selected period

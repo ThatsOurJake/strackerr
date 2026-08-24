@@ -1,0 +1,68 @@
+{{#each days}}
+<section class="mb-8" aria-labelledby="day-{{date}}">
+  <header class="mb-3 border-b border-border-subtle pb-3">
+    <div class="flex items-center justify-between gap-4">
+      <h2 id="day-{{date}}" class="font-heading text-base font-semibold text-text-primary">{{heading}}</h2>
+      <span class="flex shrink-0 items-center gap-1.5 text-xs text-text-secondary">
+        <i data-lucide="clock" class="h-4 w-4"></i>{{totalDuration}} total
+      </span>
+    </div>
+  </header>
+  <div class="grid gap-3">
+    {{#each entries}}
+    <a href="{{detailUrl}}"
+      class="group flex min-h-20 overflow-hidden rounded-lg border border-border-subtle bg-bg-surface transition-colors hover:bg-bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary">
+      <span class="w-1.5 shrink-0 bg-type-{{accent}}"></span>
+      <div class="flex min-w-0 flex-1 items-center gap-3 p-4">
+        <i data-lucide="{{icon}}" class="h-4 w-4 shrink-0 text-type-{{accent}}"></i>
+        <div class="min-w-0 flex-1">
+          <h3 class="truncate font-heading text-base font-bold text-text-primary">{{title}}</h3>
+          {{#if subtitle}}<p class="mt-0.5 truncate text-sm text-text-secondary">{{subtitle}}</p>{{/if}}
+          <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-text-secondary">
+            <span class="flex items-center gap-1"><i data-lucide="clock" class="h-3.5 w-3.5"></i>{{duration}}</span>
+            {{#if platform}}<span
+              class="rounded-full border border-type-game/40 bg-type-game/15 px-2 py-0.5 font-heading text-[11px] font-semibold uppercase tracking-wide text-type-game">{{platform}}</span>{{/if}}
+            {{#if playerCount}}<span>{{playerCount}} players</span>{{/if}}
+            {{#if wonLabel}}<span
+              class="font-heading text-[11px] font-semibold uppercase tracking-wide">{{wonLabel}}</span>{{/if}}
+          </div>
+        </div>
+        {{#if imageUrl}}
+        <img src="{{imageUrl}}" alt="" class="h-14 w-10 shrink-0 rounded object-cover" />
+        {{else}}
+        <span
+          class="flex h-14 w-10 shrink-0 items-center justify-center rounded bg-type-{{accent}}/20 text-type-{{accent}}">
+          <i data-lucide="{{icon}}" class="h-5 w-5"></i>
+        </span>
+        {{/if}}
+      </div>
+    </a>
+    {{/each}}
+    {{#if musicGroup}}
+    <div class="flex min-h-20 overflow-hidden rounded-lg border border-border-subtle bg-bg-surface">
+      <span class="w-1.5 shrink-0 bg-type-music"></span>
+      <div class="flex items-center gap-3 p-4">
+        <i data-lucide="music" class="h-4 w-4 text-type-music"></i>
+        <div>
+          <h3 class="font-heading text-base font-bold">{{musicGroup.trackCount}} tracks</h3>
+          <span class="mt-2 flex items-center gap-1 text-xs text-text-secondary"><i data-lucide="clock"
+              class="h-3.5 w-3.5"></i>{{musicGroup.totalDuration}}</span>
+        </div>
+      </div>
+    </div>
+    {{/if}}
+  </div>
+</section>
+{{/each}}
+{{#unless isInitial}}
+<div id="history-pagination" hx-swap-oob="true" class="mt-2 flex justify-center">
+  {{#if hasMore}}
+  <button type="button" hx-get="/history/partial?page={{nextPage}}" hx-target="#history-list" hx-swap="beforeend"
+    hx-indicator="#history-spinner"
+    class="rounded-lg border border-border-subtle bg-bg-elevated px-4 py-2 font-heading text-sm font-semibold transition-transform active:scale-[0.98]">
+    Load more
+    <span id="history-spinner" class="htmx-indicator ml-2">Loading...</span>
+  </button>
+  {{/if}}
+</div>
+{{/unless}}

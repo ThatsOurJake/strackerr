@@ -1,0 +1,35 @@
+<div class="mx-auto max-w-5xl">
+  <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="mb-1 font-heading text-xs font-semibold uppercase tracking-wide text-text-secondary">Last 7 days</p>
+      <h1 class="font-heading text-3xl font-extrabold tracking-tight">Dashboard</h1>
+    </div>
+    <a href="/add"
+      class="inline-flex items-center gap-2 rounded-lg bg-type-game px-4 py-2 font-heading text-sm font-semibold text-black active:scale-[0.98]">
+      <i data-lucide="plus" class="h-4 w-4"></i>Add entry
+    </a>
+  </div>
+  {{#if hasActivity}}
+  <section aria-label="Quick stats"
+    class="mb-10 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border-subtle bg-border-subtle md:grid-cols-3 lg:grid-cols-6">
+    <div class="bg-bg-surface p-4">
+      <p class="font-heading text-[11px] font-semibold uppercase tracking-wide text-text-secondary">Sessions</p>
+      <p class="mt-2 font-heading text-3xl font-extrabold">{{sessionCount}}</p>
+    </div>
+    {{#each stats}}
+    <div class="bg-bg-surface p-4">
+      <div class="flex items-center gap-2 text-type-{{accent}}"><i data-lucide="{{icon}}" class="h-4 w-4"></i><span
+          class="font-heading text-[11px] font-semibold uppercase tracking-wide">{{label}}</span></div>
+      <p class="mt-2 font-heading text-xl font-bold">{{duration}}</p>
+    </div>
+    {{/each}}
+  </section>
+  <div class="mb-4 flex items-center justify-between">
+    <h2 class="font-heading text-xl font-bold">Recent activity</h2>
+    <a href="/history" class="text-sm text-text-secondary hover:text-text-primary">View full history &rarr;</a>
+  </div>
+  <div>{{> history_days isInitial=true}}</div>
+  {{else}}
+  {{> empty_history}}
+  {{/if}}
+</div>

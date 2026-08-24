@@ -24,17 +24,22 @@
 
 <body class="min-h-screen bg-bg-base font-body text-text-primary">
   {{#if user}}
-  {{> nav}}
   {{> flash}}
-  <main class="min-h-screen px-4 py-6 md:ml-56 md:px-6 md:py-8">
-    {{{body}}}
-  </main>
+  <div class="min-h-screen md:flex">
+    {{> nav}}
+    <main class="min-h-screen min-w-0 flex-1 px-4 py-6 md:px-6 md:py-8">
+      {{{body}}}
+    </main>
+  </div>
   {{else}}
   <main class="mx-auto flex min-h-screen max-w-4xl items-center justify-center px-4 py-8">
     {{{body}}}
   </main>
   {{/if}}
   <script>
+    const renderIcons = () => window.lucide?.createIcons();
+    document.addEventListener("DOMContentLoaded", renderIcons);
+    document.addEventListener("htmx:afterSwap", renderIcons);
     document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
       button.addEventListener("click", () => {
         const isDark = document.documentElement.classList.toggle("dark");

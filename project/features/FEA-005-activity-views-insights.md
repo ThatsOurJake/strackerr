@@ -16,9 +16,9 @@ Users can review recent activity, browse their full history, and understand time
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-011](../backlog/todo/TICKET-011.md) | History page |
-| [TICKET-012](../backlog/todo/TICKET-012.md) | Dashboard page |
-| [TICKET-013](../backlog/todo/TICKET-013.md) | Stats page |
+| [TICKET-011](../backlog/done/TICKET-011.md) | History page |
+| [TICKET-012](../backlog/done/TICKET-012.md) | Dashboard page |
+| [TICKET-013](../backlog/done/TICKET-013.md) | Stats page |
 
 ## Done Signal
 - Users can move from a high-level dashboard to detailed history and stats without losing user scoping.

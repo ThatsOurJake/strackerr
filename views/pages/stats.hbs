@@ -1,0 +1,70 @@
+<div class="mx-auto max-w-6xl">
+  <h1 class="font-heading text-3xl font-extrabold tracking-tight">Stats</h1>
+  <nav class="mt-6 flex gap-2 overflow-x-auto pb-2" aria-label="Stats period">
+    {{#each periods}}
+    <a href="/stats?period={{slug}}"
+      class="shrink-0 rounded-full border px-3 py-1.5 font-heading text-xs font-semibold {{#if active}}border-text-primary bg-text-primary text-bg-base{{else}}border-border-subtle bg-bg-surface text-text-secondary hover:bg-bg-elevated{{/if}}">{{label}}</a>
+    {{/each}}
+  </nav>
+  {{#if hasActivity}}
+  <div class="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.8fr)]">
+    <section>
+      <h2 class="mb-4 font-heading text-xl font-bold">Activity</h2>
+      <div id="activity-chart" class="h-72 w-full" data-chart='{{chartJson}}'></div>
+    </section>
+    <section>
+      <h2 class="mb-4 font-heading text-xl font-bold">Time by type</h2>
+      <div class="grid gap-4">
+        {{#each timeByType}}
+        <div>
+          <div class="mb-1.5 flex items-center justify-between gap-3 text-sm">
+            <span class="flex items-center gap-2 font-heading font-semibold text-type-{{accent}}"><i
+                data-lucide="{{icon}}" class="h-4 w-4"></i>{{label}}</span>
+            <span class="text-text-secondary">{{duration}}</span>
+          </div>
+          <div class="h-2 bg-bg-elevated">
+            <div class="h-full bg-type-{{accent}}" style="width: min(100%, calc({{minutes}} * 0.15%))"></div>
+          </div>
+        </div>
+        {{/each}}
+      </div>
+    </section>
+  </div>
+  <section class="mt-12">
+    <h2 class="mb-4 font-heading text-xl font-bold">Top items</h2>
+    <div class="divide-y divide-border-subtle border-y border-border-subtle">
+      {{#each topItems}}
+      <a href="{{detailUrl}}" class="flex items-center gap-3 px-2 py-3 hover:bg-bg-elevated">
+        {{#if imageUrl}}<img src="{{imageUrl}}" alt="" class="h-14 w-10 rounded object-cover" />{{else}}<span
+          class="flex h-14 w-10 items-center justify-center rounded bg-type-{{accent}}/20 text-type-{{accent}}"><i
+            data-lucide="{{icon}}" class="h-5 w-5"></i></span>{{/if}}
+        <div class="min-w-0 flex-1">
+          <h3 class="truncate font-heading font-bold">{{title}}</h3><span
+            class="mt-1 inline-block rounded-full border border-type-{{accent}}/40 bg-type-{{accent}}/15 px-2 py-0.5 font-heading text-[11px] font-semibold uppercase tracking-wide text-type-{{accent}}">{{label}}</span>
+        </div>
+        <span class="shrink-0 text-sm text-text-secondary">{{duration}}</span>
+      </a>
+      {{/each}}
+    </div>
+  </section>
+  {{else}}
+  <div class="mt-8">{{> empty_history}}</div>
+  {{/if}}
+</div>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const element = document.getElementById("activity-chart");
+    if (!element || !window.echarts) return;
+    const chartData = JSON.parse(element.dataset.chart);
+    const chart = echarts.init(element);
+    chart.setOption({
+      animationDuration: 300,
+      grid: { left: 40, right: 8, top: 12, bottom: 32 },
+      tooltip: { trigger: "axis", backgroundColor: "#242424", borderColor: "#2C2C2C", textStyle: { color: "#F0EDE8" } },
+      xAxis: { type: "category", data: chartData.labels, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: "#9CA3AF", fontSize: 11 } },
+      yAxis: { type: "value", splitLine: { show: false }, axisLine: { show: false }, axisLabel: { color: "#9CA3AF", formatter: (value) => `${value}m` } },
+      series: [{ type: "bar", data: chartData.values, itemStyle: { color: "#F0EDE8" }, barMaxWidth: 28 }],
+    });
+    window.addEventListener("resize", () => chart.resize());
+  });
+</script>
