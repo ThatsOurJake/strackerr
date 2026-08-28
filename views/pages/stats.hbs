@@ -35,7 +35,8 @@
     <div class="divide-y divide-border-subtle border-y border-border-subtle">
       {{#each topItems}}
       <a href="{{detailUrl}}" class="flex items-center gap-3 px-2 py-3 hover:bg-bg-elevated">
-        {{#if imageUrl}}<img src="{{imageUrl}}" alt="" class="h-14 w-10 rounded object-cover" />{{else}}<span
+        {{#if imageUrl}}<img src="{{thumbnailUrl imageUrl}}" alt=""
+          class="h-14 w-10 rounded object-cover" />{{else}}<span
           class="flex h-14 w-10 items-center justify-center rounded bg-type-{{accent}}/20 text-type-{{accent}}"><i
             data-lucide="{{icon}}" class="h-5 w-5"></i></span>{{/if}}
         <div class="min-w-0 flex-1">

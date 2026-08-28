@@ -5,6 +5,7 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ScheduleModule } from "@nestjs/schedule";
 import { AppCacheModule } from "./infrastructure/cache/app-cache.module";
 import { PrismaModule } from "./infrastructure/database/prisma.module";
+import { ImageCacheService } from "./infrastructure/jobs/image-cache.service";
 import { ImageCleanupService } from "./infrastructure/jobs/image-cleanup.service";
 import { LogModule } from "./infrastructure/logging/log.module";
 import { LogModule as ActivityLogModule } from "./modules/activity/log.module";
@@ -35,7 +36,7 @@ import { WebModule } from "./web/web.module";
     SearchModule,
     WebModule,
   ],
-  providers: [ImageCleanupService],
+  providers: [ImageCacheService, ImageCleanupService],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {

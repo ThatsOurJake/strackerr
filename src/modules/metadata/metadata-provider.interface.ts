@@ -21,6 +21,7 @@ export interface SearchResult {
 
 export interface MediaItemDetail extends SearchResult {
   duration?: number;
+  seasonCount?: number;
 }
 
 export interface Episode {
@@ -30,6 +31,7 @@ export interface Episode {
   description?: string;
   duration?: number;
   externalId?: string;
+  imageSourceUrl?: string;
 }
 
 export interface IMetadataProvider {

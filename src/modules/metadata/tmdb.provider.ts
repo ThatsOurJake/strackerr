@@ -18,6 +18,7 @@ interface TmdbItem {
   overview?: string;
   runtime?: number | null;
   episode_run_time?: number[];
+  number_of_seasons?: number;
 }
 
 interface TmdbEpisode {
@@ -27,6 +28,7 @@ interface TmdbEpisode {
   name: string;
   overview?: string;
   runtime?: number | null;
+  still_path?: string | null;
 }
 
 @Injectable()
@@ -81,6 +83,9 @@ export class TmdbProvider implements IMetadataProvider {
       description: episode.overview || undefined,
       duration: episode.runtime ?? undefined,
       externalId: `tmdb:${episode.id}`,
+      imageSourceUrl: episode.still_path
+        ? `${this.imageBaseUrl}${episode.still_path}`
+        : undefined,
     }));
   }
 
@@ -112,10 +117,7 @@ export class TmdbProvider implements IMetadataProvider {
     return (await response.json()) as T;
   }
 
-  private mapItem(
-    item: TmdbItem,
-    mediaType = this.mediaType,
-  ): MediaItemDetail {
+  private mapItem(item: TmdbItem, mediaType = this.mediaType): MediaItemDetail {
     const date = item.release_date ?? item.first_air_date;
     const prefix = mediaType === MediaType.MOVIE ? "movie" : "tv";
     return {
@@ -127,6 +129,7 @@ export class TmdbProvider implements IMetadataProvider {
         : undefined,
       description: item.overview || undefined,
       duration: item.runtime ?? item.episode_run_time?.[0] ?? undefined,
+      seasonCount: item.number_of_seasons,
       type: mediaType,
     };
   }

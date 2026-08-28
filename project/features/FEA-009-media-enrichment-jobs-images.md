@@ -17,8 +17,8 @@ Identified media is enriched asynchronously and external artwork is cached local
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-024](../backlog/todo/TICKET-024.md) | TV show episode sync background job |
-| [TICKET-031](../backlog/todo/TICKET-031.md) | Image cache service |
+| [TICKET-024](../backlog/done/TICKET-024.md) | TV show episode sync background job |
+| [TICKET-031](../backlog/done/TICKET-031.md) | Image cache service |
 
 ## Done Signal
 - Newly identified media can render local images instead of hotlinking provider artwork.

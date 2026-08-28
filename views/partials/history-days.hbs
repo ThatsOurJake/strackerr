@@ -28,7 +28,7 @@
           </div>
         </div>
         {{#if imageUrl}}
-        <img src="{{imageUrl}}" alt="" class="h-14 w-10 shrink-0 rounded object-cover" />
+        <img src="{{thumbnailUrl imageUrl}}" alt="" class="h-14 w-10 shrink-0 rounded object-cover" />
         {{else}}
         <span
           class="flex h-14 w-10 shrink-0 items-center justify-center rounded bg-type-{{accent}}/20 text-type-{{accent}}">

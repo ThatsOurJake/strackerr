@@ -69,6 +69,8 @@ model MediaItem {
   externalIds     MediaExternalId[]
   logEntries      LogEntry[]
   cachedImages    CachedImage[]
+
+  @@unique([parentId, seasonNumber, episodeNumber])
 }
 
 model MediaAlias {

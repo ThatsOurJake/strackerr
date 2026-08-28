@@ -14,9 +14,16 @@ export const configureApp = async (
     hbs.registerPartials(join(viewsPath, "partials"), resolve);
   });
   hbs.registerHelper("eq", (left: unknown, right: unknown) => left === right);
+  hbs.registerHelper("thumbnailUrl", (imageUrl: string) =>
+    imageUrl.startsWith("/img/")
+      ? imageUrl.replace(/-cover\.webp$/, "-thumb.webp")
+      : imageUrl,
+  );
 
   app.use(cookieParser());
   app.useStaticAssets(join(process.cwd(), "public"));
+  const dataDir = process.env.DATA_DIR ?? "./data";
+  app.useStaticAssets(join(dataDir, "images"), { prefix: "/img/" });
   app.setBaseViewsDir([pagesPath, viewsPath]);
   app.setViewEngine("hbs");
   app.set("view options", { layout: "layouts/base" });
