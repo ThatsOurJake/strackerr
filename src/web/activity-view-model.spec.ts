@@ -42,7 +42,7 @@ describe("activity view model", () => {
     });
 
     expect(toEntryViewModel(entry)).toEqual({
-      id: "media-episode",
+      id: "parent-episode",
       title: "The Leftovers",
       subtitle: "S02E08 - International Assassin",
       imageUrl: "/images/episode.jpg",
@@ -54,7 +54,7 @@ describe("activity view model", () => {
       icon: "tv-2",
       accent: "tv",
       path: "tv",
-      detailUrl: "/collection/tv/media-episode",
+      detailUrl: "/collection/tv/parent-episode",
     });
   });
 

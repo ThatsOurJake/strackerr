@@ -17,8 +17,8 @@ Users can browse their logged media collection and inspect a single media item's
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-014](../backlog/todo/TICKET-014.md) | Collection browser |
-| [TICKET-015](../backlog/todo/TICKET-015.md) | Media item detail page |
+| [TICKET-014](../backlog/done/TICKET-014.md) | Collection browser |
+| [TICKET-015](../backlog/done/TICKET-015.md) | Media item detail page |
 
 ## Done Signal
 - Collection lists and detail pages are user-scoped.

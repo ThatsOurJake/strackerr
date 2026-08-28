@@ -1,0 +1,24 @@
+<div class="mx-auto max-w-5xl">
+  {{> collection_detail_header}}
+  <section class="grid grid-cols-2 border-b border-border-subtle py-6">
+    <div>
+      <div class="font-heading text-2xl font-extrabold">{{totalCount}}</div>
+      <div class="text-xs text-text-secondary">Sessions</div>
+    </div>
+    <div>
+      <div class="font-heading text-2xl font-extrabold">{{totalDuration}}</div>
+      <div class="text-xs text-text-secondary">Play time</div>
+    </div>
+  </section>
+  <section class="py-8">
+    <h2 class="font-heading text-xl font-bold">Session history</h2>{{#if hasSessions}}<div
+      class="mt-4 divide-y divide-border-subtle border-y border-border-subtle">{{#each sessions}}<div
+        class="flex items-center justify-between gap-4 py-3"><span class="flex items-center gap-2 text-sm"><i
+            data-lucide="calendar" class="h-4 w-4 text-type-boardgame"></i>{{date}}</span><span
+          class="flex flex-wrap items-center justify-end gap-3 text-xs text-text-secondary">{{#if
+          playerCount}}<span>{{playerCount}} players</span>{{/if}}{{#if outcome}}<span
+            class="rounded-full border border-type-boardgame/40 bg-type-boardgame/15 px-2 py-0.5 font-heading font-semibold uppercase tracking-wide text-type-boardgame">{{outcome}}</span>{{/if}}{{#if
+          durationLabel}}<span>{{durationLabel}}</span>{{/if}}</span></div>{{/each}}</div>{{else}}<p
+      class="mt-4 text-sm text-text-secondary">No game sessions recorded.</p>{{/if}}
+  </section>
+</div>

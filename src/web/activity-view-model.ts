@@ -40,7 +40,9 @@ export const toEntryViewModel = (entry: LogEntryWithMedia) => {
     ? entry.mediaItem.parent?.title ?? entry.mediaItem.title
     : entry.mediaItem.title;
   return {
-    id: entry.mediaItem.id,
+    id: entry.mediaItem.type === MediaType.TV_EPISODE
+      ? entry.mediaItem.parent?.id ?? entry.mediaItem.id
+      : entry.mediaItem.id,
     title,
     subtitle: entrySubtitle(entry),
     imageUrl: entry.mediaItem.imageUrl,
@@ -49,7 +51,11 @@ export const toEntryViewModel = (entry: LogEntryWithMedia) => {
     wonLabel: entry.won === null ? null : entry.won ? "Won" : "Lost",
     platform: entry.platform,
     ...details,
-    detailUrl: `/collection/${details.path}/${entry.mediaItem.id}`,
+    detailUrl: `/collection/${details.path}/${
+      entry.mediaItem.type === MediaType.TV_EPISODE
+        ? entry.mediaItem.parent?.id ?? entry.mediaItem.id
+        : entry.mediaItem.id
+    }`,
   };
 };
 

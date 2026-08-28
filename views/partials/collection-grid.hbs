@@ -1,0 +1,77 @@
+<div class="mt-1 flex flex-col gap-5 border-b border-border-subtle pb-5">
+  <div class="flex items-end justify-between gap-4">
+    <p class="text-sm text-text-secondary">{{totalItems}} items in your library</p>
+    <a href="{{unidentified.url}}" hx-get="{{unidentified.partialUrl}}" hx-target="#collection-browser"
+      hx-push-url="{{unidentified.url}}" aria-pressed="{{unidentified.active}}"
+      class="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border-subtle bg-bg-surface px-3 py-2 font-heading text-xs font-semibold text-text-secondary hover:bg-bg-elevated aria-[pressed=true]:border-text-secondary aria-[pressed=true]:bg-bg-elevated aria-[pressed=true]:text-text-primary">
+      <i data-lucide="help-circle" class="h-4 w-4"></i>Unidentified
+    </a>
+  </div>
+  <nav class="flex gap-2 overflow-x-auto pb-1" aria-label="Media type filters">
+    {{#each typeFilters}}
+    <a href="{{url}}" hx-get="{{partialUrl}}" hx-target="#collection-browser" hx-push-url="{{url}}" {{#if
+      active}}aria-current="page" {{/if}}
+      class="shrink-0 rounded-full border border-border-subtle bg-bg-surface px-3 py-1.5 font-heading text-xs font-semibold text-text-secondary hover:bg-bg-elevated aria-[current=page]:border-text-primary aria-[current=page]:bg-text-primary aria-[current=page]:text-bg-base">{{label}}</a>
+    {{/each}}
+  </nav>
+</div>
+<div class="mt-6 grid gap-5 md:grid-cols-[2.5rem_minmax(0,1fr)]">
+  <nav class="flex gap-1 overflow-x-auto md:flex-col" aria-label="Filter by first letter">
+    <a href="{{clearLetterUrl}}" hx-get="{{clearLetterPartialUrl}}" hx-target="#collection-browser"
+      hx-push-url="{{clearLetterUrl}}"
+      class="flex h-7 min-w-8 items-center justify-center rounded font-heading text-[11px] font-semibold text-text-secondary hover:bg-bg-elevated"
+      aria-label="Show all letters">ALL</a>
+    {{#each letters}}
+    <a href="{{url}}" hx-get="{{partialUrl}}" hx-target="#collection-browser" hx-push-url="{{url}}" {{#if
+      active}}aria-current="page" {{/if}} {{#unless enabled}}aria-disabled="true" {{/unless}}
+      class="flex h-7 min-w-7 items-center justify-center rounded font-heading text-xs font-semibold {{#if active}}bg-text-primary text-bg-base{{else}}{{#if enabled}}text-text-secondary hover:bg-bg-elevated hover:text-text-primary{{else}}pointer-events-none text-text-muted opacity-40{{/if}}{{/if}}">{{label}}</a>
+    {{/each}}
+  </nav>
+  <div>
+    {{#if hasItems}}
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+      {{#each items}}
+      <article class="group min-w-0 overflow-hidden rounded-lg border border-border-subtle bg-bg-surface">
+        <a href="{{detailUrl}}"
+          class="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-type-{{accent}}">
+          <div class="aspect-[2/3] bg-type-{{accent}}/15">
+            {{#if imageUrl}}
+            <img src="{{imageUrl}}" alt="" class="h-full w-full object-cover" />
+            {{else}}
+            <span class="flex h-full items-center justify-center text-type-{{accent}}"><i data-lucide="{{icon}}"
+                class="h-9 w-9"></i></span>
+            {{/if}}
+          </div>
+          <div class="border-t-4 border-type-{{accent}} p-3">
+            <h2 class="truncate font-heading text-sm font-bold" title="{{title}}">{{title}}</h2>
+            <div class="mt-2 flex flex-wrap items-center gap-1.5">
+              <span
+                class="rounded-full border border-type-{{accent}}/40 bg-type-{{accent}}/15 px-2 py-0.5 font-heading text-[11px] font-semibold uppercase tracking-wide text-type-{{accent}}">{{label}}</span>
+              {{#if isSkeleton}}<span
+                class="rounded-full border border-dashed border-border-subtle bg-bg-elevated px-2 py-0.5 font-heading text-[11px] font-semibold uppercase tracking-wide text-text-secondary">Unidentified</span>{{/if}}
+            </div>
+          </div>
+        </a>
+      </article>
+      {{/each}}
+    </div>
+    <nav class="mt-7 flex items-center justify-center gap-4" aria-label="Collection pages">
+      {{#if previous}}<a href="{{previous.url}}" hx-get="{{previous.partialUrl}}" hx-target="#collection-browser"
+        hx-push-url="{{previous.url}}"
+        class="inline-flex items-center gap-1 rounded-lg border border-border-subtle bg-bg-surface px-3 py-2 text-sm hover:bg-bg-elevated"><i
+          data-lucide="chevron-left" class="h-4 w-4"></i>Previous</a>{{/if}}
+      <span class="text-xs text-text-secondary">Page {{page}} of {{totalPages}}</span>
+      {{#if next}}<a href="{{next.url}}" hx-get="{{next.partialUrl}}" hx-target="#collection-browser"
+        hx-push-url="{{next.url}}"
+        class="inline-flex items-center gap-1 rounded-lg border border-border-subtle bg-bg-surface px-3 py-2 text-sm hover:bg-bg-elevated">Next<i
+          data-lucide="chevron-right" class="h-4 w-4"></i></a>{{/if}}
+    </nav>
+    {{else}}
+    <div class="flex min-h-80 flex-col items-center justify-center border-y border-border-subtle px-6 text-center">
+      <i data-lucide="library" class="h-8 w-8 text-text-muted"></i>
+      <h2 class="mt-4 font-heading text-lg font-bold">No matching items</h2>
+      <p class="mt-1 text-sm text-text-secondary">Try another media type, letter, or filter.</p>
+    </div>
+    {{/if}}
+  </div>
+</div>
