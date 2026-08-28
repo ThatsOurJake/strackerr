@@ -19,11 +19,11 @@ STrackerr can search and normalize metadata from the external providers needed b
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-019](../backlog/todo/TICKET-019.md) | Metadata provider interface and TMDB provider |
-| [TICKET-020](../backlog/todo/TICKET-020.md) | AniList metadata provider |
-| [TICKET-021](../backlog/todo/TICKET-021.md) | IGDB metadata provider |
-| [TICKET-022](../backlog/todo/TICKET-022.md) | BGG metadata provider |
-| [TICKET-023](../backlog/todo/TICKET-023.md) | MusicBrainz metadata provider |
+| [TICKET-019](../backlog/done/TICKET-019.md) | Metadata provider interface and TMDB provider |
+| [TICKET-020](../backlog/done/TICKET-020.md) | AniList metadata provider |
+| [TICKET-021](../backlog/done/TICKET-021.md) | IGDB metadata provider |
+| [TICKET-022](../backlog/done/TICKET-022.md) | BGG metadata provider |
+| [TICKET-023](../backlog/done/TICKET-023.md) | MusicBrainz metadata provider |
 
 ## Done Signal
 - Provider results are normalized behind the shared interface.

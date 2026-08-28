@@ -1,6 +1,7 @@
 import type { Response } from "express";
 import type { AppCacheService } from "../../infrastructure/cache/app-cache.service";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
+import type { MetadataService } from "../../modules/metadata/metadata.service";
 import type { UsersService } from "../../modules/users/users.service";
 import { SettingsWebController } from "./settings.controller";
 
@@ -18,6 +19,13 @@ describe("SettingsWebController", () => {
     upsertMetadataKey: jest.Mock;
     deleteMetadataKey: jest.Mock;
     regenerateApiKey: jest.Mock;
+    getSetting: jest.Mock;
+    upsertSetting: jest.Mock;
+  };
+  let metadataService: {
+    getProvider: jest.Mock;
+    getProviderOptions: jest.Mock;
+    getProviderSettingKey: jest.Mock;
   };
   let clearForUser: jest.Mock;
   let controller: SettingsWebController;
@@ -30,11 +38,38 @@ describe("SettingsWebController", () => {
       upsertMetadataKey: jest.fn(),
       deleteMetadataKey: jest.fn(),
       regenerateApiKey: jest.fn(),
+      getSetting: jest.fn().mockResolvedValue(undefined),
+      upsertSetting: jest.fn(),
+    };
+    metadataService = {
+      getProvider: jest.fn(),
+      getProviderOptions: jest.fn((mediaType: string, anime = false) => {
+        const providerByType: Record<string, string> = {
+          MOVIE: "tmdb",
+          TV_SHOW: "tmdb",
+          GAME: "igdb",
+          BOARD_GAME: "bgg",
+          MUSIC_TRACK: "musicbrainz",
+        };
+        if (anime) {
+          return [
+            { name: "anilist", label: "AniList" },
+            { name: "tmdb", label: "TMDB" },
+          ];
+        }
+        const provider = providerByType[mediaType];
+        return [{ name: provider, label: provider }];
+      }),
+      getProviderSettingKey: jest.fn(
+        (mediaType: string, anime = false) =>
+          `metadata-provider:${mediaType}${anime ? ":anime" : ""}`,
+      ),
     };
     clearForUser = jest.fn();
     controller = new SettingsWebController(
       usersService as unknown as UsersService,
       { clearForUser } as unknown as AppCacheService,
+      metadataService as unknown as MetadataService,
     );
     response = { render: jest.fn() };
   });
@@ -49,7 +84,46 @@ describe("SettingsWebController", () => {
       username: "tester",
       providerKeys,
       configuredProviders: ["tmdb"],
+      providerPreferences: expect.arrayContaining([
+        expect.objectContaining({
+          field: "animeProvider",
+          label: "TV Shows (Anime)",
+          options: [
+            expect.objectContaining({ name: "anilist", selected: true }),
+            expect.objectContaining({ name: "tmdb", selected: false }),
+          ],
+        }),
+      ]),
     });
+  });
+
+  it("validates and saves provider preferences for every media type", async () => {
+    await controller.saveProviderPreferences(
+      {
+        movieProvider: "tmdb",
+        tvShowProvider: "tmdb",
+        animeProvider: "anilist",
+        gameProvider: "igdb",
+        boardGameProvider: "bgg",
+        musicTrackProvider: "musicbrainz",
+      },
+      response as unknown as Response,
+      user,
+    );
+
+    expect(metadataService.getProvider).toHaveBeenCalledTimes(6);
+    expect(usersService.upsertSetting).toHaveBeenCalledTimes(6);
+    expect(usersService.upsertSetting).toHaveBeenCalledWith(
+      "user-1",
+      "metadata-provider:TV_SHOW:anime",
+      "anilist",
+    );
+    expect(response.render).toHaveBeenCalledWith(
+      "settings",
+      expect.objectContaining({
+        success: "Metadata provider preferences saved",
+      }),
+    );
   });
 
   it("rejects an empty TMDB key", async () => {

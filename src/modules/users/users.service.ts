@@ -147,6 +147,21 @@ export class UsersService {
 		}));
 	}
 
+	async getSetting(userId: string, key: string) {
+		const setting = await this.prisma.userSetting.findUnique({
+			where: { userId_key: { userId, key } },
+		});
+		return setting?.value;
+	}
+
+	async upsertSetting(userId: string, key: string, value: string) {
+		return this.prisma.userSetting.upsert({
+			where: { userId_key: { userId, key } },
+			create: { userId, key, value },
+			update: { value },
+		});
+	}
+
 	private sanitizeUser(user: User) {
 		const { passwordHash, ...sanitized } = user;
 		return sanitized;

@@ -30,6 +30,7 @@ If any are missing, ask for the missing attachments before proceeding.
 - Keep messages compact and easy to understand.
 - Avoid wordy explanations.
 - Ask direct, minimal clarification questions when needed.
+- When wanting to install a new dependency explain why its needed in the message before triggering the install.
 
 ## Boundaries
 - Do not start coding until required attachments are present.

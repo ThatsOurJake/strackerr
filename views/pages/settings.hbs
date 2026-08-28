@@ -35,7 +35,7 @@
     <h2 class="mb-4 text-subheading font-heading">Metadata Provider Keys</h2>
     <p class="mb-4 text-body text-text-secondary">
       TMDB uses an API key. IGDB uses a Twitch client ID and client secret. Credentials are encrypted and never
-      displayed after saving.
+      displayed after saving. AniList, BoardGameGeek, and MusicBrainz do not require user credentials.
     </p>
 
     {{#if providerKeys}}
@@ -87,6 +87,36 @@
       </form>
     </div>
   </div>
+
+  {{#if providerPreferences}}
+  <div class="mb-6 rounded border border-border bg-bg-surface p-4">
+    <h2 class="mb-2 text-subheading font-heading">Metadata Providers</h2>
+    <p class="mb-4 text-body text-text-secondary">
+      Choose the default metadata source used when adding or identifying each media type.
+    </p>
+    <form method="POST" action="/settings/metadata-providers" class="space-y-4">
+      <div class="grid gap-4 md:grid-cols-2">
+        {{#each providerPreferences}}
+        <div>
+          <label for="{{this.field}}" class="mb-1 block text-subheading font-heading text-text-secondary">
+            {{this.label}}
+          </label>
+          <select id="{{this.field}}" name="{{this.field}}"
+            class="w-full rounded border border-border bg-bg-elevated px-3 py-2 font-body text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-type-tv">
+            {{#each this.options}}
+            <option value="{{this.name}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+        {{/each}}
+      </div>
+      <button type="submit"
+        class="rounded bg-type-tv px-4 py-2 font-heading font-semibold text-white transition active:scale-[0.98] hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-type-tv">
+        Save Provider Preferences
+      </button>
+    </form>
+  </div>
+  {{/if}}
 
   <div class="rounded border border-border bg-bg-surface p-4">
     <h2 class="mb-4 text-subheading font-heading">Cache Management</h2>

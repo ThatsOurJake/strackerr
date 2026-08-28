@@ -12,6 +12,7 @@ import { ApiV1Module } from "./modules/api-v1/api-v1.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { JwtCookieMiddleware } from "./modules/auth/middleware/jwt-cookie.middleware";
 import { MediaModule } from "./modules/media/media.module";
+import { MetadataModule } from "./modules/metadata/metadata.module";
 import { SearchModule } from "./modules/search/search.module";
 import { UsersModule } from "./modules/users/users.module";
 import { WebModule } from "./web/web.module";
@@ -27,6 +28,7 @@ import { WebModule } from "./web/web.module";
     AuthModule,
     UsersModule,
     MediaModule,
+    MetadataModule,
     ActivityLogModule,
     ApiV1Module,
     LogModule,

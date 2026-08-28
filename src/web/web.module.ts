@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { AppService } from "../app.service";
 import { LogModule } from "../modules/activity/log.module";
 import { AuthModule } from "../modules/auth/auth.module";
+import { MetadataModule } from "../modules/metadata/metadata.module";
 import { SearchModule } from "../modules/search/search.module";
 import { StatsModule } from "../modules/stats/stats.module";
 import { UsersModule } from "../modules/users/users.module";
@@ -15,7 +16,14 @@ import { SettingsWebController } from "./controllers/settings.controller";
 import { StatsController } from "./controllers/stats.controller";
 
 @Module({
-  imports: [AuthModule, UsersModule, SearchModule, LogModule, StatsModule],
+  imports: [
+    AuthModule,
+    UsersModule,
+    MetadataModule,
+    SearchModule,
+    LogModule,
+    StatsModule,
+  ],
   controllers: [
     DashboardController,
     AuthWebController,
