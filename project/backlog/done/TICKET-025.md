@@ -8,35 +8,27 @@ Implement the public REST API log submission and retrieval endpoints, secured by
 ## Scope
 - `ApiKeyGuard` — reads `X-API-Key` header, looks up `User` by `apiKey`, attaches to request; returns 401 if missing or invalid
 - `ApiV1Module`, `ApiV1LogController`:
-  - `POST /api/v1/log`
+  - `POST /api/v1/log/movie`
+  - `POST /api/v1/log/tv-episode`
+  - `POST /api/v1/log/game`
+  - `POST /api/v1/log/board-game`
+  - `POST /api/v1/log/music`
   - `GET /api/v1/log`
 - Rate limiting: 60 requests/minute per API key via `@nestjs/throttler`
 
-## `POST /api/v1/log` Request DTO
-```ts
-{
-  mediaType: MediaType;           // required; must be a valid MediaType enum value
-  title: string;                  // required; max 500 chars
-  loggedAt: string;               // required — ISO 8601 date; must not be a future date
-  duration?: number;              // positive integer, minutes; max 1440 (24 hours)
-  platform?: string;              // GAME only; max 100 chars
-  playerCount?: number;           // BOARD_GAME only; integer 1–50
-  won?: boolean;                  // BOARD_GAME only
-  seasonNumber?: number;          // TV_EPISODE only; positive integer
-  episodeNumber?: number;         // TV_EPISODE only; positive integer
-  provider?: string;              // must be one of: tmdb, igdb, anilist, bgg, musicbrainz, steam
-  externalId?: string;            // required if provider is set; max 100 chars
-}
-```
+## POST Request DTOs
+Each route has a small media-specific body. Movie and music require `title`; TV episode requires `show`, `season`, and `episode`; game additionally accepts `platform`; board game additionally accepts `players` and `won`.
+
+All routes optionally accept `loggedAt` (defaults to now), `duration`, and a paired `provider` plus `externalId` identification hint. Clients never provide `userId`, `mediaItemId`, `source`, or skeleton state.
 
 All validation via `class-validator` decorators on the DTO. Invalid requests return 400 with field-level error detail.
 
-## `POST /api/v1/log` Logic
+## POST Logic
 1. If `provider` + `externalId` provided: call `MediaService.findByExternalId(provider, externalId)` first; if found, use that `MediaItem`
 2. Otherwise: call `MediaService.findOrCreateSkeleton(title, mediaType, userId)` — normalised alias lookup
-3. For `TV_EPISODE`: if skeleton show created, also find-or-create a skeleton episode child with `(seasonNumber, episodeNumber)`
+3. For `/tv-episode`: if the show does not exist, create it, then find-or-create its episode child with `(season, episode)`
 4. Call `LogService.create(dto, userId, LogSource.API)` — deduplication check applies
-5. Return 201 with created log entry; 409 on duplicate
+5. Return 201 with a flat activity response that hides internal user, media item, source, and skeleton fields; return 409 on duplicate
 
 ## `GET /api/v1/log` Query Params
 - `type?: MediaType`
@@ -53,8 +45,8 @@ Response: `{ data: LogEntry[], total: number, page: number }`
 
 ## Acceptance Criteria
 - [ ] Valid `X-API-Key` required; missing or invalid returns 401
-- [ ] `POST /api/v1/log` creates entry and returns 201
-- [ ] `POST /api/v1/log` with duplicate `(user, mediaItem, loggedAt)` returns 409
+- [ ] Each media-specific POST route creates an entry and returns 201
+- [ ] A media-specific POST with duplicate `(user, mediaItem, loggedAt)` returns 409
 - [ ] `loggedAt` set to a future date returns 400
 - [ ] `duration` exceeding 1440 or negative returns 400
 - [ ] `provider` value not in the known whitelist returns 400

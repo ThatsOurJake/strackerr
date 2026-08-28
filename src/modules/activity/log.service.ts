@@ -1,11 +1,25 @@
-import { Injectable } from "@nestjs/common";
-import { MediaType, Prisma } from "@prisma/client";
+import { ConflictException, Injectable } from "@nestjs/common";
+import { LogSource, MediaType, Prisma } from "@prisma/client";
 import { PrismaService } from "../../infrastructure/database/prisma.service";
 
 export interface FindLogsFilters {
   dateFrom?: Date;
   dateTo?: Date;
   type?: MediaType;
+}
+
+export interface CreateLogData {
+  mediaItemId: string;
+  loggedAt: Date;
+  duration?: number;
+  platform?: string;
+  playerCount?: number;
+  won?: boolean;
+}
+
+export interface PaginatedLogs {
+  data: LogEntryWithMedia[];
+  total: number;
 }
 
 export type LogEntryWithMedia = Prisma.LogEntryGetPayload<{
@@ -28,6 +42,31 @@ export interface LogDayGroup {
 export class LogService {
   constructor(private readonly prisma: PrismaService) { }
 
+  async create(
+    data: CreateLogData,
+    userId: string,
+    source: LogSource,
+  ): Promise<LogEntryWithMedia> {
+    return this.prisma.$transaction(async (transaction) => {
+      const duplicate = await transaction.logEntry.findFirst({
+        where: {
+          userId,
+          mediaItemId: data.mediaItemId,
+          loggedAt: data.loggedAt,
+        },
+      });
+
+      if (duplicate) {
+        throw new ConflictException("A log entry already exists at this time");
+      }
+
+      return transaction.logEntry.create({
+        data: { ...data, userId, source },
+        include: { mediaItem: { include: { parent: true } } },
+      });
+    });
+  }
+
   findByUser(
     userId: string,
     filters: FindLogsFilters = {},
@@ -44,6 +83,34 @@ export class LogService {
       include: { mediaItem: { include: { parent: true } } },
       orderBy: { loggedAt: "desc" },
     });
+  }
+
+  async findByUserPaginated(
+    userId: string,
+    filters: FindLogsFilters,
+    page: number,
+    limit: number,
+  ): Promise<PaginatedLogs> {
+    const where: Prisma.LogEntryWhereInput = {
+      userId,
+      loggedAt: {
+        gte: filters.dateFrom,
+        lte: filters.dateTo,
+      },
+      mediaItem: filters.type ? { type: filters.type } : undefined,
+    };
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.logEntry.findMany({
+        where,
+        include: { mediaItem: { include: { parent: true } } },
+        orderBy: { loggedAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.logEntry.count({ where }),
+    ]);
+
+    return { data, total };
   }
 
   groupByDay(entries: LogEntryWithMedia[]): LogDayGroup[] {

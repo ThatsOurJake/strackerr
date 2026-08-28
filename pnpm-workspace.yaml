@@ -1,6 +1,7 @@
 allowBuilds:
   "@parcel/watcher": false
   "@prisma/engines": true
+  '@scarf/scarf': false
   bcrypt: true
   better-sqlite3: true
   prisma: true

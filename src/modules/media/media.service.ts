@@ -77,6 +77,57 @@ export class MediaService {
     return result?.mediaItem ?? null;
   }
 
+  async findOrCreateEpisodeSkeleton(
+    parentId: string,
+    showTitle: string,
+    seasonNumber: number,
+    episodeNumber: number,
+    userId: string,
+  ): Promise<MediaItem> {
+    const existing = await this.prisma.mediaItem.findFirst({
+      where: { parentId, seasonNumber, episodeNumber, type: MediaType.TV_EPISODE },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    const title = `${showTitle} S${seasonNumber}E${episodeNumber}`;
+    return this.create({
+      title,
+      type: MediaType.TV_EPISODE,
+      isSkeleton: true,
+      createdByUserId: userId,
+      parentId,
+      seasonNumber,
+      episodeNumber,
+    });
+  }
+
+  searchForUser(
+    userId: string,
+    query: string,
+    type?: MediaType,
+  ): Promise<MediaItem[]> {
+    return this.prisma.mediaItem.findMany({
+      where: {
+        type,
+        OR: [
+          { title: { contains: query } },
+          { aliases: { some: { alias: { contains: query } } } },
+        ],
+        AND: {
+          OR: [
+            { createdByUserId: userId },
+            { logEntries: { some: { userId } } },
+          ],
+        },
+      },
+      orderBy: { title: "asc" },
+      take: 20,
+    });
+  }
+
   findById(id: string): Promise<MediaItem | null> {
     return this.prisma.mediaItem.findUnique({ where: { id } });
   }
