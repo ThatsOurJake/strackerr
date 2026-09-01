@@ -20,8 +20,8 @@ The application has a more legible visual identity and a deliberate mobile and s
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-044](../backlog/todo/TICKET-044.md) | Typography refresh and login identity |
-| [TICKET-045](../backlog/todo/TICKET-045.md) | Mobile navigation drawer redesign |
+| [TICKET-044](../backlog/done/TICKET-044.md) | Typography refresh and login identity |
+| [TICKET-045](../backlog/done/TICKET-045.md) | Mobile navigation drawer redesign |
 
 ## Done Signal
 - Syne is no longer loaded or referenced, and the replacement typeface is consistently applied.

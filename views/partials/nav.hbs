@@ -40,29 +40,58 @@
     class="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-bg-elevated focus-visible:outline focus-visible:outline-2"
     aria-label="Toggle theme"><i data-lucide="sun-moon" class="h-5 w-5"></i></button>
 </header>
-<div data-mobile-drawer class="fixed inset-0 z-30 hidden bg-black/60 md:hidden">
-  <button data-menu-close class="absolute inset-0 h-full w-full cursor-default" aria-label="Close navigation"></button>
-  <div class="relative h-full w-[min(18rem,85vw)] border-r border-border-subtle bg-bg-surface p-4">
-    <button type="button" data-menu-close
-      class="ml-auto flex h-11 w-11 items-center justify-center rounded-lg hover:bg-bg-elevated"
-      aria-label="Close navigation"><i data-lucide="x" class="h-5 w-5"></i></button>
-    <nav class="mt-4 flex flex-col gap-1 text-base" aria-label="Mobile navigation">
-      <a data-nav-link
-        class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
-        href="/">Dashboard</a><a data-nav-link
-        class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
-        href="/history">History</a><a data-nav-link
-        class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
-        href="/stats">Stats</a><a data-nav-link
-        class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
-        href="/collection">Collection</a><a data-nav-link
-        class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
-        href="/add">Add</a><a data-nav-link
-        class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
-        href="/settings">Settings</a>
-      {{#if user.isAdmin}}<a data-nav-link
-        class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
-        href="/admin/users">Users</a>{{/if}}
-    </nav>
+<div data-mobile-drawer class="fixed inset-0 z-30 hidden md:hidden" role="dialog" aria-modal="true"
+  aria-labelledby="mobile-drawer-title">
+  <button type="button" data-menu-close tabindex="-1" class="absolute inset-0 h-full w-full cursor-default bg-black/60"
+    aria-label="Close navigation"></button>
+  <div data-drawer-panel
+    class="relative flex h-full w-[min(18rem,85vw)] flex-col overflow-y-auto border-r border-border-subtle bg-bg-surface">
+    <div class="flex min-h-16 shrink-0 items-center justify-between border-b border-border-subtle px-4">
+      <a id="mobile-drawer-title" href="/" class="font-heading text-xl font-extrabold text-type-game">STrackerr</a>
+      <button type="button" data-menu-close
+        class="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary"
+        aria-label="Close navigation" title="Close navigation"><i data-lucide="x" class="h-5 w-5"></i></button>
+    </div>
+    <div class="flex flex-1 flex-col px-4 py-5">
+      <nav class="flex flex-col gap-1 text-base" aria-label="Primary navigation">
+        <a data-nav-link
+          class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
+          href="/">Dashboard</a>
+        <a data-nav-link
+          class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
+          href="/history">History</a>
+        <a data-nav-link
+          class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
+          href="/stats">Stats</a>
+        <a data-nav-link
+          class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
+          href="/collection">Collection</a>
+        <a data-nav-link
+          class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
+          href="/add">Add</a>
+      </nav>
+      {{#if user.isAdmin}}
+      <nav class="mt-5 flex flex-col gap-1 border-t border-border-subtle pt-5 text-base"
+        aria-label="Administrator navigation">
+        <a data-nav-link
+          class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
+          href="/admin/users">Users</a>
+      </nav>
+      {{/if}}
+      <div class="mt-auto border-t border-border-subtle pt-5">
+        <div class="px-3 pb-2 text-xs text-text-secondary">{{user.username}}</div>
+        <a data-nav-link
+          class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
+          href="/settings">Settings</a>
+        <button type="button" data-theme-toggle
+          class="flex min-h-11 w-full items-center rounded-lg px-3 text-left text-text-secondary hover:bg-bg-elevated">Toggle
+          theme</button>
+        <form method="POST" action="/auth/logout">
+          <input type="hidden" name="_csrf" value="{{csrfToken}}" />
+          <button type="submit"
+            class="flex min-h-11 w-full items-center rounded-lg px-3 text-left hover:bg-bg-elevated">Logout</button>
+        </form>
+      </div>
+    </div>
   </div>
 </div>

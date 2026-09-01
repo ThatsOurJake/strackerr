@@ -18,7 +18,7 @@ module.exports = {
 				"border-subtle": "#2C2C2C",
 			},
 			fontFamily: {
-				heading: ["Syne", "sans-serif"],
+				heading: ["Outfit", "sans-serif"],
 				body: ["DM Sans", "sans-serif"],
 			},
 		},

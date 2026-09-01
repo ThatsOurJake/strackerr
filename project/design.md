@@ -21,18 +21,18 @@ Import both from Google Fonts in the base layout `<head>`:
 
 ```html
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
 ```
 
 | Role | Font | Weights |
 |---|---|---|
-| Headings, labels, UI chrome | **Syne** | 700, 800 for display; 600 for sub-headings |
+| Headings, labels, UI chrome | **Outfit** | 700, 800 for display; 600 for sub-headings |
 | Body, metadata, form fields | **DM Sans** | 400 regular; 500 medium |
 
 ### Tailwind Config
 ```js
 fontFamily: {
-  heading: ['Syne', 'sans-serif'],
+  heading: ['Outfit', 'sans-serif'],
   body: ['DM Sans', 'sans-serif'],
 }
 ```
@@ -41,12 +41,12 @@ fontFamily: {
 
 | Token | Size | Font | Weight | Usage |
 |---|---|---|---|---|
-| `display` | 2rem / 32px | Syne | 800 | Page titles, stat numbers |
-| `heading` | 1.25rem / 20px | Syne | 700 | Section headings, card titles |
-| `subheading` | 1rem / 16px | Syne | 600 | Day date headers, labels |
+| `display` | 2rem / 32px | Outfit | 800 | Page titles, stat numbers |
+| `heading` | 1.25rem / 20px | Outfit | 700 | Section headings, card titles |
+| `subheading` | 1rem / 16px | Outfit | 600 | Day date headers, labels |
 | `body` | 0.875rem / 14px | DM Sans | 400 | Card content, descriptions |
 | `meta` | 0.75rem / 12px | DM Sans | 400 | Timestamps, secondary info |
-| `badge` | 0.6875rem / 11px | Syne | 600 | Badges, type labels |
+| `badge` | 0.6875rem / 11px | Outfit | 600 | Badges, type labels |
 
 ### Rules
 - Line clamping: card titles clamped to 1 line (`line-clamp-1`), descriptions to 2 lines (`line-clamp-2`)
@@ -192,7 +192,7 @@ Pill-shaped label used on cards and collection items:
 bg: type accent colour at 15% opacity
 text: type accent colour
 border: type accent colour at 40% opacity
-font: badge scale (Syne 600, uppercase, tracking-wide)
+font: badge scale (Outfit 600, uppercase, tracking-wide)
 border-radius: rounded-full
 padding: px-2 py-0.5
 ```
@@ -213,11 +213,19 @@ label: "UNIDENTIFIED"
 - Width: `w-56` (224px) on `≥ md`; hidden on mobile (slide-out drawer on hamburger)
 - Background: `bg-surface` with a 1px right border `border-border-subtle`
 - No heavy visual treatment — the sidebar is invisible when not needed
-- Logo / app name at top: "STrackerr" in Syne 800, accent colour or `text-primary`
+- Logo / app name at top: "STrackerr" in Outfit 800, accent colour or `text-primary`
 - Nav items: icon (20px) + label (`body` size), `py-2 px-3`, `rounded-lg` on hover/active
 - Active state: `bg-elevated` background + the link text in `text-primary` (no accent colour override — keep it neutral)
 - Admin link: shown only to admins, separated by a subtle divider at the bottom of the list
 - Dark mode toggle: icon button at the bottom of the sidebar (sun/moon)
+
+### Mobile Drawer
+
+- Header: STrackerr identity on the left and a 44px Lucide `x` close button on the right
+- Primary, administrator, and account/theme actions are separated by subtle dividers and spacing
+- Drawer content scrolls vertically when needed; the page behind it remains fixed
+- Close from the close button, backdrop, Escape key, or navigation; return focus to the menu trigger
+- Keep keyboard focus within the open drawer
 
 ---
 
@@ -309,7 +317,7 @@ Icon size: `16px` inline with text (`w-4 h-4`), `20px` in navigation (`w-5 h-5`)
 - Labels: `subheading` size, `text-secondary`, `mb-1`
 - Error state: `border-red-500` + small error message below in `meta` size, `text-red-400`
 - Buttons:
-  - Primary: solid type accent colour background, dark text or white depending on contrast, Syne 600
+  - Primary: solid type accent colour background, dark text or white depending on contrast, Outfit 600
   - Secondary: `bg-elevated border border-border-subtle`, `text-primary`
   - Danger: `bg-red-600` text white
 
@@ -317,4 +325,10 @@ Icon size: `16px` inline with text (`w-4 h-4`), `20px` in navigation (`w-5 h-5`)
 
 ## Page Titles
 
-Format: `STrackerr — {Page Name}` in every `<title>` tag. Syne 800 display heading at the top of each page content area (below nav).
+Format: `STrackerr — {Page Name}` in every `<title>` tag. Outfit 800 display heading at the top of each page content area (below nav).
+
+## Authentication Identity
+
+- Login shows `STrackerr` prominently above the authentication card in the first viewport
+- The card heading names the immediate task (`Sign in`); do not add marketing copy
+- Keep the identity and form in one narrow, responsive column so errors cannot overlap either element
