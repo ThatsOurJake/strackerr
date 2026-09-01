@@ -22,10 +22,10 @@ History and statistics are easier to interpret, while higher-quality artwork use
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-040](../backlog/todo/TICKET-040.md) | Monthly history browsing |
-| [TICKET-041](../backlog/todo/TICKET-041.md) | Hour-based statistics chart labels |
-| [TICKET-042](../backlog/todo/TICKET-042.md) | Higher-resolution IGDB artwork |
-| [TICKET-043](../backlog/todo/TICKET-043.md) | Parent TV posters and manual image cleanup |
+| [TICKET-040](../backlog/done/TICKET-040.md) | Monthly history browsing |
+| [TICKET-041](../backlog/done/TICKET-041.md) | Hour-based statistics chart labels |
+| [TICKET-042](../backlog/done/TICKET-042.md) | Higher-resolution IGDB artwork |
+| [TICKET-043](../backlog/done/TICKET-043.md) | Parent TV posters and manual image cleanup |
 
 ## Done Signal
 - Users can move between calendar months in history and clearly see the selected period.

@@ -1,5 +1,5 @@
 export const CacheKeys = {
-  history: (userId: string, page: number) => `history:${userId}:${page}`,
+  history: (userId: string, month: string) => `history:${userId}:${month}`,
   dashboard: (userId: string) => `dashboard:${userId}`,
   stats: (userId: string, period: string) => `stats:${userId}:${period}`,
 };

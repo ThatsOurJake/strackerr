@@ -1,5 +1,5 @@
 import { readdir, rm } from "node:fs/promises";
-import { join } from "node:path";
+import { resolve } from "node:path";
 import { Logger } from "@nestjs/common";
 import type { ConfigService } from "@nestjs/config";
 import type { PrismaService } from "../database/prisma.service";
@@ -16,143 +16,129 @@ const readdirMock = readdir as unknown as jest.Mock<
 >;
 const rmMock = rm as jest.MockedFunction<typeof rm>;
 
-const createService = (
-  prisma: Partial<PrismaService> = {},
-): ImageCleanupService => {
+const createService = () => {
+  const findMany = jest.fn().mockResolvedValue([]);
+  const updateMany = jest.fn().mockResolvedValue({ count: 0 });
+  const deleteMany = jest.fn().mockResolvedValue({ count: 0 });
+  const transaction = jest.fn((operations: Promise<unknown>[]) =>
+    Promise.all(operations),
+  );
+  const prisma = {
+    mediaItem: { findMany, updateMany },
+    cachedImage: { deleteMany },
+    $transaction: transaction,
+  } as unknown as PrismaService;
   const configService = {
     get: jest.fn().mockReturnValue("./data"),
   } as unknown as ConfigService;
 
-  return new ImageCleanupService(configService, prisma as PrismaService);
+  return {
+    service: new ImageCleanupService(configService, prisma),
+    findMany,
+    updateMany,
+    deleteMany,
+  };
 };
 
 describe("ImageCleanupService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(Logger.prototype, "log").mockImplementation();
+    jest.spyOn(Logger.prototype, "warn").mockImplementation();
+    jest.spyOn(Logger.prototype, "error").mockImplementation();
   });
 
-  it("skips when image directory is missing", async () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("skips safely when the image directory is missing", async () => {
     readdirMock.mockRejectedValueOnce(new Error("ENOENT"));
-    const logSpy = jest.spyOn(Logger.prototype, "log").mockImplementation();
-    const service = createService();
+    const { service, findMany } = createService();
 
-    await service.cleanupOrphanedImages();
+    await expect(service.cleanupOrphanedImages()).resolves.toBe(0);
 
-    expect(logSpy).toHaveBeenCalledWith(
-      "Image cleanup skipped: images directory not found.",
-    );
+    expect(findMany).not.toHaveBeenCalled();
     expect(rmMock).not.toHaveBeenCalled();
+    expect(service.getStatus()).toEqual({ state: "completed", removedFiles: 0 });
   });
 
-  it("parses valid filename patterns only", async () => {
+  it("keeps referenced files and removes obsolete episode outputs only", async () => {
     readdirMock.mockResolvedValueOnce([
-      "a-thumb.webp",
-      "b-cover.webp",
-      "not-an-image.txt",
-      "c-poster.webp",
+      "keep-thumb.webp",
+      "keep-cover.webp",
+      "episode-thumb.webp",
+      "episode-cover.webp",
+      "notes.txt",
+      "unsafe-poster.webp",
+    ]);
+    const { service, findMany, updateMany, deleteMany } = createService();
+    findMany.mockResolvedValue([
+      { id: "keep", imageUrl: "/img/keep-cover.webp" },
     ]);
 
-    const service = createService();
-    jest
-      .spyOn(
-        service as unknown as {
-          findExistingMediaItemIds: (
-            mediaItemIds: string[],
-          ) => Promise<Set<string> | null>;
-        },
-        "findExistingMediaItemIds",
-      )
-      .mockResolvedValueOnce(new Set());
-
-    await service.cleanupOrphanedImages();
+    await expect(service.cleanupOrphanedImages()).resolves.toBe(2);
 
     expect(rmMock).toHaveBeenCalledTimes(2);
     expect(rmMock).toHaveBeenCalledWith(
-      join("./data", "images", "a-thumb.webp"),
-      {
-        force: true,
-      },
-    );
-    expect(rmMock).toHaveBeenCalledWith(
-      join("./data", "images", "b-cover.webp"),
-      {
-        force: true,
-      },
-    );
-  });
-
-  it("skips deletion when DB check cannot run", async () => {
-    readdirMock.mockResolvedValueOnce(["a-thumb.webp"]);
-    const warnSpy = jest.spyOn(Logger.prototype, "warn").mockImplementation();
-    const service = createService();
-
-    jest
-      .spyOn(
-        service as unknown as {
-          findExistingMediaItemIds: (
-            mediaItemIds: string[],
-          ) => Promise<Set<string> | null>;
-        },
-        "findExistingMediaItemIds",
-      )
-      .mockResolvedValueOnce(null);
-
-    await service.cleanupOrphanedImages();
-
-    expect(warnSpy).toHaveBeenCalledWith(
-      "Image cleanup skipped: could not verify MediaItem records.",
-    );
-    expect(rmMock).not.toHaveBeenCalled();
-  });
-
-  it("deletes only files whose mediaItemId is absent", async () => {
-    readdirMock.mockResolvedValueOnce([
-      "exists-thumb.webp",
-      "missing-cover.webp",
-      "exists-cover.webp",
-    ]);
-
-    const service = createService();
-    jest
-      .spyOn(
-        service as unknown as {
-          findExistingMediaItemIds: (
-            mediaItemIds: string[],
-          ) => Promise<Set<string> | null>;
-        },
-        "findExistingMediaItemIds",
-      )
-      .mockResolvedValueOnce(new Set(["exists"]));
-
-    await service.cleanupOrphanedImages();
-
-    expect(rmMock).toHaveBeenCalledTimes(1);
-    expect(rmMock).toHaveBeenCalledWith(
-      join("./data", "images", "missing-cover.webp"),
+      resolve("./data", "images", "episode-thumb.webp"),
       { force: true },
     );
+    expect(rmMock).toHaveBeenCalledWith(
+      resolve("./data", "images", "episode-cover.webp"),
+      { force: true },
+    );
+    expect(deleteMany).toHaveBeenCalledWith({
+      where: { mediaItem: { type: "TV_EPISODE" } },
+    });
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { type: "TV_EPISODE" },
+      data: { imageUrl: null, imageSourceUrl: null },
+    });
   });
 
-  it("logs deleted count", async () => {
-    readdirMock.mockResolvedValueOnce(["keep-thumb.webp", "remove-cover.webp"]);
-    const logSpy = jest.spyOn(Logger.prototype, "log").mockImplementation();
-    const service = createService();
+  it("does not delete files when database references cannot be verified", async () => {
+    readdirMock.mockResolvedValueOnce(["unused-cover.webp"]);
+    const { service, findMany } = createService();
+    findMany.mockRejectedValue(new Error("database unavailable"));
 
-    jest
-      .spyOn(
-        service as unknown as {
-          findExistingMediaItemIds: (
-            mediaItemIds: string[],
-          ) => Promise<Set<string> | null>;
-        },
-        "findExistingMediaItemIds",
-      )
-      .mockResolvedValueOnce(new Set(["keep"]));
+    await expect(service.cleanupOrphanedImages()).resolves.toBeNull();
 
-    await service.cleanupOrphanedImages();
+    expect(rmMock).not.toHaveBeenCalled();
+    expect(service.getStatus()).toEqual({ state: "failed" });
+  });
 
-    expect(logSpy).toHaveBeenCalledWith(
-      "Image cleanup complete: deleted 1 orphaned files.",
+  it("continues after an individual file removal fails", async () => {
+    readdirMock.mockResolvedValueOnce([
+      "first-cover.webp",
+      "second-cover.webp",
+    ]);
+    rmMock
+      .mockRejectedValueOnce(new Error("locked"))
+      .mockResolvedValueOnce(undefined);
+    const { service } = createService();
+
+    await expect(service.cleanupOrphanedImages()).resolves.toBe(1);
+
+    expect(rmMock).toHaveBeenCalledTimes(2);
+    expect(service.getStatus()).toEqual({ state: "completed", removedFiles: 1 });
+  });
+
+  it("prevents a second cleanup while one is running", async () => {
+    let releaseRead: ((files: string[]) => void) | undefined;
+    readdirMock.mockReturnValueOnce(
+      new Promise((resolveRead) => {
+        releaseRead = resolveRead;
+      }),
     );
+    const { service } = createService();
+
+    expect(service.startCleanup()).toBe(true);
+    expect(service.startCleanup()).toBe(false);
+    expect(service.getStatus()).toEqual({ state: "running" });
+
+    releaseRead?.([]);
+    await new Promise<void>((resolveDone) => setImmediate(resolveDone));
+    expect(service.getStatus()).toEqual({ state: "completed", removedFiles: 0 });
   });
 });

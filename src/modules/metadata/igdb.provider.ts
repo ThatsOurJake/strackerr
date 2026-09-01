@@ -35,7 +35,7 @@ export class IgdbProvider implements IMetadataProvider {
   async search(query: string, apiKey?: string): Promise<SearchResult[]> {
     const escapedQuery = query.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
     const games = await this.requestGames(
-      `fields id, name, cover.url, first_release_date, summary; search "${escapedQuery}"; limit 10;`,
+      `fields id, name, cover.url, first_release_date, summary; search "${escapedQuery}"; where game_type != 1; limit 10;`,
       apiKey,
     );
     return games.map((game) => this.mapGame(game));
@@ -136,13 +136,21 @@ export class IgdbProvider implements IMetadataProvider {
       year: game.first_release_date
         ? new Date(game.first_release_date * 1_000).getUTCFullYear()
         : undefined,
-      imageUrl: game.cover?.url
-        ? game.cover.url.startsWith("//")
-          ? `https:${game.cover.url}`
-          : game.cover.url
-        : undefined,
+      imageUrl: this.coverUrl(game.cover?.url),
       description: game.summary || undefined,
       type: MediaType.GAME,
     };
+  }
+
+  private coverUrl(url?: string): string | undefined {
+    if (!url) {
+      return undefined;
+    }
+
+    const absoluteUrl = url.startsWith("//") ? `https:${url}` : url;
+    return absoluteUrl.replace(
+      /\/igdb\/image\/upload\/t_[^/]+\//,
+      "/igdb/image/upload/t_cover_big_2x/",
+    );
   }
 }

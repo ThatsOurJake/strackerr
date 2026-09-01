@@ -222,7 +222,7 @@
   {{/if}}
 
   {{#if (eq activeTab 'maintenance')}}
-  <section aria-labelledby="maintenance-heading">
+  <section aria-labelledby="maintenance-heading" class="space-y-6">
     <div class="rounded border border-border bg-bg-surface p-4">
       <h2 id="maintenance-heading" class="mb-2 text-heading font-heading">Cache Management</h2>
       <p class="mb-4 text-body text-text-secondary">Clear cached history, dashboard statistics, and search indexes for
@@ -232,6 +232,27 @@
         <button type="submit"
           class="rounded bg-red-600 px-4 py-2 font-heading text-body font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Clear
           All Caches</button>
+      </form>
+    </div>
+    <div class="rounded border border-border bg-bg-surface p-4">
+      <h2 class="mb-2 text-heading font-heading">Image Cleanup</h2>
+      <p class="mb-4 text-body text-text-secondary">Remove managed image files that are no longer referenced. Active
+        artwork is preserved.</p>
+      {{#if (eq imageCleanup.state 'running')}}
+      <p class="mb-4 text-body text-type-tv" role="status">Cleanup is running in the background.</p>
+      {{/if}}
+      {{#if (eq imageCleanup.state 'completed')}}
+      <p class="mb-4 text-body text-text-secondary" role="status">Last cleanup removed {{imageCleanup.removedFiles}}
+        files.</p>
+      {{/if}}
+      {{#if (eq imageCleanup.state 'failed')}}
+      <p class="mb-4 text-body text-red-400" role="alert">The last cleanup failed. Check the application logs.</p>
+      {{/if}}
+      <form method="POST" action="/settings/images/cleanup" hx-post="/settings/images/cleanup" hx-target="body">
+        <input type="hidden" name="_csrf" value="{{csrfToken}}" />
+        <button type="submit" {{#if (eq imageCleanup.state 'running' )}}disabled{{/if}}
+          class="rounded bg-type-tv px-4 py-2 font-heading text-body font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Clean
+          up unused images</button>
       </form>
     </div>
   </section>

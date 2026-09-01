@@ -51,7 +51,7 @@ describe("StatsController", () => {
     statsService.isValidPeriod.mockReturnValue(true);
     statsService.resolveDateRange.mockReturnValue(range);
     statsService.totalTimeByType.mockResolvedValue({ MOVIE: 60 });
-    statsService.activityChart.mockResolvedValue({ labels: ["Mon"], values: [60] });
+    statsService.activityChart.mockResolvedValue({ labels: ["Mon", "Tue"], values: [60, 200] });
     statsService.topItems.mockResolvedValue([]);
     cacheGet.mockResolvedValue(null);
 
@@ -61,6 +61,12 @@ describe("StatsController", () => {
     expect(statsService.totalTimeByType).toHaveBeenCalledWith("user-2", range);
     expect(statsService.activityChart).toHaveBeenCalledWith("user-2", "this-week", range);
     expect(statsService.topItems).toHaveBeenCalledWith("user-2", range);
+    expect(response.render).toHaveBeenCalledWith(
+      "stats",
+      expect.objectContaining({
+        chartJson: JSON.stringify({ labels: ["Mon", "Tue"], values: [1, 3.3] }),
+      }),
+    );
     expect(cacheSet).toHaveBeenCalledWith(
       "stats:user-2:this-week",
       expect.objectContaining({ period: "this-week", hasActivity: true }),

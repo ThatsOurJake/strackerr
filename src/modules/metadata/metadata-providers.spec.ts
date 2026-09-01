@@ -105,7 +105,9 @@ describe("metadata providers", () => {
             {
               id: 100,
               name: "The Last of Us",
-              cover: { url: "//images.igdb.com/cover.jpg" },
+              cover: {
+                url: "//images.igdb.com/igdb/image/upload/t_thumb/co1rgi.jpg",
+              },
               first_release_date: 1_364_774_400,
             },
           ]),
@@ -120,8 +122,13 @@ describe("metadata providers", () => {
       const secondResults = await provider.search("The Last of Us", credentials);
 
       expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(fetchMock.mock.calls[1][1]).toEqual(
+        expect.objectContaining({
+          body: expect.stringContaining("where game_type != 1;"),
+        }),
+      );
       expect(secondResults[0].imageUrl).toBe(
-        "https://images.igdb.com/cover.jpg",
+        "https://images.igdb.com/igdb/image/upload/t_cover_big_2x/co1rgi.jpg",
       );
     });
 

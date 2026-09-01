@@ -46,11 +46,17 @@ export class StatsController {
       duration: formatDuration(minutes),
       minutes,
     }));
+    const chartInHours = {
+      labels: chart.labels,
+      values: chart.values.map((minutes) =>
+        Number((minutes / 60).toFixed(1)),
+      ),
+    };
     const model = {
       periods: STATS_PERIODS.map((item) => ({ ...item, active: item.slug === period })),
       period,
       timeByType,
-      chartJson: JSON.stringify(chart),
+      chartJson: JSON.stringify(chartInHours),
       topItems: topItems.map((item) => ({
         ...toEntryViewModel({
           id: "stats",

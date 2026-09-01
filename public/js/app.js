@@ -43,13 +43,30 @@ const initializeChart = () => {
   }
   const chartData = JSON.parse(element.dataset.chart);
   const chart = window.echarts.init(element);
+  const formatHours = (value) => Number(value).toLocaleString(undefined, {
+    maximumFractionDigits: 1,
+  });
+  const isDark = document.documentElement.classList.contains("dark");
   chart.setOption({
     animationDuration: 300,
-    grid: { left: 40, right: 8, top: 12, bottom: 32 },
-    tooltip: { trigger: "axis", backgroundColor: "#242424", borderColor: "#2C2C2C", textStyle: { color: "#F0EDE8" } },
+    grid: { left: 48, right: 8, top: 32, bottom: 32 },
+    tooltip: {
+      trigger: "axis",
+      backgroundColor: isDark ? "#242424" : "#FFFFFF",
+      borderColor: isDark ? "#2C2C2C" : "#DDD8CF",
+      textStyle: { color: isDark ? "#F0EDE8" : "#111111" },
+      valueFormatter: (value) => `${formatHours(value)} hours`,
+    },
     xAxis: { type: "category", data: chartData.labels, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: "#9CA3AF", fontSize: 11 } },
-    yAxis: { type: "value", splitLine: { show: false }, axisLine: { show: false }, axisLabel: { color: "#9CA3AF", formatter: (value) => `${value}m` } },
-    series: [{ type: "bar", data: chartData.values, itemStyle: { color: "#F0EDE8" }, barMaxWidth: 28 }],
+    yAxis: {
+      type: "value",
+      name: "Hours",
+      nameTextStyle: { color: "#9CA3AF", fontSize: 11 },
+      splitLine: { show: false },
+      axisLine: { show: false },
+      axisLabel: { color: "#9CA3AF", formatter: (value) => `${formatHours(value)}h` },
+    },
+    series: [{ name: "Duration", type: "bar", data: chartData.values, itemStyle: { color: isDark ? "#F0EDE8" : "#111111" }, barMaxWidth: 28 }],
   });
   window.addEventListener("resize", () => chart.resize());
 };

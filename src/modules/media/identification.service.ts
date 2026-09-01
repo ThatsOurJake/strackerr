@@ -39,12 +39,13 @@ export class IdentificationService {
       externalId,
       resolvedProvider.apiKey,
     );
+    const usesOwnArtwork = mediaItem.type !== MediaType.TV_EPISODE;
     const originalTitle = mediaItem.title;
     const updated = await this.mediaService.update(mediaItemId, {
       title: metadata.title,
       description: metadata.description ?? null,
       imageUrl: null,
-      imageSourceUrl: metadata.imageUrl ?? null,
+      imageSourceUrl: usesOwnArtwork ? metadata.imageUrl ?? null : null,
       year: metadata.year ?? null,
       duration: metadata.duration ?? null,
       isSkeleton: false,
@@ -58,7 +59,7 @@ export class IdentificationService {
     );
     await this.mediaService.addAlias(mediaItemId, originalTitle);
 
-    if (metadata.imageUrl) {
+    if (usesOwnArtwork && metadata.imageUrl) {
       this.events?.emit(Events.IMAGE_CACHE, {
         mediaItemId,
         sourceUrl: metadata.imageUrl,

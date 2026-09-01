@@ -1,7 +1,7 @@
 ---
 description: "Use when implementing a project feature end-to-end with provided project overview, design doc, and feature file (as attachments or prompt paths); includes ticket discovery, user-first clarification, implementation, validation, and concise handoff."
 name: "Feature Delivery Agent"
-tools: [read, search, edit, execute, todo, vscode/askQuestions]
+tools: [vscode/askQuestions, execute, read, edit, search, web, todo]
 user-invocable: true
 argument-hint: "Provide project overview, design document, and one feature file to implement (attachments or prompt paths)."
 ---

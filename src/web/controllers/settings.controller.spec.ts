@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import type { AppCacheService } from "../../infrastructure/cache/app-cache.service";
+import type { ImageCleanupService } from "../../infrastructure/jobs/image-cleanup.service";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
 import type { MetadataService } from "../../modules/metadata/metadata.service";
 import type { UsersService } from "../../modules/users/users.service";
@@ -34,6 +35,7 @@ describe("SettingsWebController", () => {
     getProviderSettingKey: jest.Mock;
   };
   let clearForUser: jest.Mock;
+  let startCleanup: jest.Mock;
   let controller: SettingsWebController;
   let response: { render: jest.Mock };
 
@@ -74,10 +76,15 @@ describe("SettingsWebController", () => {
       ),
     };
     clearForUser = jest.fn();
+    startCleanup = jest.fn().mockReturnValue(true);
     controller = new SettingsWebController(
       usersService as unknown as UsersService,
       { clearForUser } as unknown as AppCacheService,
       metadataService as unknown as MetadataService,
+      {
+        startCleanup,
+        getStatus: jest.fn().mockReturnValue({ state: "idle" }),
+      } as unknown as ImageCleanupService,
     );
     response = { render: jest.fn() };
   });
@@ -256,5 +263,28 @@ describe("SettingsWebController", () => {
     await controller.clearCache(response as unknown as Response, user);
 
     expect(clearForUser).toHaveBeenCalledWith("user-1");
+  });
+
+  it("starts unused image cleanup without awaiting the job", async () => {
+    await controller.cleanupImages(response as unknown as Response, user);
+
+    expect(startCleanup).toHaveBeenCalledTimes(1);
+    expect(response.render).toHaveBeenCalledWith(
+      "settings",
+      expect.objectContaining({ success: "Unused image cleanup started" }),
+    );
+  });
+
+  it("reports when image cleanup is already running", async () => {
+    startCleanup.mockReturnValue(false);
+
+    await controller.cleanupImages(response as unknown as Response, user);
+
+    expect(response.render).toHaveBeenCalledWith(
+      "settings",
+      expect.objectContaining({
+        error: "Unused image cleanup is already running",
+      }),
+    );
   });
 });

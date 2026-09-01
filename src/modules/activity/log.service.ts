@@ -6,6 +6,7 @@ import { stripHtmlTags } from "../../infrastructure/security/sanitize-string";
 export interface FindLogsFilters {
   dateFrom?: Date;
   dateTo?: Date;
+  dateBefore?: Date;
   type?: MediaType;
 }
 
@@ -85,6 +86,7 @@ export class LogService {
         loggedAt: {
           gte: filters.dateFrom,
           lte: filters.dateTo,
+          lt: filters.dateBefore,
         },
         mediaItem: filters.type ? { type: filters.type } : undefined,
       },

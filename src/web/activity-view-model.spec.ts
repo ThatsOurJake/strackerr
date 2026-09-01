@@ -39,13 +39,14 @@ describe("activity view model", () => {
       seasonNumber: 2,
       episodeNumber: 8,
       imageUrl: "/images/episode.jpg",
+      parentImageUrl: "/img/show-cover.webp",
     });
 
     expect(toEntryViewModel(entry)).toEqual({
       id: "parent-episode",
       title: "The Leftovers",
       subtitle: "S02E08 - International Assassin",
-      imageUrl: "/images/episode.jpg",
+      imageUrl: "/img/show-cover.webp",
       duration: "47m",
       playerCount: null,
       wonLabel: null,

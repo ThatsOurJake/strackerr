@@ -45,17 +45,18 @@ export const toEntryViewModel = (entry: LogEntryWithMedia) => {
       : entry.mediaItem.id,
     title,
     subtitle: entrySubtitle(entry),
-    imageUrl: entry.mediaItem.imageUrl,
+    imageUrl: entry.mediaItem.type === MediaType.TV_EPISODE
+      ? entry.mediaItem.parent?.imageUrl ?? null
+      : entry.mediaItem.imageUrl,
     duration: formatDuration(entry.duration ?? 0),
     playerCount: entry.playerCount,
     wonLabel: entry.won === null ? null : entry.won ? "Won" : "Lost",
     platform: entry.platform,
     ...details,
-    detailUrl: `/collection/${details.path}/${
-      entry.mediaItem.type === MediaType.TV_EPISODE
+    detailUrl: `/collection/${details.path}/${entry.mediaItem.type === MediaType.TV_EPISODE
         ? entry.mediaItem.parent?.id ?? entry.mediaItem.id
         : entry.mediaItem.id
-    }`,
+      }`,
   };
 };
 

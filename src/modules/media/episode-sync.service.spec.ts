@@ -1,7 +1,5 @@
-import { EventEmitter2 } from "@nestjs/event-emitter";
 import { MediaType } from "@prisma/client";
 import { PrismaService } from "../../infrastructure/database/prisma.service";
-import { Events } from "../../infrastructure/events/event-names";
 import { MetadataService } from "../metadata/metadata.service";
 import { IMetadataProvider } from "../metadata/metadata-provider.interface";
 import { EpisodeSyncService } from "./episode-sync.service";
@@ -11,7 +9,6 @@ jest.mock("@paralleldrive/cuid2", () => ({ createId: jest.fn() }));
 describe("EpisodeSyncService", () => {
   let provider: IMetadataProvider;
   let prisma: PrismaService;
-  let events: EventEmitter2;
   let service: EpisodeSyncService;
   let upsert: jest.Mock;
   let findMany: jest.Mock;
@@ -44,11 +41,10 @@ describe("EpisodeSyncService", () => {
     const metadata = {
       getProvider: jest.fn().mockReturnValue(provider),
     } as unknown as MetadataService;
-    events = { emit: jest.fn() } as unknown as EventEmitter2;
-    service = new EpisodeSyncService(prisma, metadata, events);
+    service = new EpisodeSyncService(prisma, metadata);
   });
 
-  it("upserts episodes and emits image cache events", async () => {
+  it("upserts episodes without caching episode artwork", async () => {
     jest.spyOn(provider, "getEpisodes").mockResolvedValue([
       {
         seasonNumber: 1,
@@ -84,10 +80,12 @@ describe("EpisodeSyncService", () => {
         },
       }),
     );
-    expect(events.emit).toHaveBeenCalledWith(Events.IMAGE_CACHE, {
-      mediaItemId: "episode-1",
-      sourceUrl: "https://image/pilot",
-    });
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ imageSourceUrl: null }),
+        update: expect.objectContaining({ imageSourceUrl: null }),
+      }),
+    );
   });
 
   it("continues with later seasons after a provider error", async () => {

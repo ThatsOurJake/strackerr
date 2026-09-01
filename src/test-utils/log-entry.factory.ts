@@ -11,6 +11,7 @@ export interface LogEntryOverrides {
   won?: boolean | null;
   title?: string;
   imageUrl?: string | null;
+  parentImageUrl?: string | null;
   seasonNumber?: number | null;
   episodeNumber?: number | null;
   parentTitle?: string;
@@ -34,7 +35,7 @@ export const createLogEntry = (
     seasonNumber: null,
     episodeNumber: null,
     description: null,
-    imageUrl: null,
+    imageUrl: overrides.parentImageUrl ?? null,
     imageSourceUrl: null,
     year: null,
     duration: null,

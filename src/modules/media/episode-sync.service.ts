@@ -1,12 +1,9 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
+import { OnEvent } from "@nestjs/event-emitter";
 import { MediaType } from "@prisma/client";
 import { PrismaService } from "../../infrastructure/database/prisma.service";
 import { Events } from "../../infrastructure/events/event-names";
-import {
-  ImageCacheRequestEvent,
-  ShowIdentifiedEvent,
-} from "../../infrastructure/events/events";
+import { ShowIdentifiedEvent } from "../../infrastructure/events/events";
 import { MetadataService } from "../metadata/metadata.service";
 import {
   Episode,
@@ -28,8 +25,7 @@ export class EpisodeSyncService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly metadataService: MetadataService,
-    private readonly events: EventEmitter2,
-  ) {}
+  ) { }
 
   @OnEvent(Events.SHOW_IDENTIFIED, { async: true })
   async handleShowIdentified(event: ShowIdentifiedEvent): Promise<void> {
@@ -85,13 +81,6 @@ export class EpisodeSyncService {
         try {
           const syncedEpisode = await this.upsertEpisode(mediaItemId, episode);
           syncedEpisodes.push(syncedEpisode);
-          if (episode.imageSourceUrl) {
-            const imageEvent: ImageCacheRequestEvent = {
-              mediaItemId: syncedEpisode.id,
-              sourceUrl: episode.imageSourceUrl,
-            };
-            this.events.emit(Events.IMAGE_CACHE, imageEvent);
-          }
         } catch (error) {
           this.logWarning(mediaItemId, error, seasonNumber);
         }
@@ -129,7 +118,7 @@ export class EpisodeSyncService {
         sortTitle: MediaService.computeSortTitle(episode.title),
         description: episode.description,
         duration: episode.duration,
-        imageSourceUrl: episode.imageSourceUrl,
+        imageSourceUrl: null,
         isSkeleton: false,
       },
       update: {
@@ -137,7 +126,7 @@ export class EpisodeSyncService {
         sortTitle: MediaService.computeSortTitle(episode.title),
         description: episode.description,
         duration: episode.duration,
-        imageSourceUrl: episode.imageSourceUrl,
+        imageSourceUrl: null,
         isSkeleton: false,
         createdByUserId: null,
       },

@@ -68,4 +68,49 @@ describe("IdentificationService", () => {
     });
     expect(syncShow).toHaveBeenCalledWith("show-1", "tmdb", "95396", "key");
   });
+
+  it("does not retain or queue artwork when identifying a TV episode", async () => {
+    const update = jest.fn().mockResolvedValue({
+      id: "episode-1",
+      type: MediaType.TV_EPISODE,
+      title: "Pilot",
+      isSkeleton: false,
+    });
+    const events = { emit: jest.fn() };
+    const provider = {
+      name: "tmdb",
+      getById: jest.fn().mockResolvedValue({
+        externalId: "tv:1:1:1",
+        title: "Pilot",
+        type: MediaType.TV_EPISODE,
+        imageUrl: "https://image/episode.jpg",
+      }),
+    };
+    const service = new IdentificationService(
+      {
+        findById: jest.fn().mockResolvedValue({
+          id: "episode-1",
+          type: MediaType.TV_EPISODE,
+          title: "Episode 1",
+          isSkeleton: true,
+        }),
+        update,
+        addExternalId: jest.fn(),
+        addAlias: jest.fn(),
+      } as unknown as MediaService,
+      {
+        getProviderForUser: jest.fn().mockResolvedValue({ provider }),
+      } as unknown as MetadataService,
+      { syncShow: jest.fn() } as unknown as EpisodeSyncService,
+      events as never,
+    );
+
+    await service.identify("episode-1", "tmdb", "tv:1:1:1", "user-1");
+
+    expect(update).toHaveBeenCalledWith(
+      "episode-1",
+      expect.objectContaining({ imageUrl: null, imageSourceUrl: null }),
+    );
+    expect(events.emit).not.toHaveBeenCalled();
+  });
 });

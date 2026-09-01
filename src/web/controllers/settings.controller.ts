@@ -12,6 +12,7 @@ import { Throttle } from "@nestjs/throttler";
 import { MediaType } from "@prisma/client";
 import { Response } from "express";
 import { AppCacheService } from "../../infrastructure/cache/app-cache.service";
+import { ImageCleanupService } from "../../infrastructure/jobs/image-cleanup.service";
 import { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
 import { CurrentUser } from "../../modules/auth/decorators/current-user.decorator";
 import { AdminGuard } from "../../modules/auth/guards/admin.guard";
@@ -105,6 +106,7 @@ export class SettingsWebController {
     private readonly usersService: UsersService,
     private readonly cacheService: AppCacheService,
     private readonly metadataService: MetadataService,
+    private readonly imageCleanupService: ImageCleanupService,
   ) { }
 
   @Get()
@@ -328,6 +330,17 @@ export class SettingsWebController {
     }
   }
 
+  @Post("images/cleanup")
+  async cleanupImages(
+    @Res() res: Response,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const started = this.imageCleanupService.startCleanup();
+    return this.renderSettings(res, user, "maintenance", started
+      ? { success: "Unused image cleanup started" }
+      : { error: "Unused image cleanup is already running" });
+  }
+
   private async saveProviderCredential(
     res: Response,
     user: AuthenticatedUser,
@@ -376,6 +389,7 @@ export class SettingsWebController {
         configured: configuredProviders.has(provider.provider),
       })),
       providerPreferences,
+      imageCleanup: this.imageCleanupService.getStatus(),
       ...feedback,
     });
   }

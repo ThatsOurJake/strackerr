@@ -1,9 +1,6 @@
 import type { Response } from "express";
 import type { AppCacheService } from "../../infrastructure/cache/app-cache.service";
-import type {
-  LogDayGroup,
-  LogService,
-} from "../../modules/activity/log.service";
+import type { LogService } from "../../modules/activity/log.service";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
 import { HistoryController } from "./history.controller";
 
@@ -19,60 +16,92 @@ describe("HistoryController", () => {
   let cacheGet: jest.Mock;
   let cacheSet: jest.Mock;
   let controller: HistoryController;
-  let response: { render: jest.Mock };
+  let response: { redirect: jest.Mock; render: jest.Mock };
 
   beforeEach(() => {
-    findByUser = jest.fn();
-    groupByDay = jest.fn();
-    cacheGet = jest.fn();
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2026, 8, 15, 12));
+    findByUser = jest.fn().mockResolvedValue([]);
+    groupByDay = jest.fn().mockReturnValue([]);
+    cacheGet = jest.fn().mockResolvedValue(null);
     cacheSet = jest.fn();
     controller = new HistoryController(
       { findByUser, groupByDay } as unknown as LogService,
       { get: cacheGet, set: cacheSet } as unknown as AppCacheService,
     );
-    response = { render: jest.fn() };
+    response = { redirect: jest.fn(), render: jest.fn() };
   });
 
-  it("renders 30 days on page one and exposes the next page", async () => {
-    const groups: LogDayGroup[] = Array.from({ length: 31 }, (_, index) => ({
-      date: `2026-07-${String(31 - index).padStart(2, "0")}`,
-      entries: [],
-    }));
-    cacheGet.mockResolvedValue(null);
-    findByUser.mockResolvedValue([]);
-    groupByDay.mockReturnValue(groups);
+  afterEach(() => {
+    jest.useRealTimers();
+  });
 
+  it("redirects an omitted or malformed month to the current month", async () => {
     await controller.history(undefined, user, response as unknown as Response);
+    await controller.history("2026-13", user, response as unknown as Response);
+    await controller.history("0000-01", user, response as unknown as Response);
 
-    expect(cacheGet).toHaveBeenCalledWith("history:user-2:1");
-    expect(findByUser).toHaveBeenCalledWith("user-2");
+    expect(response.redirect).toHaveBeenCalledTimes(3);
+    expect(response.redirect).toHaveBeenCalledWith("/history?month=2026-09");
+    expect(findByUser).not.toHaveBeenCalled();
+  });
+
+  it("queries only the selected month for the signed-in user", async () => {
+    await controller.history("2026-08", user, response as unknown as Response);
+
+    expect(cacheGet).toHaveBeenCalledWith("history:user-2:2026-08");
+    expect(findByUser).toHaveBeenCalledWith("user-2", {
+      dateFrom: new Date(2026, 7, 1),
+      dateBefore: new Date(2026, 8, 1),
+    });
     expect(response.render).toHaveBeenCalledWith(
       "history",
       expect.objectContaining({
-        isInitial: true,
-        hasMore: true,
-        nextPage: 2,
-        days: expect.any(Array),
+        month: "2026-08",
+        monthHeading: "August 2026",
+        previousMonth: "2026-07",
+        nextMonth: "2026-09",
       }),
-    );
-    expect(response.render.mock.calls[0][1].days).toHaveLength(30);
-    expect(cacheSet).toHaveBeenCalledWith(
-      "history:user-2:1",
-      expect.objectContaining({ hasMore: true, nextPage: 2 }),
-      300,
-      "user-2",
     );
   });
 
-  it("renders a cached partial without querying logs", async () => {
-    const cached = { days: [], hasMore: false, nextPage: 3 };
+  it("navigates across a year boundary", async () => {
+    await controller.history("2026-01", user, response as unknown as Response);
+
+    expect(response.render).toHaveBeenCalledWith(
+      "history",
+      expect.objectContaining({
+        previousMonth: "2025-12",
+        nextMonth: "2026-02",
+      }),
+    );
+  });
+
+  it("prevents future navigation and omits next navigation for the current month", async () => {
+    await controller.history("2026-10", user, response as unknown as Response);
+    expect(response.redirect).toHaveBeenCalledWith("/history?month=2026-09");
+
+    await controller.history("2026-09", user, response as unknown as Response);
+    expect(response.render).toHaveBeenCalledWith(
+      "history",
+      expect.objectContaining({ nextMonth: undefined }),
+    );
+  });
+
+  it("renders a cached month without querying logs", async () => {
+    const cached = {
+      days: [],
+      month: "2026-08",
+      monthHeading: "August 2026",
+      previousMonth: "2026-07",
+      nextMonth: "2026-09",
+    };
     cacheGet.mockResolvedValue(cached);
 
-    await controller.partial("2", user, response as unknown as Response);
+    await controller.history("2026-08", user, response as unknown as Response);
 
-    expect(cacheGet).toHaveBeenCalledWith("history:user-2:2");
-    expect(response.render).toHaveBeenCalledWith("partials/history-days", {
-      layout: false,
+    expect(response.render).toHaveBeenCalledWith("history", {
+      title: "History",
       ...cached,
     });
     expect(findByUser).not.toHaveBeenCalled();

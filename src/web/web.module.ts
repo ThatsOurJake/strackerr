@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AppService } from "../app.service";
+import { ImageCleanupService } from "../infrastructure/jobs/image-cleanup.service";
 import { LogModule } from "../modules/activity/log.module";
 import { AuthModule } from "../modules/auth/auth.module";
 import { CollectionModule } from "../modules/collection/collection.module";
@@ -8,8 +9,8 @@ import { MetadataModule } from "../modules/metadata/metadata.module";
 import { SearchModule } from "../modules/search/search.module";
 import { StatsModule } from "../modules/stats/stats.module";
 import { UsersModule } from "../modules/users/users.module";
-import { AdminWebController } from "./controllers/admin-users.controller";
 import { AddController } from "./controllers/add.controller";
+import { AdminWebController } from "./controllers/admin-users.controller";
 import { AuthController } from "./controllers/auth.controller";
 import { AuthWebController } from "./controllers/auth-web.controller";
 import { CollectionController } from "./controllers/collection.controller";
@@ -44,6 +45,6 @@ import { StatsController } from "./controllers/stats.controller";
     AddController,
     IdentifyController,
   ],
-  providers: [AppService],
+  providers: [AppService, ImageCleanupService],
 })
 export class WebModule { }

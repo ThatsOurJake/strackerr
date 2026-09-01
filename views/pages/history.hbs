@@ -1,23 +1,41 @@
 <div class="mx-auto max-w-4xl">
-  <div class="mb-8 flex items-center justify-between gap-4">
-    <h1 class="font-heading text-3xl font-extrabold tracking-tight">History</h1>
+  <div class="mb-6 flex items-center justify-between gap-4">
+    <div>
+      <h1 class="font-heading text-3xl font-extrabold tracking-tight">History</h1>
+      <p class="mt-1 text-sm text-text-secondary">{{monthHeading}}</p>
+    </div>
     <a href="/add"
       class="inline-flex items-center gap-2 rounded-lg bg-type-game px-4 py-2 font-heading text-sm font-semibold text-black active:scale-[0.98]">
       <i data-lucide="plus" class="h-4 w-4"></i>Add entry
     </a>
   </div>
+  <nav class="mb-6 flex items-center justify-between gap-3 border-y border-border-subtle py-3"
+    aria-label="History month navigation">
+    <a href="/history?month={{previousMonth}}"
+      class="inline-flex min-w-0 items-center gap-2 rounded-lg px-3 py-2 font-heading text-sm font-semibold text-text-primary hover:bg-bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary">
+      <i data-lucide="chevron-left" class="h-4 w-4 shrink-0"></i>
+      <span class="hidden sm:inline">Previous month</span>
+      <span class="sm:hidden">Previous</span>
+    </a>
+    <span class="truncate text-center font-heading text-sm font-semibold" aria-current="date">{{monthHeading}}</span>
+    {{#if nextMonth}}
+    <a href="/history?month={{nextMonth}}"
+      class="inline-flex min-w-0 items-center gap-2 rounded-lg px-3 py-2 font-heading text-sm font-semibold text-text-primary hover:bg-bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary">
+      <span class="hidden sm:inline">Next month</span>
+      <span class="sm:hidden">Next</span>
+      <i data-lucide="chevron-right" class="h-4 w-4 shrink-0"></i>
+    </a>
+    {{else}}
+    <span class="inline-flex items-center gap-2 px-3 py-2 font-heading text-sm font-semibold text-text-muted"
+      aria-disabled="true">
+      <span class="hidden sm:inline">Next month</span>
+      <span class="sm:hidden">Next</span>
+      <i data-lucide="chevron-right" class="h-4 w-4 shrink-0"></i>
+    </span>
+    {{/if}}
+  </nav>
   {{#if days.length}}
   <div id="history-list">{{> history_days}}</div>
-  <div id="history-pagination" class="mt-2 flex justify-center">
-    {{#if hasMore}}
-    <button type="button" hx-get="/history/partial?page={{nextPage}}" hx-target="#history-list" hx-swap="beforeend"
-      hx-indicator="#history-spinner"
-      class="rounded-lg border border-border-subtle bg-bg-elevated px-4 py-2 font-heading text-sm font-semibold transition-transform active:scale-[0.98]">
-      Load more
-      <span id="history-spinner" class="htmx-indicator ml-2">Loading...</span>
-    </button>
-    {{/if}}
-  </div>
   {{else}}
   {{> empty_history}}
   {{/if}}
