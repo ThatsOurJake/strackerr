@@ -21,6 +21,9 @@ module.exports = {
 				heading: ["Outfit", "sans-serif"],
 				body: ["DM Sans", "sans-serif"],
 			},
+			fontSize: {
+				badge: ["0.6875rem", { lineHeight: "1rem" }],
+			},
 		},
 	},
 	plugins: [],

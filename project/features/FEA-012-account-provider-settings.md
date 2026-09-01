@@ -22,9 +22,9 @@ Administrators can safely manage their account and metadata provider credentials
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-034](../backlog/todo/TICKET-034.md) | Tabbed settings and single-credential lifecycle |
-| [TICKET-035](../backlog/todo/TICKET-035.md) | Remove Steam and add BoardGameGeek credentials |
-| [TICKET-036](../backlog/todo/TICKET-036.md) | Signed-in administrator password change |
+| [TICKET-034](../backlog/done/TICKET-034.md) | Tabbed settings and single-credential lifecycle |
+| [TICKET-035](../backlog/done/TICKET-035.md) | Remove Steam and add BoardGameGeek credentials |
+| [TICKET-036](../backlog/done/TICKET-036.md) | Signed-in administrator password change |
 
 ## Done Signal
 - Settings clearly separates account, providers, and maintenance without exposing secrets.

@@ -101,7 +101,7 @@ export class MetadataService {
       savedProvider as MetadataProviderName | undefined,
       options.anime,
     );
-    const apiKey = ["tmdb", "igdb"].includes(provider.name)
+    const apiKey = ["tmdb", "igdb", "bgg"].includes(provider.name)
       ? ((await this.usersService.getDecryptedKey(userId, provider.name)) ??
         undefined)
       : undefined;

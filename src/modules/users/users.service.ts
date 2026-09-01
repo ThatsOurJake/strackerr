@@ -1,6 +1,6 @@
-import { ForbiddenException, Injectable } from "@nestjs/common";
+import { ConflictException, ForbiddenException, Injectable } from "@nestjs/common";
 import { createId } from "@paralleldrive/cuid2";
-import { User } from "@prisma/client";
+import { Prisma, User } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import { PrismaService } from "../../infrastructure/database/prisma.service";
 import { stripHtmlTags } from "../../infrastructure/security/sanitize-string";
@@ -87,6 +87,15 @@ export class UsersService {
 		});
 	}
 
+	async verifyPassword(userId: string, password: string): Promise<boolean> {
+		const user = await this.prisma.user.findUnique({ where: { id: userId } });
+		if (!user) {
+			return false;
+		}
+
+		return bcrypt.compare(password, user.passwordHash);
+	}
+
 	async regenerateApiKey(userId: string) {
 		const newApiKey = createId();
 		await this.prisma.user.update({
@@ -98,21 +107,26 @@ export class UsersService {
 
 	async upsertMetadataKey(userId: string, provider: string, plainKey: string) {
 		const { encrypted, iv } = this.encryptionService.encrypt(plainKey);
-		return this.prisma.userMetadataKey.upsert({
-			where: {
-				userId_provider: { userId, provider },
-			},
-			create: {
-				userId,
-				provider,
-				keyEnc: encrypted,
-				keyIv: iv,
-			},
-			update: {
-				keyEnc: encrypted,
-				keyIv: iv,
-			},
-		});
+		try {
+			return await this.prisma.userMetadataKey.create({
+				data: {
+					userId,
+					provider,
+					keyEnc: encrypted,
+					keyIv: iv,
+				},
+			});
+		} catch (error: unknown) {
+			if (
+				error instanceof Prisma.PrismaClientKnownRequestError &&
+				error.code === "P2002"
+			) {
+				throw new ConflictException(
+					`${provider} credentials are already configured. Remove them before adding new credentials.`,
+				);
+			}
+			throw error;
+		}
 	}
 
 	async getDecryptedKey(userId: string, provider: string) {

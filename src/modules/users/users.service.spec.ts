@@ -29,7 +29,7 @@ describe("UsersService", () => {
 							update: jest.fn(),
 						},
 						userMetadataKey: {
-							upsert: jest.fn(),
+							create: jest.fn(),
 							findUnique: jest.fn(),
 							findMany: jest.fn(),
 							delete: jest.fn(),
@@ -223,13 +223,13 @@ describe("UsersService", () => {
 	});
 
 	describe("Encryption - upsertMetadataKey", () => {
-		it("should encrypt and save metadata key", async () => {
+		it("should encrypt and create a metadata key without an update path", async () => {
 			jest.spyOn(encryption, "encrypt").mockReturnValue({
 				encrypted: "encrypted-data",
 				iv: "iv-data",
 			});
 
-			jest.spyOn(prisma.userMetadataKey, "upsert").mockResolvedValue({
+			jest.spyOn(prisma.userMetadataKey, "create").mockResolvedValue({
 				id: "key-1",
 				userId: "user-1",
 				provider: "tmdb",
@@ -240,7 +240,14 @@ describe("UsersService", () => {
 			await service.upsertMetadataKey("user-1", "tmdb", "plainkey");
 
 			expect(encryption.encrypt).toHaveBeenCalledWith("plainkey");
-			expect(prisma.userMetadataKey.upsert).toHaveBeenCalled();
+			expect(prisma.userMetadataKey.create).toHaveBeenCalledWith({
+				data: {
+					userId: "user-1",
+					provider: "tmdb",
+					keyEnc: "encrypted-data",
+					keyIv: "iv-data",
+				},
+			});
 		});
 	});
 

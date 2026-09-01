@@ -40,20 +40,20 @@ export class BggProvider implements IMetadataProvider {
     attributeNamePrefix: "",
   });
 
-  async search(query: string): Promise<SearchResult[]> {
+  async search(query: string, apiKey?: string): Promise<SearchResult[]> {
     const url = new URL(`${this.baseUrl}/search`);
     url.searchParams.set("query", query);
     url.searchParams.set("type", "boardgame");
-    const response = await this.fetchXml(url);
+    const response = await this.fetchXml(url, apiKey);
     const items = this.asArray(response.items?.item as BggItem | BggItem[]);
     return items.slice(0, 10).map((item) => this.mapItem(item));
   }
 
-  async getById(externalId: string): Promise<MediaItemDetail> {
+  async getById(externalId: string, apiKey?: string): Promise<MediaItemDetail> {
     const url = new URL(`${this.baseUrl}/thing`);
     url.searchParams.set("id", stripExternalIdPrefix(externalId));
     url.searchParams.set("stats", "1");
-    const response = await this.fetchXml(url, true);
+    const response = await this.fetchXml(url, apiKey, true);
     const item = this.asArray(response.items?.item as BggItem | BggItem[])[0];
     if (!item) {
       throw new Error("BGG board game not found");
@@ -63,15 +63,28 @@ export class BggProvider implements IMetadataProvider {
 
   private async fetchXml(
     url: URL,
+    apiKey?: string,
     retryQueued = false,
   ): Promise<BggResponse> {
-    let response = await fetch(url);
+    if (!apiKey) {
+      throw new Error("BoardGameGeek API key not configured. Add it in Settings.");
+    }
+
+    const requestOptions = {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    };
+    let response = await fetch(url, requestOptions);
     if (response.status === 202 && retryQueued) {
       await wait(1_000);
-      response = await fetch(url);
+      response = await fetch(url, requestOptions);
       if (response.status === 202) {
         throw new Error("BGG is processing the request, please try again.");
       }
+    }
+    if (response.status === 401) {
+      throw new Error(
+        "BoardGameGeek API key was rejected. Replace it in Settings.",
+      );
     }
     if (!response.ok) {
       throw new Error(`BGG request failed with status ${response.status}`);

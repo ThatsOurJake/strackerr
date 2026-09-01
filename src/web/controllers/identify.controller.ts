@@ -32,7 +32,7 @@ export class IdentifyController {
     private readonly mediaService: MediaService,
     private readonly metadataService: MetadataService,
     private readonly identificationService: IdentificationService,
-  ) {}
+  ) { }
 
   @Get()
   async panel(
@@ -48,7 +48,9 @@ export class IdentifyController {
       item,
       typeSlug,
       providerLabel: resolved.provider.name,
-      missingKey: ["tmdb", "igdb"].includes(resolved.provider.name) && !resolved.apiKey,
+      missingKey:
+        ["tmdb", "igdb", "bgg"].includes(resolved.provider.name) &&
+        !resolved.apiKey,
     });
   }
 
@@ -68,7 +70,10 @@ export class IdentifyController {
 
     try {
       const resolved = await this.metadataService.getProviderForUser(item.type, user.userId);
-      if (["tmdb", "igdb"].includes(resolved.provider.name) && !resolved.apiKey) {
+      if (
+        ["tmdb", "igdb", "bgg"].includes(resolved.provider.name) &&
+        !resolved.apiKey
+      ) {
         return response.render("partials/identify-search-results", {
           layout: false,
           missingKey: true,

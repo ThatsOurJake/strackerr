@@ -153,7 +153,8 @@ export class AddController {
       typeLabel: TYPE_DETAILS[type].label,
       providerLabel: resolved.provider.name,
       missingKey:
-        ["tmdb", "igdb"].includes(resolved.provider.name) && !resolved.apiKey,
+        ["tmdb", "igdb", "bgg"].includes(resolved.provider.name) &&
+        !resolved.apiKey,
     });
   }
 
@@ -179,7 +180,7 @@ export class AddController {
         user.userId,
       );
       if (
-        ["tmdb", "igdb"].includes(resolved.provider.name) &&
+        ["tmdb", "igdb", "bgg"].includes(resolved.provider.name) &&
         !resolved.apiKey
       ) {
         return response.render("partials/add-search-results", {

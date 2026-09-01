@@ -93,6 +93,16 @@ describe("MetadataService", () => {
     expect(usersService.getDecryptedKey).toHaveBeenCalledWith("user-1", "tmdb");
   });
 
+  it("returns the decrypted BoardGameGeek API key", async () => {
+    jest.spyOn(usersService, "getSetting").mockResolvedValue(undefined);
+    jest.spyOn(usersService, "getDecryptedKey").mockResolvedValue("bgg-key");
+
+    await expect(
+      service.getProviderForUser(MediaType.BOARD_GAME, "user-1"),
+    ).resolves.toEqual({ provider: bgg, apiKey: "bgg-key" });
+    expect(usersService.getDecryptedKey).toHaveBeenCalledWith("user-1", "bgg");
+  });
+
   it("rejects a provider that is incompatible with the media type", () => {
     expect(() => service.getProvider(MediaType.GAME, "tmdb")).toThrow(
       "does not support GAME",

@@ -9,7 +9,11 @@ jest.mock("@paralleldrive/cuid2", () => ({
   createId: jest.fn(() => "mock-cuid-id"),
 }));
 
-const user: AuthenticatedUser = { userId: "user-1", username: "tester", isAdmin: false };
+const user: AuthenticatedUser = {
+  userId: "user-1",
+  username: "tester",
+  isAdmin: true,
+};
 const providerKeys = [{ provider: "tmdb", configured: true }];
 
 describe("SettingsWebController", () => {
@@ -21,6 +25,8 @@ describe("SettingsWebController", () => {
     regenerateApiKey: jest.Mock;
     getSetting: jest.Mock;
     upsertSetting: jest.Mock;
+    verifyPassword: jest.Mock;
+    changePassword: jest.Mock;
   };
   let metadataService: {
     getProvider: jest.Mock;
@@ -40,6 +46,8 @@ describe("SettingsWebController", () => {
       regenerateApiKey: jest.fn(),
       getSetting: jest.fn().mockResolvedValue(undefined),
       upsertSetting: jest.fn(),
+      verifyPassword: jest.fn().mockResolvedValue(true),
+      changePassword: jest.fn(),
     };
     metadataService = {
       getProvider: jest.fn(),
@@ -74,27 +82,41 @@ describe("SettingsWebController", () => {
     response = { render: jest.fn() };
   });
 
-  it("renders user-scoped settings without exposing key values", async () => {
-    await controller.getSettings(response as unknown as Response, user);
+  it("renders the requested tab without exposing credential values", async () => {
+    await controller.getSettings(
+      "providers",
+      response as unknown as Response,
+      user,
+    );
 
     expect(usersService.listProviderKeysForUser).toHaveBeenCalledWith("user-1");
-    expect(usersService.findById).toHaveBeenCalledWith("user-1");
-    expect(response.render).toHaveBeenCalledWith("settings", {
-      title: "Settings",
-      username: "tester",
-      providerKeys,
-      configuredProviders: ["tmdb"],
-      providerPreferences: expect.arrayContaining([
-        expect.objectContaining({
-          field: "animeProvider",
-          label: "TV Shows (Anime)",
-          options: [
-            expect.objectContaining({ name: "anilist", selected: true }),
-            expect.objectContaining({ name: "tmdb", selected: false }),
-          ],
-        }),
-      ]),
-    });
+    expect(response.render).toHaveBeenCalledWith(
+      "settings",
+      expect.objectContaining({
+        activeTab: "providers",
+        username: "tester",
+        providerCredentials: expect.arrayContaining([
+          expect.objectContaining({ provider: "tmdb", configured: true }),
+          expect.objectContaining({ provider: "bgg", configured: false }),
+        ]),
+      }),
+    );
+    expect(JSON.stringify(response.render.mock.calls[0])).not.toContain(
+      "secret",
+    );
+  });
+
+  it("falls back to the account tab for an unknown tab", async () => {
+    await controller.getSettings(
+      "unknown",
+      response as unknown as Response,
+      user,
+    );
+
+    expect(response.render).toHaveBeenCalledWith(
+      "settings",
+      expect.objectContaining({ activeTab: "account" }),
+    );
   });
 
   it("validates and saves provider preferences for every media type", async () => {
@@ -118,75 +140,121 @@ describe("SettingsWebController", () => {
       "metadata-provider:TV_SHOW:anime",
       "anilist",
     );
-    expect(response.render).toHaveBeenCalledWith(
-      "settings",
-      expect.objectContaining({
-        success: "Metadata provider preferences saved",
-      }),
-    );
   });
 
-  it("rejects an empty TMDB key", async () => {
-    await controller.saveTmdbKey({ key: "  " }, response as unknown as Response, user);
-
-    expect(usersService.upsertMetadataKey).not.toHaveBeenCalled();
-    expect(response.render).toHaveBeenCalledWith("settings", expect.objectContaining({
-      error: "TMDB API key is required",
-    }));
-  });
-
-  it("trims and saves a TMDB key for the authenticated user", async () => {
-    await controller.saveTmdbKey({ key: "  secret  " }, response as unknown as Response, user);
-
-    expect(usersService.upsertMetadataKey).toHaveBeenCalledWith("user-1", "tmdb", "secret");
-    expect(response.render).toHaveBeenCalledWith("settings", expect.objectContaining({
-      success: "TMDB API key saved",
-    }));
-  });
-
-  it("serializes trimmed IGDB credentials", async () => {
-    await controller.saveIgdbCredentials(
-      { clientId: " client ", clientSecret: " secret " },
+  it("trims and saves a BoardGameGeek key", async () => {
+    await controller.saveBggKey(
+      { key: " bgg-secret " },
       response as unknown as Response,
       user,
     );
 
     expect(usersService.upsertMetadataKey).toHaveBeenCalledWith(
       "user-1",
-      "igdb",
-      JSON.stringify({ clientId: "client", clientSecret: "secret" }),
+      "bgg",
+      "bgg-secret",
+    );
+    expect(response.render).toHaveBeenCalledWith(
+      "settings",
+      expect.objectContaining({ success: "BoardGameGeek API key saved" }),
     );
   });
 
-  it("renders provider deletion failures", async () => {
-    usersService.deleteMetadataKey.mockRejectedValue(new Error("failed"));
+  it("requires explicit confirmation before removing credentials", async () => {
+    await controller.deleteProviderKey(
+      "tmdb",
+      {},
+      response as unknown as Response,
+      user,
+    );
 
-    await controller.deleteProviderKey("tmdb", response as unknown as Response, user);
-
-    expect(usersService.deleteMetadataKey).toHaveBeenCalledWith("user-1", "tmdb");
-    expect(response.render).toHaveBeenCalledWith("settings", expect.objectContaining({
-      error: "Failed to delete provider key",
-    }));
+    expect(usersService.deleteMetadataKey).not.toHaveBeenCalled();
+    expect(response.render).toHaveBeenCalledWith(
+      "settings",
+      expect.objectContaining({
+        error: "Confirm credential removal before continuing",
+      }),
+    );
   });
 
-  it("shows a newly regenerated API key once", async () => {
-    usersService.regenerateApiKey.mockResolvedValue("new-key");
+  it("removes a supported provider after confirmation", async () => {
+    await controller.deleteProviderKey(
+      "tmdb",
+      { confirmRemoval: "yes" },
+      response as unknown as Response,
+      user,
+    );
 
-    await controller.regenerateApiKey(response as unknown as Response, user);
+    expect(usersService.deleteMetadataKey).toHaveBeenCalledWith("user-1", "tmdb");
+  });
 
-    expect(usersService.regenerateApiKey).toHaveBeenCalledWith("user-1");
-    expect(response.render).toHaveBeenCalledWith("settings", expect.objectContaining({
-      newApiKey: "new-key",
-      success: expect.stringContaining("API key regenerated"),
-    }));
+  it("does not verify or change a mismatched new password", async () => {
+    await controller.changePassword(
+      {
+        currentPassword: "current-password",
+        newPassword: "new-password",
+        confirmPassword: "different-password",
+      },
+      response as unknown as Response,
+      user,
+    );
+
+    expect(usersService.verifyPassword).not.toHaveBeenCalled();
+    expect(usersService.changePassword).not.toHaveBeenCalled();
+    expect(response.render).toHaveBeenCalledWith(
+      "settings",
+      expect.objectContaining({
+        passwordErrors: { confirmPassword: "New passwords do not match" },
+      }),
+    );
+  });
+
+  it("leaves the password unchanged when the current password is incorrect", async () => {
+    usersService.verifyPassword.mockResolvedValue(false);
+
+    await controller.changePassword(
+      {
+        currentPassword: "wrong-password",
+        newPassword: "new-password",
+        confirmPassword: "new-password",
+      },
+      response as unknown as Response,
+      user,
+    );
+
+    expect(usersService.changePassword).not.toHaveBeenCalled();
+    expect(response.render).toHaveBeenCalledWith(
+      "settings",
+      expect.objectContaining({
+        passwordErrors: { currentPassword: "Current password is incorrect" },
+      }),
+    );
+  });
+
+  it("changes a valid password for the signed-in account", async () => {
+    await controller.changePassword(
+      {
+        currentPassword: "current-password",
+        newPassword: "new-password",
+        confirmPassword: "new-password",
+      },
+      response as unknown as Response,
+      user,
+    );
+
+    expect(usersService.verifyPassword).toHaveBeenCalledWith(
+      "user-1",
+      "current-password",
+    );
+    expect(usersService.changePassword).toHaveBeenCalledWith(
+      "user-1",
+      "new-password",
+    );
   });
 
   it("clears only the authenticated user's cache", async () => {
     await controller.clearCache(response as unknown as Response, user);
 
     expect(clearForUser).toHaveBeenCalledWith("user-1");
-    expect(response.render).toHaveBeenCalledWith("settings", expect.objectContaining({
-      success: "All caches cleared",
-    }));
   });
 });

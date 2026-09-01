@@ -25,7 +25,6 @@ export const MEDIA_PROVIDERS = [
   "anilist",
   "bgg",
   "musicbrainz",
-  "steam",
 ] as const;
 
 const IsNotFuture =

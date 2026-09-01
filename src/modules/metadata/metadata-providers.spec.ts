@@ -140,7 +140,7 @@ describe("metadata providers", () => {
         ),
       );
 
-      await expect(new BggProvider().getById("bgg:13")).resolves.toEqual({
+      await expect(new BggProvider().getById("bgg:13", "bgg-key")).resolves.toEqual({
         externalId: "bgg:13",
         title: "Catan",
         year: 1995,
@@ -148,6 +148,9 @@ describe("metadata providers", () => {
         description: "Trade & build",
         duration: 90,
         type: MediaType.BOARD_GAME,
+      });
+      expect(fetchMock.mock.calls[0][1]).toEqual({
+        headers: { Authorization: "Bearer bgg-key" },
       });
     });
 
@@ -161,11 +164,26 @@ describe("metadata providers", () => {
           ),
         );
 
-      const result = new BggProvider().getById("bgg:13");
+      const result = new BggProvider().getById("bgg:13", "bgg-key");
       await jest.advanceTimersByTimeAsync(1_000);
 
       await expect(result).resolves.toMatchObject({ title: "Catan" });
       expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("requires a configured API key", async () => {
+      await expect(new BggProvider().search("Catan")).rejects.toThrow(
+        "BoardGameGeek API key not configured",
+      );
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("turns an unauthorized response into an actionable error", async () => {
+      fetchMock.mockResolvedValue(new Response("", { status: 401 }));
+
+      await expect(new BggProvider().search("Catan", "bad-key")).rejects.toThrow(
+        "BoardGameGeek API key was rejected",
+      );
     });
   });
 
