@@ -4,20 +4,23 @@ import { AuthenticatedUser } from "../authenticated-user.interface";
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard("jwt") {
-	canActivate(context: ExecutionContext) {
-		return super.canActivate(context);
+	async canActivate(context: ExecutionContext): Promise<boolean> {
+		const canActivate = await super.canActivate(context);
+		const request = context.switchToHttp().getRequest();
+		return Boolean(canActivate && request.user);
 	}
 
-	handleRequest(
+	handleRequest<TUser = AuthenticatedUser>(
 		error: unknown,
 		user: AuthenticatedUser | null,
 		_info: unknown,
 		context: ExecutionContext,
-	) {
+	): TUser {
 		if (error || !user) {
 			const response = context.switchToHttp().getResponse();
-			return response.redirect("/login");
+			response.redirect("/login");
+			return null as TUser;
 		}
-		return user;
+		return user as TUser;
 	}
 }

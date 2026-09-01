@@ -19,8 +19,8 @@ Users can manually add activity and later identify unmatched skeleton media with
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-016](../backlog/todo/TICKET-016.md) | Manual add form |
-| [TICKET-017](../backlog/todo/TICKET-017.md) | Identify flow |
+| [TICKET-016](../backlog/done/TICKET-016.md) | Manual add form |
+| [TICKET-017](../backlog/done/TICKET-017.md) | Identify flow |
 
 ## Done Signal
 - Users can add activity with or without provider results.

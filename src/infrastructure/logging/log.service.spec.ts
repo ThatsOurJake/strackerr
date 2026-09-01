@@ -54,6 +54,7 @@ const createEntry = (
   mediaItemId: `media-${id}`,
   loggedAt: new Date(loggedAt),
   duration,
+  notes: null,
   platform: null,
   playerCount: null,
   won: null,

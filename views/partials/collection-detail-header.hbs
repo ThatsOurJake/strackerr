@@ -15,8 +15,9 @@
     {{#if artist}}<p class="mt-1 text-base text-text-secondary">{{artist}}</p>{{/if}}
     {{#if year}}<p class="mt-1 text-sm text-text-secondary">{{year}}</p>{{/if}}
     {{#if description}}<p class="mt-4 max-w-3xl text-sm leading-6 text-text-secondary">{{description}}</p>{{/if}}
-    {{#if identifyUrl}}<a href="{{identifyUrl}}"
+    {{#if identifyUrl}}<a href="{{identifyUrl}}" hx-get="{{identifyUrl}}" hx-target="#identify-panel" hx-swap="innerHTML"
       class="mt-5 inline-flex items-center gap-2 rounded-lg bg-type-{{accent}} px-4 py-2 font-heading text-sm font-semibold text-black active:scale-[0.98]"><i
         data-lucide="search" class="h-4 w-4"></i>Identify</a>{{/if}}
   </div>
 </header>
+<div id="identify-panel" class="mt-5" aria-live="polite"></div>

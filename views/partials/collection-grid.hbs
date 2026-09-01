@@ -15,6 +15,7 @@
     {{/each}}
   </nav>
 </div>
+<div id="collection-identify-panel" class="mt-5" aria-live="polite"></div>
 <div class="mt-6 grid gap-5 md:grid-cols-[2.5rem_minmax(0,1fr)]">
   <nav class="flex gap-1 overflow-x-auto md:flex-col" aria-label="Filter by first letter">
     <a href="{{clearLetterUrl}}" hx-get="{{clearLetterPartialUrl}}" hx-target="#collection-browser"
@@ -52,6 +53,12 @@
             </div>
           </div>
         </a>
+        {{#if identifyUrl}}
+        <button type="button" hx-get="{{identifyUrl}}" hx-target="#collection-identify-panel" hx-swap="innerHTML"
+          class="flex w-full items-center justify-center gap-2 border-t border-border-subtle px-3 py-2 font-heading text-xs font-semibold text-text-secondary hover:bg-bg-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-text-primary">
+          <i data-lucide="search" class="h-4 w-4"></i>Identify
+        </button>
+        {{/if}}
       </article>
       {{/each}}
     </div>

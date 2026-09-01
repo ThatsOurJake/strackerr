@@ -73,6 +73,9 @@ export const toCollectionViewModel = (page: CollectionPage, filters: CollectionF
       ...item,
       ...details,
       detailUrl: `/collection/${details.path}/${item.id}`,
+      identifyUrl: item.isSkeleton
+        ? `/collection/${details.path}/${item.id}/identify`
+        : null,
     };
   }),
   hasItems: page.items.length > 0,

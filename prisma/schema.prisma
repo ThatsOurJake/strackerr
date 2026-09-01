@@ -96,6 +96,7 @@ model LogEntry {
   mediaItemId String
   loggedAt    DateTime
   duration    Int?
+  notes       String?
   platform    String?
   playerCount Int?
   won         Boolean?

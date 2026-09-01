@@ -58,6 +58,7 @@ export class StatsController {
           mediaItemId: item.mediaItem.id,
           loggedAt: new Date(),
           duration: item.totalMinutes,
+          notes: null,
           platform: null,
           playerCount: null,
           won: null,

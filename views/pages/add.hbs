@@ -1,0 +1,23 @@
+<header class="mb-8">
+  <h1 class="font-heading text-3xl font-extrabold tracking-tight">Add activity</h1>
+  <p class="mt-2 text-sm text-text-secondary">Choose what you want to record.</p>
+</header>
+
+<section aria-labelledby="media-type-heading">
+  <h2 id="media-type-heading" class="mb-3 font-heading text-base font-semibold">Media type</h2>
+  <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+    {{#each types}}
+    <button type="button" hx-get="/add/form?type={{this.type}}" hx-target="#add-flow" hx-swap="innerHTML"
+      class="flex min-h-24 items-center gap-3 rounded-lg border border-border-subtle bg-bg-surface p-4 text-left transition hover:bg-bg-elevated active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary">
+      <i data-lucide="{{this.icon}}" class="h-5 w-5 {{#if (eq this.type 'MOVIE')}}text-type-movie{{/if}}{{#if (eq this.type 'TV_EPISODE')}}text-type-tv{{/if}}{{#if (eq this.type 'GAME')}}text-type-game{{/if}}{{#if (eq this.type 'BOARD_GAME')}}text-type-boardgame{{/if}}{{#if (eq this.type 'MUSIC_TRACK')}}text-type-music{{/if}}"></i>
+      <span class="font-heading text-sm font-semibold">{{this.label}}</span>
+    </button>
+    {{/each}}
+  </div>
+</section>
+
+<section id="add-flow" class="mt-8 max-w-3xl" aria-live="polite">
+  {{#if entryForm}}
+  {{> add-entry-form entryForm}}
+  {{/if}}
+</section>

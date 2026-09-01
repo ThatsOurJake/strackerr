@@ -1,0 +1,42 @@
+{{#if missingKey}}
+<div class="rounded-lg border border-dashed border-border-subtle bg-bg-surface p-4 text-sm text-text-secondary">
+  No API key configured.
+  <button type="button" hx-get="/add/form?type={{type}}&manual=true" hx-target="#add-flow" class="text-text-primary underline">Enter manually</button>.
+</div>
+{{else}}
+{{#if error}}
+<p class="rounded-lg border border-red-500 bg-red-950 p-3 text-sm text-red-300">{{error}}</p>
+{{/if}}
+{{#if hasResults}}
+<ul class="divide-y divide-border-subtle overflow-hidden rounded-lg border border-border-subtle bg-bg-surface">
+  {{#each results}}
+  <li>
+    <form hx-post="/add/confirm" hx-target="#add-flow" hx-swap="innerHTML">
+      <input type="hidden" name="type" value="{{../type}}" />
+      <input type="hidden" name="provider" value="{{../provider}}" />
+      <input type="hidden" name="externalId" value="{{this.externalId}}" />
+      <button type="submit" class="flex w-full items-center gap-3 p-3 text-left hover:bg-bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-text-primary">
+        {{#if this.imageUrl}}
+        <img src="{{this.imageUrl}}" alt="" class="h-14 w-10 shrink-0 rounded object-cover" />
+        {{else}}
+        <span class="flex h-14 w-10 shrink-0 items-center justify-center rounded bg-bg-elevated"><i data-lucide="image" class="h-4 w-4 text-text-secondary"></i></span>
+        {{/if}}
+        <span class="min-w-0 flex-1">
+          <span class="block truncate font-heading text-sm font-semibold">{{this.title}}</span>
+          {{#if this.year}}<span class="mt-0.5 block text-xs text-text-secondary">{{this.year}}</span>{{/if}}
+          {{#if this.description}}<span class="mt-1 line-clamp-2 block text-xs text-text-secondary">{{this.description}}</span>{{/if}}
+        </span>
+        <i data-lucide="chevron-right" class="h-4 w-4 shrink-0 text-text-secondary"></i>
+      </button>
+    </form>
+  </li>
+  {{/each}}
+</ul>
+{{else}}
+{{#if searched}}
+<p class="rounded-lg border border-dashed border-border-subtle p-4 text-sm text-text-secondary">No results found. Try another title or
+  <button type="button" hx-get="/add/form?type={{type}}&manual=true" hx-target="#add-flow" class="text-text-primary underline">enter manually</button>.
+</p>
+{{/if}}
+{{/if}}
+{{/if}}

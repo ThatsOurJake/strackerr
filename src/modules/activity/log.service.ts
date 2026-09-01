@@ -12,6 +12,7 @@ export interface CreateLogData {
   mediaItemId: string;
   loggedAt: Date;
   duration?: number;
+  notes?: string;
   platform?: string;
   playerCount?: number;
   won?: boolean;

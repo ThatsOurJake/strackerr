@@ -22,6 +22,11 @@ export interface CreateMediaData {
   duration?: number | null;
 }
 
+export interface CreateIdentifiedMediaData extends CreateMediaData {
+  provider: string;
+  externalId: string;
+}
+
 export type UpdateMediaData = Partial<
   Omit<CreateMediaData, "type" | "title">
 > & { title?: string };
@@ -75,6 +80,31 @@ export class MediaService {
     });
 
     return result?.mediaItem ?? null;
+  }
+
+  async findOrCreateIdentified(
+    data: CreateIdentifiedMediaData,
+  ): Promise<MediaItem> {
+    const existing = await this.findByExternalId(data.provider, data.externalId);
+    if (existing) {
+      return existing;
+    }
+
+    const { provider, externalId, ...mediaData } = data;
+    return this.prisma.$transaction(async (transaction) => {
+      const mediaItem = await transaction.mediaItem.create({
+        data: {
+          ...mediaData,
+          isSkeleton: false,
+          createdByUserId: null,
+          sortTitle: MediaService.computeSortTitle(mediaData.title),
+        },
+      });
+      await transaction.mediaExternalId.create({
+        data: { mediaItemId: mediaItem.id, provider, externalId },
+      });
+      return mediaItem;
+    });
   }
 
   async findOrCreateEpisodeSkeleton(

@@ -48,6 +48,7 @@ export const createLogEntry = (
     mediaItemId,
     loggedAt,
     duration: overrides.duration ?? null,
+    notes: null,
     platform: overrides.platform ?? null,
     playerCount: overrides.playerCount ?? null,
     won: overrides.won ?? null,
