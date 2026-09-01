@@ -17,6 +17,10 @@ This folder defines the product-level features for STrackerr. Each feature file 
 | [FEA-009: Media Enrichment Jobs and Images](./FEA-009-media-enrichment-jobs-images.md) | Local image cache and TV episode sync background job | TICKET-024, TICKET-031 |
 | [FEA-010: Public API](./FEA-010-public-api.md) | API key-protected log, media search, stats, and Swagger documentation | TICKET-025, TICKET-026, TICKET-027 |
 | [FEA-011: Hardening and Polish](./FEA-011-hardening-polish.md) | Error handling, security hardening, responsive design, and final polish | TICKET-028, TICKET-029, TICKET-030 |
+| [FEA-012: Account and Provider Settings](./FEA-012-account-provider-settings.md) | Tabbed settings, single-credential management, provider configuration, and password change | TICKET-034, TICKET-035, TICKET-036 |
+| [FEA-013: Search and Identification Corrections](./FEA-013-search-identification-corrections.md) | Music and TV search improvements plus safe media reidentification | TICKET-037, TICKET-038, TICKET-039 |
+| [FEA-014: Activity and Artwork Improvements](./FEA-014-activity-artwork-improvements.md) | Monthly history, hour-based charts, higher-quality artwork, and image cleanup | TICKET-040, TICKET-041, TICKET-042, TICKET-043 |
+| [FEA-015: Shell and Authentication Visual Polish](./FEA-015-shell-auth-visual-polish.md) | Typography, login identity, and mobile navigation improvements | TICKET-044, TICKET-045 |
 
 ## Agent Workflow
 
