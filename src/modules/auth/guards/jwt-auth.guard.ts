@@ -1,4 +1,4 @@
-import { ExecutionContext, Injectable } from "@nestjs/common";
+import { ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { AuthenticatedUser } from "../authenticated-user.interface";
 
@@ -14,12 +14,10 @@ export class JwtAuthGuard extends AuthGuard("jwt") {
 		error: unknown,
 		user: AuthenticatedUser | null,
 		_info: unknown,
-		context: ExecutionContext,
+		_context: ExecutionContext,
 	): TUser {
 		if (error || !user) {
-			const response = context.switchToHttp().getResponse();
-			response.redirect("/login");
-			return null as TUser;
+			throw new UnauthorizedException("Authentication required");
 		}
 		return user as TUser;
 	}

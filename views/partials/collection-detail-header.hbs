@@ -2,7 +2,10 @@
     data-lucide="arrow-left" class="h-4 w-4"></i>Back to collection</a>
 <header class="mt-6 grid gap-6 border-b border-border-subtle pb-8 sm:grid-cols-[10rem_minmax(0,1fr)]">
   <div class="aspect-[2/3] overflow-hidden rounded-lg bg-type-{{accent}}/15">
-    {{#if imageUrl}}<img src="{{imageUrl}}" alt="" class="h-full w-full object-cover" />{{else}}<span
+    {{#if (localImageUrl imageUrl)}}<img data-image-fallback src="{{localImageUrl imageUrl}}" alt=""
+      class="h-full w-full object-cover" /><span
+      class="hidden h-full flex-col items-center justify-center gap-2 text-type-{{accent}}"><i data-lucide="{{icon}}"
+        class="h-12 w-12"></i><span class="font-heading text-2xl font-bold">{{initial title}}</span></span>{{else}}<span
       class="flex h-full items-center justify-center text-type-{{accent}}"><i data-lucide="{{icon}}"
         class="h-12 w-12"></i></span>{{/if}}
   </div>
@@ -15,7 +18,8 @@
     {{#if artist}}<p class="mt-1 text-base text-text-secondary">{{artist}}</p>{{/if}}
     {{#if year}}<p class="mt-1 text-sm text-text-secondary">{{year}}</p>{{/if}}
     {{#if description}}<p class="mt-4 max-w-3xl text-sm leading-6 text-text-secondary">{{description}}</p>{{/if}}
-    {{#if identifyUrl}}<a href="{{identifyUrl}}" hx-get="{{identifyUrl}}" hx-target="#identify-panel" hx-swap="innerHTML"
+    {{#if identifyUrl}}<a href="{{identifyUrl}}" hx-get="{{identifyUrl}}" hx-target="#identify-panel"
+      hx-swap="innerHTML"
       class="mt-5 inline-flex items-center gap-2 rounded-lg bg-type-{{accent}} px-4 py-2 font-heading text-sm font-semibold text-black active:scale-[0.98]"><i
         data-lucide="search" class="h-4 w-4"></i>Identify</a>{{/if}}
   </div>

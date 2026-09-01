@@ -123,6 +123,7 @@ export const toMediaDetailViewModel = (item: MediaDetail) => {
   return {
     ...item,
     ...details,
+    title: item.title,
     identifyUrl: item.isSkeleton
       ? `/collection/${details.path}/${item.id}/identify`
       : null,

@@ -8,28 +8,22 @@
   <h1 class="mb-8 text-center text-display font-heading">Login</h1>
 
   <form method="POST" action="/auth/login" class="space-y-4">
+    <input type="hidden" name="_csrf" value="{{csrfToken}}" />
     <div>
       <label for="username" class="mb-2 block text-subheading font-heading">Username</label>
-      <input
-        type="text"
-        id="username"
-        name="username"
-        required
-        class="w-full rounded border border-border bg-bg-base px-3 py-2 font-body text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-type-tv" />
+      <input type="text" id="username" name="username" value="{{values.username}}" required
+        class="w-full rounded border {{#if errors.username}}border-red-500{{else}}border-border{{/if}} bg-bg-base px-3 py-2 font-body text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-type-tv" />
+      {{#if errors.username}}<p class="mt-1 text-meta text-red-400">{{errors.username}}</p>{{/if}}
     </div>
 
     <div>
       <label for="password" class="mb-2 block text-subheading font-heading">Password</label>
-      <input
-        type="password"
-        id="password"
-        name="password"
-        required
-        class="w-full rounded border border-border bg-bg-base px-3 py-2 font-body text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-type-tv" />
+      <input type="password" id="password" name="password" required
+        class="w-full rounded border {{#if errors.password}}border-red-500{{else}}border-border{{/if}} bg-bg-base px-3 py-2 font-body text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-type-tv" />
+      {{#if errors.password}}<p class="mt-1 text-meta text-red-400">{{errors.password}}</p>{{/if}}
     </div>
 
-    <button
-      type="submit"
+    <button type="submit"
       class="w-full rounded bg-type-tv px-4 py-2 font-heading font-semibold text-white transition hover:opacity-90">
       Sign In
     </button>
@@ -40,8 +34,7 @@
     <p class="mb-3 text-center text-body text-text-secondary">
       First time? Set up your account
     </p>
-    <a
-      href="/register"
+    <a href="/register"
       class="block rounded bg-type-game px-4 py-2 text-center font-heading font-semibold text-white transition hover:opacity-90">
       Create Account
     </a>

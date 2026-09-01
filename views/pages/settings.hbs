@@ -55,6 +55,7 @@
 
     <div class="grid gap-4 md:grid-cols-2">
       <form method="POST" action="/settings/provider-key/tmdb" class="space-y-4 rounded bg-bg-base p-4">
+        <input type="hidden" name="_csrf" value="{{csrfToken}}" />
         <h3 class="text-subheading font-heading">TMDB</h3>
         <div>
           <label for="tmdbKey" class="mb-2 block text-subheading font-heading">API Key</label>
@@ -69,6 +70,7 @@
       </form>
 
       <form method="POST" action="/settings/provider-key/igdb" class="space-y-4 rounded bg-bg-base p-4">
+        <input type="hidden" name="_csrf" value="{{csrfToken}}" />
         <h3 class="text-subheading font-heading">IGDB</h3>
         <div>
           <label for="igdbClientId" class="mb-2 block text-subheading font-heading">Client ID</label>
@@ -95,6 +97,7 @@
       Choose the default metadata source used when adding or identifying each media type.
     </p>
     <form method="POST" action="/settings/metadata-providers" class="space-y-4">
+      <input type="hidden" name="_csrf" value="{{csrfToken}}" />
       <div class="grid gap-4 md:grid-cols-2">
         {{#each providerPreferences}}
         <div>

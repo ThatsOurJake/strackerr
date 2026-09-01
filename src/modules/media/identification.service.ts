@@ -1,5 +1,7 @@
-import { Injectable } from "@nestjs/common";
-import { MediaType, type MediaItem } from "@prisma/client";
+import { Injectable, Optional } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import { type MediaItem, MediaType } from "@prisma/client";
+import { Events } from "../../infrastructure/events/event-names";
 import { MetadataService } from "../metadata/metadata.service";
 import { type MetadataProviderName } from "../metadata/metadata-provider.interface";
 import { EpisodeSyncService } from "./episode-sync.service";
@@ -11,7 +13,8 @@ export class IdentificationService {
     private readonly mediaService: MediaService,
     private readonly metadataService: MetadataService,
     private readonly episodeSyncService: EpisodeSyncService,
-  ) {}
+    @Optional() private readonly events?: EventEmitter2,
+  ) { }
 
   async identify(
     mediaItemId: string,
@@ -40,15 +43,27 @@ export class IdentificationService {
     const updated = await this.mediaService.update(mediaItemId, {
       title: metadata.title,
       description: metadata.description ?? null,
-      imageUrl: metadata.imageUrl ?? null,
+      imageUrl: null,
+      imageSourceUrl: metadata.imageUrl ?? null,
       year: metadata.year ?? null,
       duration: metadata.duration ?? null,
       isSkeleton: false,
       createdByUserId: null,
     });
 
-    await this.mediaService.addExternalId(mediaItemId, providerName, externalId);
+    await this.mediaService.addExternalId(
+      mediaItemId,
+      providerName,
+      externalId,
+    );
     await this.mediaService.addAlias(mediaItemId, originalTitle);
+
+    if (metadata.imageUrl) {
+      this.events?.emit(Events.IMAGE_CACHE, {
+        mediaItemId,
+        sourceUrl: metadata.imageUrl,
+      });
+    }
 
     if (updated.type === MediaType.TV_SHOW) {
       void this.episodeSyncService.syncShow(

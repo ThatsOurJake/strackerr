@@ -26,6 +26,7 @@ interface MediaPrismaMock {
   };
   mediaExternalId: {
     findUnique: jest.Mock;
+    create: jest.Mock;
     upsert: jest.Mock;
   };
 }
@@ -46,6 +47,7 @@ const createPrismaMock = (): MediaPrismaMock => {
     },
     mediaExternalId: {
       findUnique: jest.fn(),
+      create: jest.fn(),
       upsert: jest.fn(),
     },
   };
@@ -125,6 +127,36 @@ describe("MediaService", () => {
       where: { provider_externalId: { provider: "tmdb", externalId: "123" } },
       create: { mediaItemId: "media-1", provider: "tmdb", externalId: "123" },
       update: { mediaItemId: "media-1" },
+    });
+  });
+
+  it("queues identified artwork for local caching", async () => {
+    const prisma = createPrismaMock();
+    const events = { emit: jest.fn() };
+    prisma.mediaExternalId.findUnique.mockResolvedValue(null);
+    prisma.mediaItem.create.mockResolvedValue({ ...mediaItem, id: "game-1" });
+    const service = new MediaService(
+      prisma as unknown as PrismaService,
+      events as never,
+    );
+
+    await service.findOrCreateIdentified({
+      type: MediaType.GAME,
+      title: "Hades",
+      provider: "igdb",
+      externalId: "123",
+      imageUrl: "https://images.igdb.com/cover.jpg",
+    });
+
+    expect(prisma.mediaItem.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        imageUrl: null,
+        imageSourceUrl: "https://images.igdb.com/cover.jpg",
+      }),
+    });
+    expect(events.emit).toHaveBeenCalledWith("media.image.cache", {
+      mediaItemId: "game-1",
+      sourceUrl: "https://images.igdb.com/cover.jpg",
     });
   });
 });

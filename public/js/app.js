@@ -1,0 +1,106 @@
+const renderIcons = () => window.lucide?.createIcons();
+
+const configureHtmxElements = (root = document) => {
+  root.querySelectorAll("[hx-get], [hx-post]").forEach((element) => {
+    if (!element.hasAttribute("hx-indicator")) {
+      element.setAttribute("hx-indicator", "#global-htmx-indicator");
+    }
+  });
+};
+
+const configureImageFallbacks = (root = document) => {
+  root.querySelectorAll("img[data-image-fallback]").forEach((image) => {
+    image.addEventListener("error", () => {
+      image.classList.add("hidden");
+      image.nextElementSibling?.classList.remove("hidden");
+    }, { once: true });
+  });
+};
+
+const closeDrawer = () => {
+  const drawer = document.querySelector("[data-mobile-drawer]");
+  drawer?.classList.add("hidden");
+  document.querySelector("[data-menu-toggle]")?.setAttribute("aria-expanded", "false");
+};
+
+const initializeChart = () => {
+  const element = document.getElementById("activity-chart");
+  if (!element || !window.echarts) {
+    return;
+  }
+  const chartData = JSON.parse(element.dataset.chart);
+  const chart = window.echarts.init(element);
+  chart.setOption({
+    animationDuration: 300,
+    grid: { left: 40, right: 8, top: 12, bottom: 32 },
+    tooltip: { trigger: "axis", backgroundColor: "#242424", borderColor: "#2C2C2C", textStyle: { color: "#F0EDE8" } },
+    xAxis: { type: "category", data: chartData.labels, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: "#9CA3AF", fontSize: 11 } },
+    yAxis: { type: "value", splitLine: { show: false }, axisLine: { show: false }, axisLabel: { color: "#9CA3AF", formatter: (value) => `${value}m` } },
+    series: [{ type: "bar", data: chartData.values, itemStyle: { color: "#F0EDE8" }, barMaxWidth: 28 }],
+  });
+  window.addEventListener("resize", () => chart.resize());
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  renderIcons();
+  configureHtmxElements();
+  configureImageFallbacks();
+  initializeChart();
+
+  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const isDark = document.documentElement.classList.toggle("dark");
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    });
+  });
+
+  document.querySelector("[data-menu-toggle]")?.addEventListener("click", () => {
+    const drawer = document.querySelector("[data-mobile-drawer]");
+    const isOpening = drawer?.classList.contains("hidden") ?? false;
+    drawer?.classList.toggle("hidden");
+    document.querySelector("[data-menu-toggle]")?.setAttribute("aria-expanded", String(isOpening));
+    if (isOpening) {
+      drawer?.querySelector("a")?.focus();
+    }
+  });
+  document.querySelectorAll("[data-menu-close]").forEach((element) => {
+    element.addEventListener("click", closeDrawer);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeDrawer();
+    }
+  });
+
+  document.querySelectorAll("[data-nav-link]").forEach((link) => {
+    const href = link.getAttribute("href");
+    const isActive = href === "/" ? location.pathname === "/" : location.pathname.startsWith(href);
+    if (isActive) {
+      link.setAttribute("aria-current", "page");
+    }
+  });
+
+  document.querySelectorAll(".flash-message").forEach((message) => {
+    window.setTimeout(() => message.remove(), 4000);
+  });
+
+  const confirmPassword = document.getElementById("confirmPassword");
+  const password = document.getElementById("password");
+  const passwordError = document.getElementById("confirmPasswordError");
+  const validatePasswordMatch = () => {
+    const mismatch = confirmPassword?.value !== password?.value;
+    confirmPassword?.setCustomValidity(mismatch ? "Passwords do not match" : "");
+    passwordError?.classList.toggle("hidden", !mismatch);
+  };
+  confirmPassword?.addEventListener("input", validatePasswordMatch);
+  password?.addEventListener("input", validatePasswordMatch);
+});
+
+document.addEventListener("htmx:configRequest", (event) => {
+  event.detail.headers["X-CSRF-Token"] = document.body.dataset.csrfToken;
+});
+document.addEventListener("htmx:afterSwap", (event) => {
+  renderIcons();
+  configureHtmxElements(event.detail.target);
+  configureImageFallbacks(event.detail.target);
+});

@@ -3,6 +3,9 @@ import { ValidationPipe } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 import hbs from "hbs";
+import helmet from "helmet";
+import { csrfProtection } from "./infrastructure/security/csrf.middleware";
+import { WebExceptionFilter } from "./infrastructure/security/web-exception.filter";
 
 export const configureApp = async (
   app: NestExpressApplication,
@@ -14,13 +17,35 @@ export const configureApp = async (
     hbs.registerPartials(join(viewsPath, "partials"), resolve);
   });
   hbs.registerHelper("eq", (left: unknown, right: unknown) => left === right);
-  hbs.registerHelper("thumbnailUrl", (imageUrl: string) =>
-    imageUrl.startsWith("/img/")
+  hbs.registerHelper("initial", (value: string | undefined) =>
+    value?.trim().charAt(0).toUpperCase() || "?",
+  );
+  hbs.registerHelper("localImageUrl", (imageUrl: string | null | undefined) =>
+    imageUrl?.startsWith("/img/") ? imageUrl : undefined,
+  );
+  hbs.registerHelper("thumbnailUrl", (imageUrl: string | null | undefined) =>
+    imageUrl?.startsWith("/img/")
       ? imageUrl.replace(/-cover\.webp$/, "-thumb.webp")
-      : imageUrl,
+      : undefined,
   );
 
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          scriptSrc: ["'self'", "https://unpkg.com"],
+          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+          fontSrc: ["'self'", "https://fonts.gstatic.com"],
+          imgSrc: ["'self'", "data:"],
+          connectSrc: ["'self'", "https://unpkg.com"],
+        },
+      },
+      strictTransportSecurity: process.env.NODE_ENV === "production",
+    }),
+  );
   app.use(cookieParser());
+  app.useBodyParser("urlencoded", { extended: true });
+  app.use(csrfProtection);
   app.useStaticAssets(join(process.cwd(), "public"));
   const dataDir = process.env.DATA_DIR ?? "./data";
   app.useStaticAssets(join(dataDir, "images"), { prefix: "/img/" });
@@ -34,4 +59,5 @@ export const configureApp = async (
       transform: true,
     }),
   );
+  app.useGlobalFilters(new WebExceptionFilter());
 };

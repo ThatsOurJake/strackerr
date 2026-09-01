@@ -1,6 +1,7 @@
 import { ConflictException, Injectable } from "@nestjs/common";
 import { LogSource, MediaType, Prisma } from "@prisma/client";
 import { PrismaService } from "../../infrastructure/database/prisma.service";
+import { stripHtmlTags } from "../../infrastructure/security/sanitize-string";
 
 export interface FindLogsFilters {
   dateFrom?: Date;
@@ -62,7 +63,13 @@ export class LogService {
       }
 
       return transaction.logEntry.create({
-        data: { ...data, userId, source },
+        data: {
+          ...data,
+          notes: data.notes ? stripHtmlTags(data.notes) : undefined,
+          platform: data.platform ? stripHtmlTags(data.platform) : undefined,
+          userId,
+          source,
+        },
         include: { mediaItem: { include: { parent: true } } },
       });
     });

@@ -15,6 +15,8 @@ describe("AuthController", () => {
     cookie: jest.Mock;
     redirect: jest.Mock;
     clearCookie: jest.Mock;
+    status: jest.Mock;
+    render: jest.Mock;
   };
 
   beforeEach(() => {
@@ -24,7 +26,14 @@ describe("AuthController", () => {
       authService as unknown as AuthService,
       usersService as unknown as UsersService,
     );
-    response = { cookie: jest.fn(), redirect: jest.fn(), clearCookie: jest.fn() };
+    response = {
+      cookie: jest.fn(),
+      redirect: jest.fn(),
+      clearCookie: jest.fn(),
+      status: jest.fn(),
+      render: jest.fn(),
+    };
+    response.status.mockReturnValue(response);
     delete process.env.NODE_ENV;
   });
 
@@ -56,7 +65,13 @@ describe("AuthController", () => {
 
     expect(authService.generateJwt).not.toHaveBeenCalled();
     expect(response.cookie).not.toHaveBeenCalled();
-    expect(response.redirect).toHaveBeenCalledWith("/login?error=Invalid username or password");
+    expect(response.status).toHaveBeenCalledWith(400);
+    expect(response.render).toHaveBeenCalledWith("login", {
+      title: "Login",
+      errors: { username: "Invalid username or password" },
+      values: { username: "tester" },
+      showRegisterLink: false,
+    });
   });
 
   it("sets the production secure flag for a valid login", async () => {

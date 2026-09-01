@@ -8,7 +8,7 @@ import {
   Res,
   UseGuards,
 } from "@nestjs/common";
-import { LogSource, MediaType, type MediaItem } from "@prisma/client";
+import { LogSource, type MediaItem, MediaType } from "@prisma/client";
 import type { Response } from "express";
 import { LogService } from "../../modules/activity/log.service";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
@@ -60,6 +60,16 @@ interface EntryFormModel {
   isBoardGame: boolean;
   isMusicTrack: boolean;
   error?: string;
+  errors?: Record<string, string>;
+}
+
+class AddFormValidationError extends Error {
+  constructor(
+    readonly field: string,
+    message: string,
+  ) {
+    super(message);
+  }
 }
 
 const ADD_TYPES = [
@@ -70,12 +80,35 @@ const ADD_TYPES = [
   MediaType.MUSIC_TRACK,
 ] as const;
 
-const TYPE_DETAILS: Record<(typeof ADD_TYPES)[number], { label: string; icon: string; accentClass: string }> = {
-  [MediaType.MOVIE]: { label: "Movie", icon: "film", accentClass: "type-movie" },
-  [MediaType.TV_EPISODE]: { label: "TV episode", icon: "tv-2", accentClass: "type-tv" },
-  [MediaType.GAME]: { label: "Game", icon: "gamepad-2", accentClass: "type-game" },
-  [MediaType.BOARD_GAME]: { label: "Board game", icon: "dice-5", accentClass: "type-boardgame" },
-  [MediaType.MUSIC_TRACK]: { label: "Music track", icon: "music", accentClass: "type-music" },
+const TYPE_DETAILS: Record<
+  (typeof ADD_TYPES)[number],
+  { label: string; icon: string; accentClass: string }
+> = {
+  [MediaType.MOVIE]: {
+    label: "Movie",
+    icon: "film",
+    accentClass: "type-movie",
+  },
+  [MediaType.TV_EPISODE]: {
+    label: "TV episode",
+    icon: "tv-2",
+    accentClass: "type-tv",
+  },
+  [MediaType.GAME]: {
+    label: "Game",
+    icon: "gamepad-2",
+    accentClass: "type-game",
+  },
+  [MediaType.BOARD_GAME]: {
+    label: "Board game",
+    icon: "dice-5",
+    accentClass: "type-boardgame",
+  },
+  [MediaType.MUSIC_TRACK]: {
+    label: "Music track",
+    icon: "music",
+    accentClass: "type-music",
+  },
 };
 
 @Controller("add")
@@ -85,7 +118,7 @@ export class AddController {
     private readonly metadataService: MetadataService,
     private readonly mediaService: MediaService,
     private readonly logService: LogService,
-  ) {}
+  ) { }
 
   @Get()
   add(@Res() response: Response) {
@@ -110,13 +143,17 @@ export class AddController {
       });
     }
 
-    const resolved = await this.metadataService.getProviderForUser(type, user.userId);
+    const resolved = await this.metadataService.getProviderForUser(
+      type,
+      user.userId,
+    );
     return response.render("partials/add-search-form", {
       layout: false,
       type,
       typeLabel: TYPE_DETAILS[type].label,
       providerLabel: resolved.provider.name,
-      missingKey: ["tmdb", "igdb"].includes(resolved.provider.name) && !resolved.apiKey,
+      missingKey:
+        ["tmdb", "igdb"].includes(resolved.provider.name) && !resolved.apiKey,
     });
   }
 
@@ -137,8 +174,14 @@ export class AddController {
     }
 
     try {
-      const resolved = await this.metadataService.getProviderForUser(type, user.userId);
-      if (["tmdb", "igdb"].includes(resolved.provider.name) && !resolved.apiKey) {
+      const resolved = await this.metadataService.getProviderForUser(
+        type,
+        user.userId,
+      );
+      if (
+        ["tmdb", "igdb"].includes(resolved.provider.name) &&
+        !resolved.apiKey
+      ) {
         return response.render("partials/add-search-results", {
           layout: false,
           type,
@@ -158,7 +201,8 @@ export class AddController {
       return response.render("partials/add-search-results", {
         layout: false,
         type,
-        error: error instanceof Error ? error.message : "Provider search failed",
+        error:
+          error instanceof Error ? error.message : "Provider search failed",
       });
     }
   }
@@ -174,17 +218,29 @@ export class AddController {
     if (!body.externalId || !providerName) {
       return response.render("partials/add-entry-form", {
         layout: false,
-        ...AddController.entryFormModel(type, body, "Select a valid search result"),
+        ...AddController.entryFormModel(
+          type,
+          body,
+          "Select a valid search result",
+        ),
       });
     }
 
     try {
-      const resolved = await this.metadataService.getProviderForUser(type, user.userId, {
-        providerOverride: providerName,
-        anime: providerName === "anilist",
-      });
-      const metadata = await resolved.provider.getById(body.externalId, resolved.apiKey);
-      const catalogType = type === MediaType.TV_EPISODE ? MediaType.TV_SHOW : type;
+      const resolved = await this.metadataService.getProviderForUser(
+        type,
+        user.userId,
+        {
+          providerOverride: providerName,
+          anime: providerName === "anilist",
+        },
+      );
+      const metadata = await resolved.provider.getById(
+        body.externalId,
+        resolved.apiKey,
+      );
+      const catalogType =
+        type === MediaType.TV_EPISODE ? MediaType.TV_SHOW : type;
       const mediaItem = await this.mediaService.findOrCreateIdentified({
         type: catalogType,
         title: metadata.title,
@@ -234,7 +290,12 @@ export class AddController {
           notes: body.notes?.trim() || undefined,
           platform: body.platform?.trim() || undefined,
           playerCount: validated.playerCount,
-          won: body.won === "true" ? true : body.won === "false" ? false : undefined,
+          won:
+            body.won === "true"
+              ? true
+              : body.won === "false"
+                ? false
+                : undefined,
         },
         user.userId,
         LogSource.MANUAL,
@@ -244,16 +305,24 @@ export class AddController {
       if (error instanceof ForbiddenException) {
         throw error;
       }
-      const fallbackType = ADD_TYPES.includes(body.type as (typeof ADD_TYPES)[number])
+      const fallbackType = ADD_TYPES.includes(
+        body.type as (typeof ADD_TYPES)[number],
+      )
         ? (body.type as (typeof ADD_TYPES)[number])
         : MediaType.MOVIE;
       return response.status(400).render("add", {
         title: "Add activity",
-        types: ADD_TYPES.map((itemType) => ({ type: itemType, ...TYPE_DETAILS[itemType] })),
+        types: ADD_TYPES.map((itemType) => ({
+          type: itemType,
+          ...TYPE_DETAILS[itemType],
+        })),
         entryForm: AddController.entryFormModel(
           fallbackType,
           body,
           error instanceof Error ? error.message : "Unable to add activity",
+          error instanceof AddFormValidationError
+            ? { [error.field]: error.message }
+            : undefined,
         ),
       });
     }
@@ -271,7 +340,9 @@ export class AddController {
         throw new Error("Selected media item no longer exists");
       }
       if (selected.isSkeleton && selected.createdByUserId !== userId) {
-        throw new ForbiddenException("You cannot log another user's unidentified item");
+        throw new ForbiddenException(
+          "You cannot log another user's unidentified item",
+        );
       }
     }
 
@@ -282,16 +353,28 @@ export class AddController {
         }
         return selected;
       }
-      return this.mediaService.findOrCreateSkeleton(body.title?.trim() ?? "", type, userId);
+      return this.mediaService.findOrCreateSkeleton(
+        body.title?.trim() ?? "",
+        type,
+        userId,
+      );
     }
 
-    const seasonNumber = AddController.parsePositiveInteger(body.seasonNumber, "Season number");
-    const episodeNumber = AddController.parsePositiveInteger(body.episodeNumber, "Episode number");
-    const show = selected ?? await this.mediaService.findOrCreateSkeleton(
-      body.title?.trim() ?? "",
-      MediaType.TV_SHOW,
-      userId,
+    const seasonNumber = AddController.parsePositiveInteger(
+      body.seasonNumber,
+      "Season number",
     );
+    const episodeNumber = AddController.parsePositiveInteger(
+      body.episodeNumber,
+      "Episode number",
+    );
+    const show =
+      selected ??
+      (await this.mediaService.findOrCreateSkeleton(
+        body.title?.trim() ?? "",
+        MediaType.TV_SHOW,
+        userId,
+      ));
     if (show.type !== MediaType.TV_SHOW) {
       throw new Error("Selected media item is not a TV show");
     }
@@ -306,19 +389,31 @@ export class AddController {
 
   private static validateSubmission(type: MediaType, body: SubmitAddBody) {
     if (!body.mediaItemId && !body.title?.trim()) {
-      throw new Error("Title is required");
+      throw new AddFormValidationError("title", "Title is required");
     }
     if (!body.loggedAt || !/^\d{4}-\d{2}-\d{2}$/.test(body.loggedAt)) {
-      throw new Error("A valid date is required");
+      throw new AddFormValidationError("loggedAt", "A valid date is required");
     }
-    const duration = AddController.parseOptionalPositiveInteger(body.duration, "Duration");
+    const duration = AddController.parseOptionalPositiveInteger(
+      body.duration,
+      "Duration",
+    );
     if (type === MediaType.GAME && duration === undefined) {
-      throw new Error("Duration is required for games");
+      throw new AddFormValidationError(
+        "duration",
+        "Duration is required for games",
+      );
     }
     if (type === MediaType.GAME && !body.platform?.trim()) {
-      throw new Error("Platform is required for games");
+      throw new AddFormValidationError(
+        "platform",
+        "Platform is required for games",
+      );
     }
-    const playerCount = AddController.parseOptionalPositiveInteger(body.playerCount, "Player count");
+    const playerCount = AddController.parseOptionalPositiveInteger(
+      body.playerCount,
+      "Player count",
+    );
     return {
       loggedAt: new Date(`${body.loggedAt}T12:00:00`),
       duration,
@@ -333,7 +428,10 @@ export class AddController {
     return rawType as (typeof ADD_TYPES)[number];
   }
 
-  private static parsePositiveInteger(value: string | undefined, label: string): number {
+  private static parsePositiveInteger(
+    value: string | undefined,
+    label: string,
+  ): number {
     const parsed = Number(value);
     if (!Number.isInteger(parsed) || parsed < 1) {
       throw new Error(`${label} must be a positive whole number`);
@@ -341,7 +439,10 @@ export class AddController {
     return parsed;
   }
 
-  private static parseOptionalPositiveInteger(value: string | undefined, label: string): number | undefined {
+  private static parseOptionalPositiveInteger(
+    value: string | undefined,
+    label: string,
+  ): number | undefined {
     if (!value?.trim()) {
       return undefined;
     }
@@ -352,9 +453,12 @@ export class AddController {
     type: (typeof ADD_TYPES)[number],
     values: Partial<SubmitAddBody> = {},
     error?: string,
+    errors?: Record<string, string>,
   ): EntryFormModel {
     const today = new Date();
-    const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60_000)
+    const localDate = new Date(
+      today.getTime() - today.getTimezoneOffset() * 60_000,
+    )
       .toISOString()
       .slice(0, 10);
     return {
@@ -364,7 +468,9 @@ export class AddController {
       mediaItemId: values.mediaItemId,
       title: values.title,
       loggedAt: values.loggedAt ?? localDate,
-      defaultDuration: values.defaultDuration ? Number(values.defaultDuration) : undefined,
+      defaultDuration: values.defaultDuration
+        ? Number(values.defaultDuration)
+        : undefined,
       duration: values.duration,
       notes: values.notes,
       seasonNumber: values.seasonNumber,
@@ -378,6 +484,7 @@ export class AddController {
       isBoardGame: type === MediaType.BOARD_GAME,
       isMusicTrack: type === MediaType.MUSIC_TRACK,
       error,
+      errors,
     };
   }
 }

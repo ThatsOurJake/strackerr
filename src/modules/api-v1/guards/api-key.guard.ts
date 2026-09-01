@@ -10,7 +10,13 @@ export class ApiKeyGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const apiKey = request.header("X-API-Key");
 
-    if (request.query.apiKey !== undefined || !apiKey) {
+    if (request.query.apiKey !== undefined) {
+      throw new UnauthorizedException(
+        "API key must be sent in the X-API-Key header, not as a query parameter",
+      );
+    }
+
+    if (!apiKey) {
       throw new UnauthorizedException("Invalid or missing API key");
     }
 

@@ -24,15 +24,23 @@ export class AuthController {
   @Post("register")
   @HttpCode(200)
   async register(@Body() dto: RegisterDto, @Res() res: Response) {
-    const user = await this.usersService.create(dto.username, dto.password);
-    const token = this.authService.generateJwt(
-      user.id,
-      user.username,
-      user.isAdmin,
-    );
+    try {
+      const user = await this.usersService.create(dto.username, dto.password);
+      const token = this.authService.generateJwt(
+        user.id,
+        user.username,
+        user.isAdmin,
+      );
 
-    this.setAuthCookie(res, token);
-    res.redirect("/");
+      this.setAuthCookie(res, token);
+      res.redirect("/");
+    } catch (error) {
+      res.status(400).render("register", {
+        title: "Setup",
+        error: error instanceof Error ? error.message : "Unable to create account",
+        values: { username: dto.username },
+      });
+    }
   }
 
   @Post("login")
@@ -44,7 +52,12 @@ export class AuthController {
     );
 
     if (!user) {
-      return res.redirect("/login?error=Invalid username or password");
+      return res.status(400).render("login", {
+        title: "Login",
+        errors: { username: "Invalid username or password" },
+        values: { username: dto.username },
+        showRegisterLink: false,
+      });
     }
 
     const token = this.authService.generateJwt(

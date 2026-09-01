@@ -22,7 +22,7 @@ export class ImageCacheService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   @OnEvent(Events.IMAGE_CACHE)
   enqueue(request: ImageCacheRequestEvent): void {

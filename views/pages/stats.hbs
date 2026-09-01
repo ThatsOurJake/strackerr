@@ -35,8 +35,11 @@
     <div class="divide-y divide-border-subtle border-y border-border-subtle">
       {{#each topItems}}
       <a href="{{detailUrl}}" class="flex items-center gap-3 px-2 py-3 hover:bg-bg-elevated">
-        {{#if imageUrl}}<img src="{{thumbnailUrl imageUrl}}" alt=""
-          class="h-14 w-10 rounded object-cover" />{{else}}<span
+        {{#if (thumbnailUrl imageUrl)}}<img data-image-fallback src="{{thumbnailUrl imageUrl}}" alt=""
+          class="h-14 w-10 rounded object-cover" /><span
+          class="hidden h-14 w-10 shrink-0 flex-col items-center justify-center rounded bg-type-{{accent}}/20 text-type-{{accent}}"><i
+            data-lucide="{{icon}}" class="h-5 w-5"></i><span class="font-heading text-xs font-bold">{{initial
+            title}}</span></span>{{else}}<span
           class="flex h-14 w-10 items-center justify-center rounded bg-type-{{accent}}/20 text-type-{{accent}}"><i
             data-lucide="{{icon}}" class="h-5 w-5"></i></span>{{/if}}
         <div class="min-w-0 flex-1">
@@ -49,23 +52,6 @@
     </div>
   </section>
   {{else}}
-  <div class="mt-8">{{> empty_history}}</div>
+  <div class="mt-8">{{> empty_stats}}</div>
   {{/if}}
 </div>
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const element = document.getElementById("activity-chart");
-    if (!element || !window.echarts) return;
-    const chartData = JSON.parse(element.dataset.chart);
-    const chart = echarts.init(element);
-    chart.setOption({
-      animationDuration: 300,
-      grid: { left: 40, right: 8, top: 12, bottom: 32 },
-      tooltip: { trigger: "axis", backgroundColor: "#242424", borderColor: "#2C2C2C", textStyle: { color: "#F0EDE8" } },
-      xAxis: { type: "category", data: chartData.labels, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: "#9CA3AF", fontSize: 11 } },
-      yAxis: { type: "value", splitLine: { show: false }, axisLine: { show: false }, axisLabel: { color: "#9CA3AF", formatter: (value) => `${value}m` } },
-      series: [{ type: "bar", data: chartData.values, itemStyle: { color: "#F0EDE8" }, barMaxWidth: 28 }],
-    });
-    window.addEventListener("resize", () => chart.resize());
-  });
-</script>

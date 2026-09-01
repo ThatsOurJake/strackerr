@@ -29,8 +29,9 @@ export class SearchController {
     }
 
     return response.render("search", {
-      title: "Search",
+      title: searchQuery ? `Search: ${searchQuery}` : "Search",
       query: searchQuery,
+      searched: searchQuery.length >= 3,
       groups: [...grouped.entries()].map(([type, groupResults]) => ({
         type,
         results: groupResults,

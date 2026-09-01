@@ -3,6 +3,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { User } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import { PrismaService } from "../../infrastructure/database/prisma.service";
+import { stripHtmlTags } from "../../infrastructure/security/sanitize-string";
 import { EncryptionService } from "./encryption.service";
 
 @Injectable()
@@ -24,10 +25,11 @@ export class UsersService {
 
 		const passwordHash = await bcrypt.hash(password, 12);
 		const apiKey = createId();
+		const sanitizedUsername = stripHtmlTags(username);
 
 		const user = await this.prisma.user.create({
 			data: {
-				username,
+				username: sanitizedUsername,
 				passwordHash,
 				apiKey,
 				isAdmin: true, // First user is admin
@@ -40,10 +42,11 @@ export class UsersService {
 	async createByAdmin(username: string, password: string) {
 		const passwordHash = await bcrypt.hash(password, 12);
 		const apiKey = createId();
+		const sanitizedUsername = stripHtmlTags(username);
 
 		const user = await this.prisma.user.create({
 			data: {
-				username,
+				username: sanitizedUsername,
 				passwordHash,
 				apiKey,
 				isAdmin: false,
@@ -55,7 +58,7 @@ export class UsersService {
 
 	async findByUsername(username: string) {
 		return this.prisma.user.findUnique({
-			where: { username },
+			where: { username: stripHtmlTags(username) },
 		});
 	}
 

@@ -16,9 +16,9 @@ The application is resilient, secure, responsive, and consistent enough for day-
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-028](../backlog/todo/TICKET-028.md) | Error handling and empty states |
-| [TICKET-029](../backlog/todo/TICKET-029.md) | Security hardening |
-| [TICKET-030](../backlog/todo/TICKET-030.md) | Responsive design and polish |
+| [TICKET-028](../backlog/done/TICKET-028.md) | Error handling and empty states |
+| [TICKET-029](../backlog/done/TICKET-029.md) | Security hardening |
+| [TICKET-030](../backlog/done/TICKET-030.md) | Responsive design and polish |
 
 ## Done Signal
 - Common unhappy paths render useful UI or API responses.

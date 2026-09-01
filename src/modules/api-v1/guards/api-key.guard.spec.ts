@@ -24,7 +24,9 @@ describe("ApiKeyGuard", () => {
 
   it("rejects missing and query-string API keys", async () => {
     await expect(guard.canActivate(contextFor().context)).rejects.toBeInstanceOf(UnauthorizedException);
-    await expect(guard.canActivate(contextFor(undefined, { apiKey: "key-1" }).context)).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(guard.canActivate(contextFor(undefined, { apiKey: "key-1" }).context)).rejects.toThrow(
+      "API key must be sent in the X-API-Key header, not as a query parameter",
+    );
     expect(findUnique).not.toHaveBeenCalled();
   });
 

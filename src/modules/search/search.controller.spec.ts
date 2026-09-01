@@ -37,8 +37,9 @@ describe("SearchController", () => {
 
     expect(searchService.search).toHaveBeenCalledWith("user-1", "sev");
     expect(response.render).toHaveBeenCalledWith("search", {
-      title: "Search",
+      title: "Search: sev",
       query: "sev",
+      searched: true,
       groups: [
         { type: "MOVIE", results: [results[0], results[2]] },
         { type: "TV_SHOW", results: [results[1]] },
@@ -53,8 +54,9 @@ describe("SearchController", () => {
 
     expect(searchService.search).not.toHaveBeenCalled();
     expect(response.render).toHaveBeenCalledWith("search", {
-      title: "Search",
+      title: "Search: ab",
       query: "ab",
+      searched: false,
       groups: [],
     });
   });

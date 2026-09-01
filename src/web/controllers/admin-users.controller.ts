@@ -38,8 +38,9 @@ export class AdminWebController {
 	) {
 		const users = await this.usersService.findAll();
 		res.render("admin/users", {
-			title: "Manage Users",
+			title: "Users",
 			users,
+			hasOtherUsers: users.some((listedUser) => listedUser.id !== user.userId),
 			currentUserId: user.userId,
 			success,
 		});
@@ -47,6 +48,23 @@ export class AdminWebController {
 
 	@Post("users")
 	async createUser(@Body() body: CreateUserBody, @Res() res: Response) {
+		const errors: Record<string, string> = {};
+		if (!body.username?.trim()) {
+			errors.username = "Username is required";
+		}
+		if (!body.password || body.password.length < 8) {
+			errors.password = "Password must be at least 8 characters";
+		}
+		if (Object.keys(errors).length > 0) {
+			const users = await this.usersService.findAll();
+			return res.status(400).render("admin/users", {
+				title: "Users",
+				users,
+				errors,
+				values: { username: body.username },
+			});
+		}
+
 		try {
 			const user = await this.usersService.createByAdmin(
 				body.username,
@@ -61,6 +79,7 @@ export class AdminWebController {
 				title: "Manage Users",
 				users,
 				error: error instanceof Error ? error.message : "Failed to create user",
+				values: { username: body.username },
 			});
 		}
 	}

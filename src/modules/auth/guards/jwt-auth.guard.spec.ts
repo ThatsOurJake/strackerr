@@ -1,4 +1,4 @@
-import { ExecutionContext } from "@nestjs/common";
+import { ExecutionContext, UnauthorizedException } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
 import { JwtAuthGuard } from "../guards/jwt-auth.guard";
 
@@ -18,25 +18,13 @@ describe("JwtAuthGuard", () => {
 	});
 
 	describe("handleRequest", () => {
-		it("should redirect to /login when no user is provided", () => {
-			const mockResponse = {
-				redirect: jest.fn(),
-			};
-
-			const mockContext = {
-				switchToHttp: jest.fn().mockReturnValue({
-					getResponse: jest.fn().mockReturnValue(mockResponse),
-				}),
-			};
-
-			guard.handleRequest(
+		it("should throw UnauthorizedException when no user is provided", () => {
+			expect(() => guard.handleRequest(
 				null,
 				null,
 				null,
-				mockContext as unknown as ExecutionContext,
-			);
-
-			expect(mockResponse.redirect).toHaveBeenCalledWith("/login");
+				{} as ExecutionContext,
+			)).toThrow(UnauthorizedException);
 		});
 
 		it("should return user when authentication succeeds", () => {
@@ -61,27 +49,15 @@ describe("JwtAuthGuard", () => {
 			expect(result).toBe(mockUser);
 		});
 
-		it("should redirect to /login on JWT error", () => {
-			const mockResponse = {
-				redirect: jest.fn(),
-			};
-
-			const mockContext = {
-				switchToHttp: jest.fn().mockReturnValue({
-					getResponse: jest.fn().mockReturnValue(mockResponse),
-				}),
-			};
-
+		it("should throw UnauthorizedException on JWT error", () => {
 			const error = new Error("Invalid token");
 
-			guard.handleRequest(
+			expect(() => guard.handleRequest(
 				error,
 				null,
 				null,
-				mockContext as unknown as ExecutionContext,
-			);
-
-			expect(mockResponse.redirect).toHaveBeenCalledWith("/login");
+				{} as ExecutionContext,
+			)).toThrow(UnauthorizedException);
 		});
 	});
 });

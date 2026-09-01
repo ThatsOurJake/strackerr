@@ -4,25 +4,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>STrackerr - {{title}}</title>
+  <title>STrackerr — {{title}}</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
     href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="/css/app.css" />
-  <script>
-    (() => {
-      const theme = localStorage.getItem("theme") ?? "dark";
-      document.documentElement.classList.toggle("dark", theme === "dark");
-    })();
-  </script>
+  <script src="/js/theme.js"></script>
   <script src="https://unpkg.com/htmx.org@2.0.10" defer></script>
   <script src="https://unpkg.com/echarts@6.1.0" defer></script>
   <script src="https://unpkg.com/lucide@1.33.0" defer></script>
 </head>
 
-<body class="min-h-screen bg-bg-base font-body text-text-primary">
+<body data-csrf-token="{{csrfToken}}" class="min-h-screen overflow-x-hidden bg-bg-base font-body text-text-primary">
+  <span id="global-htmx-indicator"
+    class="htmx-indicator fixed right-4 top-4 z-50 rounded border border-border-subtle bg-bg-elevated p-2" role="status"
+    aria-label="Loading">
+    <span class="block h-5 w-5 animate-spin rounded-full border-2 border-text-muted border-t-type-game"></span>
+  </span>
   {{#if user}}
   {{> flash}}
   <div class="min-h-screen md:flex">
@@ -36,22 +37,7 @@
     {{{body}}}
   </main>
   {{/if}}
-  <script>
-    const renderIcons = () => window.lucide?.createIcons();
-    document.addEventListener("DOMContentLoaded", renderIcons);
-    document.addEventListener("htmx:afterSwap", renderIcons);
-    document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const isDark = document.documentElement.classList.toggle("dark");
-        localStorage.setItem("theme", isDark ? "dark" : "light");
-      });
-    });
-    document.querySelectorAll("[data-menu-toggle]").forEach((button) => {
-      button.addEventListener("click", () => {
-        document.querySelector("[data-mobile-drawer]")?.classList.toggle("hidden");
-      });
-    });
-  </script>
+  <script src="/js/app.js" defer></script>
 </body>
 
 </html>

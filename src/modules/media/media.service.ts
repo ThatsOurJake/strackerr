@@ -1,4 +1,5 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Optional } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import {
   type MediaAlias,
   type MediaItem,
@@ -6,6 +7,8 @@ import {
   Prisma,
 } from "@prisma/client";
 import { PrismaService } from "../../infrastructure/database/prisma.service";
+import { Events } from "../../infrastructure/events/event-names";
+import { stripHtmlTags } from "../../infrastructure/security/sanitize-string";
 
 export interface CreateMediaData {
   type: MediaType;
@@ -33,14 +36,18 @@ export type UpdateMediaData = Partial<
 
 @Injectable()
 export class MediaService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly events?: EventEmitter2,
+  ) { }
 
   async findOrCreateSkeleton(
     title: string,
     type: MediaType,
     userId: string,
   ): Promise<MediaItem> {
-    const alias = MediaService.normaliseAlias(title);
+    const sanitizedTitle = stripHtmlTags(title);
+    const alias = MediaService.normaliseAlias(sanitizedTitle);
 
     return this.prisma.$transaction(async (transaction) => {
       const existing = await transaction.mediaAlias.findUnique({
@@ -54,9 +61,9 @@ export class MediaService {
 
       const mediaItem = await transaction.mediaItem.create({
         data: {
-          title: title.trim(),
+          title: sanitizedTitle,
           type,
-          sortTitle: MediaService.computeSortTitle(title),
+          sortTitle: MediaService.computeSortTitle(sanitizedTitle),
           isSkeleton: true,
           createdByUserId: userId,
         },
@@ -90,14 +97,21 @@ export class MediaService {
       return existing;
     }
 
-    const { provider, externalId, ...mediaData } = data;
-    return this.prisma.$transaction(async (transaction) => {
+    const { provider, externalId, imageUrl, imageSourceUrl, ...mediaData } = data;
+    const sourceUrl = imageSourceUrl ?? imageUrl ?? undefined;
+    const sanitizedMediaData = {
+      ...mediaData,
+      title: stripHtmlTags(mediaData.title),
+      imageUrl: null,
+      imageSourceUrl: sourceUrl,
+    };
+    const mediaItem = await this.prisma.$transaction(async (transaction) => {
       const mediaItem = await transaction.mediaItem.create({
         data: {
-          ...mediaData,
+          ...sanitizedMediaData,
           isSkeleton: false,
           createdByUserId: null,
-          sortTitle: MediaService.computeSortTitle(mediaData.title),
+          sortTitle: MediaService.computeSortTitle(sanitizedMediaData.title),
         },
       });
       await transaction.mediaExternalId.create({
@@ -105,6 +119,15 @@ export class MediaService {
       });
       return mediaItem;
     });
+
+    if (sourceUrl) {
+      this.events?.emit(Events.IMAGE_CACHE, {
+        mediaItemId: mediaItem.id,
+        sourceUrl,
+      });
+    }
+
+    return mediaItem;
   }
 
   async findOrCreateEpisodeSkeleton(
@@ -163,8 +186,9 @@ export class MediaService {
   }
 
   create(data: CreateMediaData): Promise<MediaItem> {
+    const title = stripHtmlTags(data.title);
     return this.prisma.mediaItem.create({
-      data: { ...data, sortTitle: MediaService.computeSortTitle(data.title) },
+      data: { ...data, title, sortTitle: MediaService.computeSortTitle(title) },
     });
   }
 
@@ -172,7 +196,8 @@ export class MediaService {
     const updateData: Prisma.MediaItemUpdateInput = { ...data };
 
     if (data.title !== undefined) {
-      updateData.sortTitle = MediaService.computeSortTitle(data.title);
+      updateData.title = stripHtmlTags(data.title);
+      updateData.sortTitle = MediaService.computeSortTitle(updateData.title);
     }
 
     return this.prisma.mediaItem.update({ where: { id }, data: updateData });

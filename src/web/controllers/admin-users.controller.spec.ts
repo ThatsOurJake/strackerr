@@ -39,10 +39,11 @@ describe("AdminWebController", () => {
     await controller.listUsers("saved", response as unknown as Response, admin);
 
     expect(response.render).toHaveBeenCalledWith("admin/users", {
-      title: "Manage Users",
+      title: "Users",
       users: [{ id: "user-1" }],
       currentUserId: "admin-1",
       success: "saved",
+      hasOtherUsers: true,
     });
   });
 
@@ -72,6 +73,7 @@ describe("AdminWebController", () => {
       title: "Manage Users",
       users: [{ id: "user-1" }],
       error: "Username exists",
+      values: { username: "taken" },
     });
   });
 

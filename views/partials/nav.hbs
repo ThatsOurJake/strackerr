@@ -3,20 +3,27 @@
     <a href="/" class="mb-8 px-3 font-heading text-2xl font-extrabold tracking-tight text-type-game">STrackerr</a>
     {{> search_bar}}
     <nav class="mt-6 flex flex-1 flex-col gap-1" aria-label="Main navigation">
-      <a href="/" class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated">Dashboard</a>
-      <a href="/history" class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated">History</a>
-      <a href="/stats" class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated">Stats</a>
-      <a href="/collection" class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated">Collection</a>
-      <a href="/add" class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated">Add</a>
+      <a data-nav-link href="/"
+        class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated focus-visible:outline focus-visible:outline-2 aria-[current=page]:bg-bg-elevated">Dashboard</a>
+      <a data-nav-link href="/history"
+        class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated focus-visible:outline focus-visible:outline-2 aria-[current=page]:bg-bg-elevated">History</a>
+      <a data-nav-link href="/stats"
+        class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated focus-visible:outline focus-visible:outline-2 aria-[current=page]:bg-bg-elevated">Stats</a>
+      <a data-nav-link href="/collection"
+        class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated focus-visible:outline focus-visible:outline-2 aria-[current=page]:bg-bg-elevated">Collection</a>
+      <a data-nav-link href="/add"
+        class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated focus-visible:outline focus-visible:outline-2 aria-[current=page]:bg-bg-elevated">Add</a>
       {{#if user.isAdmin}}
       <div class="my-3 border-t border-border-subtle"></div>
-      <a href="/admin/users" class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated">Users</a>
+      <a data-nav-link href="/admin/users"
+        class="rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated focus-visible:outline focus-visible:outline-2 aria-[current=page]:bg-bg-elevated">Users</a>
       {{/if}}
     </nav>
     <div class="border-t border-border-subtle pt-3">
       <div class="px-3 pb-2 text-xs text-text-secondary">{{user.username}}</div>
       <a href="/settings" class="block rounded-lg px-3 py-2 text-sm hover:bg-bg-elevated">Settings</a>
       <form method="POST" action="/auth/logout">
+        <input type="hidden" name="_csrf" value="{{csrfToken}}" />
         <button type="submit" class="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-bg-elevated">Logout</button>
       </form>
       <button type="button" data-theme-toggle
@@ -25,16 +32,37 @@
   </div>
 </aside>
 <header class="flex items-center justify-between border-b border-border-subtle bg-bg-surface px-4 py-3 md:hidden">
-  <button type="button" data-menu-toggle class="rounded-lg p-2 hover:bg-bg-elevated"
-    aria-label="Open navigation">Menu</button>
+  <button type="button" data-menu-toggle
+    class="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-bg-elevated focus-visible:outline focus-visible:outline-2"
+    aria-label="Open navigation" aria-expanded="false"><i data-lucide="menu" class="h-5 w-5"></i></button>
   <a href="/" class="font-heading text-xl font-extrabold text-type-game">STrackerr</a>
-  <button type="button" data-theme-toggle class="rounded-lg p-2 hover:bg-bg-elevated"
-    aria-label="Toggle theme">Theme</button>
+  <button type="button" data-theme-toggle
+    class="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-bg-elevated focus-visible:outline focus-visible:outline-2"
+    aria-label="Toggle theme"><i data-lucide="sun-moon" class="h-5 w-5"></i></button>
 </header>
-<div data-mobile-drawer class="fixed inset-0 z-30 hidden bg-bg-base/95 p-6 md:hidden">
-  <nav class="mt-16 flex flex-col gap-2 text-lg" aria-label="Mobile navigation">
-    <a href="/">Dashboard</a><a href="/history">History</a><a href="/stats">Stats</a><a
-      href="/collection">Collection</a><a href="/add">Add</a><a href="/settings">Settings</a>
-    {{#if user.isAdmin}}<a href="/admin/users">Users</a>{{/if}}
-  </nav>
+<div data-mobile-drawer class="fixed inset-0 z-30 hidden bg-black/60 md:hidden">
+  <button data-menu-close class="absolute inset-0 h-full w-full cursor-default" aria-label="Close navigation"></button>
+  <div class="relative h-full w-[min(18rem,85vw)] border-r border-border-subtle bg-bg-surface p-4">
+    <button type="button" data-menu-close
+      class="ml-auto flex h-11 w-11 items-center justify-center rounded-lg hover:bg-bg-elevated"
+      aria-label="Close navigation"><i data-lucide="x" class="h-5 w-5"></i></button>
+    <nav class="mt-4 flex flex-col gap-1 text-base" aria-label="Mobile navigation">
+      <a data-nav-link
+        class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
+        href="/">Dashboard</a><a data-nav-link
+        class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
+        href="/history">History</a><a data-nav-link
+        class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
+        href="/stats">Stats</a><a data-nav-link
+        class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
+        href="/collection">Collection</a><a data-nav-link
+        class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
+        href="/add">Add</a><a data-nav-link
+        class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
+        href="/settings">Settings</a>
+      {{#if user.isAdmin}}<a data-nav-link
+        class="flex min-h-11 items-center rounded-lg px-3 hover:bg-bg-elevated aria-[current=page]:bg-bg-elevated"
+        href="/admin/users">Users</a>{{/if}}
+    </nav>
+  </div>
 </div>
