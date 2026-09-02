@@ -1,15 +1,25 @@
-import { Injectable, Optional } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Optional,
+} from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { type MediaItem, MediaType } from "@prisma/client";
+import { PrismaService } from "../../infrastructure/database/prisma.service";
 import { Events } from "../../infrastructure/events/event-names";
 import { MetadataService } from "../metadata/metadata.service";
-import { type MetadataProviderName } from "../metadata/metadata-provider.interface";
+import {
+  MediaItemDetail,
+  type MetadataProviderName,
+} from "../metadata/metadata-provider.interface";
 import { EpisodeSyncService } from "./episode-sync.service";
 import { MediaService } from "./media.service";
 
 @Injectable()
 export class IdentificationService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly mediaService: MediaService,
     private readonly metadataService: MetadataService,
     private readonly episodeSyncService: EpisodeSyncService,
@@ -22,10 +32,17 @@ export class IdentificationService {
     externalId: string,
     userId: string,
   ): Promise<MediaItem> {
-    const mediaItem = await this.mediaService.findById(mediaItemId);
+    const mediaItem = await this.mediaService.findByIdWithExternalIds(mediaItemId);
     if (!mediaItem) {
       throw new Error("Media item not found");
     }
+
+    const hasAccess = await this.hasUserAccess(mediaItem, userId);
+    if (!hasAccess) {
+      throw new ForbiddenException("You cannot identify this media item");
+    }
+
+    this.assertProviderExternalId(providerName, externalId);
 
     const resolvedProvider = await this.metadataService.getProviderForUser(
       mediaItem.type,
@@ -39,8 +56,62 @@ export class IdentificationService {
       externalId,
       resolvedProvider.apiKey,
     );
+
+    this.assertMetadataType(mediaItem.type, metadata.type);
+    const conflictTarget = await this.mediaService.findByExternalId(
+      providerName,
+      externalId,
+    );
+    if (
+      conflictTarget &&
+      conflictTarget.id !== mediaItemId &&
+      conflictTarget.type !== this.catalogTypeFor(mediaItem.type)
+    ) {
+      throw new BadRequestException("Selected identity is incompatible");
+    }
+
+    if (conflictTarget && conflictTarget.id !== mediaItemId) {
+      const mergedTarget = await this.mergeIntoExistingItem(
+        mediaItem,
+        conflictTarget,
+        userId,
+      );
+      return this.refreshIdentifiedItem(
+        mergedTarget.id,
+        mergedTarget.title,
+        providerName,
+        externalId,
+        metadata,
+        resolvedProvider.apiKey,
+      );
+    }
+
+    return this.refreshIdentifiedItem(
+      mediaItemId,
+      mediaItem.title,
+      providerName,
+      externalId,
+      metadata,
+      resolvedProvider.apiKey,
+      mediaItem.isSkeleton,
+    );
+  }
+
+  private async refreshIdentifiedItem(
+    mediaItemId: string,
+    originalTitle: string,
+    providerName: MetadataProviderName,
+    externalId: string,
+    metadata: MediaItemDetail,
+    apiKey: string | undefined,
+    clearSkeletonOwnership = false,
+  ): Promise<MediaItem> {
+    const mediaItem = await this.mediaService.findById(mediaItemId);
+    if (!mediaItem) {
+      throw new Error("Media item not found");
+    }
+
     const usesOwnArtwork = mediaItem.type !== MediaType.TV_EPISODE;
-    const originalTitle = mediaItem.title;
     const updated = await this.mediaService.update(mediaItemId, {
       title: metadata.title,
       description: metadata.description ?? null,
@@ -49,7 +120,7 @@ export class IdentificationService {
       year: metadata.year ?? null,
       duration: metadata.duration ?? null,
       isSkeleton: false,
-      createdByUserId: null,
+      createdByUserId: clearSkeletonOwnership ? null : mediaItem.createdByUserId,
     });
 
     await this.mediaService.addExternalId(
@@ -71,10 +142,154 @@ export class IdentificationService {
         updated.id,
         providerName,
         externalId,
-        resolvedProvider.apiKey,
+        apiKey,
       );
     }
 
     return updated;
+  }
+
+  private assertMetadataType(sourceType: MediaType, metadataType: MediaType): void {
+    if (this.catalogTypeFor(sourceType) !== this.catalogTypeFor(metadataType)) {
+      throw new BadRequestException("Selected identity is incompatible");
+    }
+  }
+
+  private catalogTypeFor(type: MediaType): MediaType {
+    return type === MediaType.TV_EPISODE ? MediaType.TV_SHOW : type;
+  }
+
+  private assertProviderExternalId(
+    providerName: MetadataProviderName,
+    externalId: string,
+  ): void {
+    const validators: Record<MetadataProviderName, RegExp> = {
+      tmdb: /^(movie|tv):\d+(?::\d+:\d+)?$/,
+      anilist: /^anilist:\d+$/,
+      igdb: /^igdb:\d+$/,
+      bgg: /^bgg:\d+$/,
+      musicbrainz: /^musicbrainz:[a-z0-9-]+$/i,
+    };
+    if (!validators[providerName].test(externalId)) {
+      throw new BadRequestException("Selected identity is invalid");
+    }
+  }
+
+  private async hasUserAccess(
+    mediaItem: MediaItem,
+    userId: string,
+  ): Promise<boolean> {
+    if (mediaItem.isSkeleton) {
+      return mediaItem.createdByUserId === userId;
+    }
+
+    if (mediaItem.createdByUserId === userId) {
+      return true;
+    }
+
+    const linkedLog = await this.prisma.logEntry.findFirst({
+      where: {
+        userId,
+        mediaItem: mediaItem.type === MediaType.TV_SHOW
+          ? { OR: [{ id: mediaItem.id }, { parentId: mediaItem.id }] }
+          : { id: mediaItem.id },
+      },
+      select: { id: true },
+    });
+    return Boolean(linkedLog);
+  }
+
+  private async mergeIntoExistingItem(
+    source: MediaItem,
+    target: MediaItem,
+    userId: string,
+  ): Promise<MediaItem> {
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.logEntry.updateMany({
+        where: {
+          mediaItemId: source.id,
+          userId,
+        },
+        data: { mediaItemId: target.id },
+      });
+
+      if (source.type === MediaType.TV_SHOW) {
+        const sourceEpisodes = await transaction.mediaItem.findMany({
+          where: {
+            type: MediaType.TV_EPISODE,
+            parentId: source.id,
+          },
+          select: {
+            id: true,
+            title: true,
+            sortTitle: true,
+            isSkeleton: true,
+            createdByUserId: true,
+            seasonNumber: true,
+            episodeNumber: true,
+            description: true,
+            year: true,
+            duration: true,
+            imageSourceUrl: true,
+          },
+        });
+
+        for (const episode of sourceEpisodes) {
+          const userEpisodeLog = await transaction.logEntry.findFirst({
+            where: {
+              mediaItemId: episode.id,
+              userId,
+            },
+            select: { id: true },
+          });
+          if (!userEpisodeLog) {
+            continue;
+          }
+
+          const targetEpisode = await transaction.mediaItem.findFirst({
+            where: {
+              type: MediaType.TV_EPISODE,
+              parentId: target.id,
+              seasonNumber: episode.seasonNumber,
+              episodeNumber: episode.episodeNumber,
+            },
+            select: { id: true },
+          });
+
+          const targetEpisodeId = targetEpisode
+            ? targetEpisode.id
+            : (
+              await transaction.mediaItem.create({
+                data: {
+                  type: MediaType.TV_EPISODE,
+                  title: episode.title,
+                  sortTitle: episode.sortTitle,
+                  parentId: target.id,
+                  seasonNumber: episode.seasonNumber,
+                  episodeNumber: episode.episodeNumber,
+                  isSkeleton: episode.isSkeleton,
+                  createdByUserId: episode.createdByUserId,
+                  description: episode.description,
+                  year: episode.year,
+                  duration: episode.duration,
+                  imageUrl: null,
+                  imageSourceUrl: episode.imageSourceUrl,
+                },
+              })
+            ).id;
+
+          await transaction.logEntry.updateMany({
+            where: {
+              mediaItemId: episode.id,
+              userId,
+            },
+            data: { mediaItemId: targetEpisodeId },
+          });
+        }
+      }
+    });
+
+    await this.mediaService.addAlias(target.id, source.title);
+    return target;
   }
 }

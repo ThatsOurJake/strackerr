@@ -11,9 +11,9 @@ describe("csrfProtection", () => {
   it("issues a token for web page requests", () => {
     const request = { path: "/add", method: "GET", cookies: {} } as Request;
     const response = createResponse();
-    const next = jest.fn() as NextFunction;
+    const next = jest.fn();
 
-    csrfProtection(request, response, next);
+    csrfProtection(request, response, next as unknown as NextFunction);
 
     expect(response.cookie).toHaveBeenCalledWith(
       "csrf_token",
@@ -32,9 +32,9 @@ describe("csrfProtection", () => {
       body: { _csrf: "request-token" },
       header: jest.fn(),
     } as unknown as Request;
-    const next = jest.fn() as NextFunction;
+    const next = jest.fn();
 
-    csrfProtection(request, createResponse(), next);
+    csrfProtection(request, createResponse(), next as unknown as NextFunction);
 
     expect(next.mock.calls[0][0]).toBeInstanceOf(ForbiddenException);
   });
@@ -48,9 +48,9 @@ describe("csrfProtection", () => {
       body,
       header: jest.fn(),
     } as unknown as Request;
-    const next = jest.fn() as NextFunction;
+    const next = jest.fn();
 
-    csrfProtection(request, createResponse(), next);
+    csrfProtection(request, createResponse(), next as unknown as NextFunction);
 
     expect(body).toEqual({ username: "jake" });
     expect(next).toHaveBeenCalledWith();
@@ -58,9 +58,9 @@ describe("csrfProtection", () => {
 
   it("does not apply to API routes", () => {
     const request = { path: "/api/v1/logs", method: "POST" } as Request;
-    const next = jest.fn() as NextFunction;
+    const next = jest.fn();
 
-    csrfProtection(request, createResponse(), next);
+    csrfProtection(request, createResponse(), next as unknown as NextFunction);
 
     expect(next).toHaveBeenCalledWith();
   });

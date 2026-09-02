@@ -185,6 +185,21 @@ export class MediaService {
     return this.prisma.mediaItem.findUnique({ where: { id } });
   }
 
+  findByIdWithExternalIds(id: string) {
+    return this.prisma.mediaItem.findUnique({
+      where: { id },
+      include: {
+        externalIds: {
+          select: {
+            provider: true,
+            externalId: true,
+          },
+          orderBy: { provider: "asc" },
+        },
+      },
+    });
+  }
+
   create(data: CreateMediaData): Promise<MediaItem> {
     const title = stripHtmlTags(data.title);
     return this.prisma.mediaItem.create({

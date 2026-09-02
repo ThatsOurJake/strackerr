@@ -1,8 +1,9 @@
 {{#if results.length}}
 <div class="rounded-lg border border-border-subtle bg-bg-elevated p-1">
   {{#each results}}
-  <a href="/collection/{{type}}/{{id}}" class="block rounded px-3 py-2 text-sm hover:bg-bg-surface">{{title}} <span
-      class="text-xs text-text-secondary">{{type}}</span></a>
+  <a href="/collection/{{path}}/{{id}}" class="block rounded px-3 py-2 text-sm hover:bg-bg-surface">{{title}}
+    {{#if subtitle}}<span class="mt-0.5 block text-xs text-text-secondary">{{subtitle}}</span>{{/if}}<span
+      class="text-xs text-text-secondary">{{label}}</span></a>
   {{/each}}
   <a href="/search?q={{query}}"
     class="block border-t border-border-subtle px-3 py-2 text-xs text-text-secondary hover:text-text-primary">See all

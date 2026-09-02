@@ -63,7 +63,7 @@ describe("collection view models", () => {
     ]);
   });
 
-  it("exposes identification only from a skeleton item's detail model", () => {
+  it("exposes identify for skeletons and reidentify for identified items", () => {
     const skeleton = {
       id: "movie-1",
       type: MediaType.MOVIE,
@@ -78,6 +78,8 @@ describe("collection view models", () => {
 
     expect(toMediaDetailViewModel(skeleton).identifyUrl)
       .toBe("/collection/movie/movie-1/identify");
-    expect(toMediaDetailViewModel(identified).identifyUrl).toBeNull();
+    expect(toMediaDetailViewModel(skeleton).identifyActionLabel).toBe("Identify");
+    expect(toMediaDetailViewModel(identified).identifyUrl).toBe("/collection/movie/movie-1/identify");
+    expect(toMediaDetailViewModel(identified).identifyActionLabel).toBe("Reidentify");
   });
 });

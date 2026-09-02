@@ -28,6 +28,15 @@ export const configureApp = async (
       ? imageUrl.replace(/-cover\.webp$/, "-thumb.webp")
       : undefined,
   );
+  hbs.registerHelper("preferredImageUrl", (...values: unknown[]) => {
+    const candidates = values.slice(0, -1);
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && candidate.trim().length > 0) {
+        return candidate;
+      }
+    }
+    return undefined;
+  });
 
   app.use(
     helmet({
@@ -43,6 +52,9 @@ export const configureApp = async (
             "https://images.igdb.com",
             "https://s4.anilist.co",
             "https://cf.geekdo-images.com",
+            "https://coverartarchive.org",
+            "https://archive.org",
+            "https://*.archive.org",
           ],
           connectSrc: ["'self'", "https://unpkg.com"],
         },

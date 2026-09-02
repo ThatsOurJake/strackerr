@@ -5,9 +5,13 @@
     {{#if (localImageUrl imageUrl)}}<img data-image-fallback src="{{localImageUrl imageUrl}}" alt=""
       class="h-full w-full object-cover" /><span
       class="hidden h-full flex-col items-center justify-center gap-2 text-type-{{accent}}"><i data-lucide="{{icon}}"
+        class="h-12 w-12"></i><span class="font-heading text-2xl font-bold">{{initial title}}</span></span>{{else}}{{#if
+    imageSourceUrl}}<img data-image-fallback src="{{imageSourceUrl}}" alt="" loading="lazy" referrerpolicy="no-referrer"
+      class="h-full w-full object-cover" /><span
+      class="hidden h-full flex-col items-center justify-center gap-2 text-type-{{accent}}"><i data-lucide="{{icon}}"
         class="h-12 w-12"></i><span class="font-heading text-2xl font-bold">{{initial title}}</span></span>{{else}}<span
       class="flex h-full items-center justify-center text-type-{{accent}}"><i data-lucide="{{icon}}"
-        class="h-12 w-12"></i></span>{{/if}}
+        class="h-12 w-12"></i></span>{{/if}}{{/if}}
   </div>
   <div class="self-end">
     <span
@@ -21,7 +25,7 @@
     {{#if identifyUrl}}<a href="{{identifyUrl}}" hx-get="{{identifyUrl}}" hx-target="#identify-panel"
       hx-swap="innerHTML"
       class="mt-5 inline-flex items-center gap-2 rounded-lg bg-type-{{accent}} px-4 py-2 font-heading text-sm font-semibold text-black active:scale-[0.98]"><i
-        data-lucide="search" class="h-4 w-4"></i>Identify</a>{{/if}}
+        data-lucide="search" class="h-4 w-4"></i>{{identifyActionLabel}}</a>{{/if}}
   </div>
 </header>
 <div id="identify-panel" class="mt-5" aria-live="polite"></div>

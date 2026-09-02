@@ -1,3 +1,4 @@
+import { MediaType } from "@prisma/client";
 import type { Response } from "express";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
 import type {
@@ -29,9 +30,30 @@ describe("SearchController", () => {
 
   it("renders grouped full results for queries of at least three characters", async () => {
     const results: SearchResult[] = [
-      { id: "movie-1", title: "Severance", type: "MOVIE" },
-      { id: "show-1", title: "The Office", type: "TV_SHOW" },
-      { id: "movie-2", title: "Seven", type: "MOVIE" },
+      {
+        id: "movie-1",
+        title: "Severance",
+        type: MediaType.MOVIE,
+        path: "movie",
+        label: "Movie",
+        group: "Movies",
+      },
+      {
+        id: "show-1",
+        title: "The Office",
+        type: MediaType.TV_SHOW,
+        path: "tv",
+        label: "TV show",
+        group: "TV",
+      },
+      {
+        id: "movie-2",
+        title: "Seven",
+        type: MediaType.MOVIE,
+        path: "movie",
+        label: "Movie",
+        group: "Movies",
+      },
     ];
     searchService.search.mockResolvedValue(results);
     const response = createResponse();
@@ -44,8 +66,8 @@ describe("SearchController", () => {
       query: "sev",
       searched: true,
       groups: [
-        { type: "MOVIE", results: [results[0], results[2]] },
-        { type: "TV_SHOW", results: [results[1]] },
+        { label: "Movies", results: [results[0], results[2]] },
+        { label: "TV", results: [results[1]] },
       ],
     });
   });
@@ -68,7 +90,10 @@ describe("SearchController", () => {
     const results = Array.from({ length: 6 }, (_, index) => ({
       id: `media-${index}`,
       title: `Media ${index}`,
-      type: "MOVIE",
+      type: MediaType.MOVIE,
+      path: "movie",
+      label: "Movie",
+      group: "Movies",
     }));
     searchService.search.mockResolvedValue(results);
     const response = createResponse();

@@ -42,8 +42,16 @@
                 data-lucide="{{icon}}" class="h-9 w-9"></i><span class="font-heading text-xl font-bold">{{initial
                 title}}</span></span>
             {{else}}
+            {{#if imageSourceUrl}}
+            <img data-image-fallback src="{{imageSourceUrl}}" alt="" loading="lazy" referrerpolicy="no-referrer"
+              class="h-full w-full object-cover" />
+            <span class="hidden h-full flex-col items-center justify-center gap-2 text-type-{{accent}}"><i
+                data-lucide="{{icon}}" class="h-9 w-9"></i><span class="font-heading text-xl font-bold">{{initial
+                title}}</span></span>
+            {{else}}
             <span class="flex h-full items-center justify-center text-type-{{accent}}"><i data-lucide="{{icon}}"
                 class="h-9 w-9"></i></span>
+            {{/if}}
             {{/if}}
           </div>
           <div class="border-t-4 border-type-{{accent}} p-3">

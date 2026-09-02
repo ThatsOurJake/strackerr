@@ -20,9 +20,9 @@ Users can find the intended music and TV content, understand result types, and c
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-037](../backlog/todo/TICKET-037.md) | MusicBrainz search reliability |
-| [TICKET-038](../backlog/todo/TICKET-038.md) | TV show search results and navigation |
-| [TICKET-039](../backlog/todo/TICKET-039.md) | Safe media reidentification |
+| [TICKET-037](../backlog/done/TICKET-037.md) | MusicBrainz search reliability |
+| [TICKET-038](../backlog/done/TICKET-038.md) | TV show search results and navigation |
+| [TICKET-039](../backlog/done/TICKET-039.md) | Safe media reidentification |
 
 ## Done Signal
 - Artist and track searches return useful MusicBrainz results or a useful recoverable error state.

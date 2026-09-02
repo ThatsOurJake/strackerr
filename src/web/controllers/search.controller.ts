@@ -23,17 +23,17 @@ export class SearchController {
         : [];
     const grouped = new Map<string, typeof results>();
     for (const result of results) {
-      const group = grouped.get(result.type) ?? [];
+      const group = grouped.get(result.group) ?? [];
       group.push(result);
-      grouped.set(result.type, group);
+      grouped.set(result.group, group);
     }
 
     return response.render("search", {
       title: searchQuery ? `Search: ${searchQuery}` : "Search",
       query: searchQuery,
       searched: searchQuery.length >= 3,
-      groups: [...grouped.entries()].map(([type, groupResults]) => ({
-        type,
+      groups: [...grouped.entries()].map(([label, groupResults]) => ({
+        label,
         results: groupResults,
       })),
     });

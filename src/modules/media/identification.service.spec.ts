@@ -31,13 +31,24 @@ describe("IdentificationService", () => {
       }),
     };
     const service = new IdentificationService(
+      { logEntry: { findFirst: jest.fn() }, $transaction: jest.fn() } as never,
       {
+        findByIdWithExternalIds: jest.fn().mockResolvedValue({
+          id: "show-1",
+          type: MediaType.TV_SHOW,
+          title: "Severence",
+          isSkeleton: true,
+          createdByUserId: "user-1",
+          externalIds: [],
+        }),
         findById: jest.fn().mockResolvedValue({
           id: "show-1",
           type: MediaType.TV_SHOW,
           title: "Severence",
           isSkeleton: true,
+          createdByUserId: "user-1",
         }),
+        findByExternalId: jest.fn().mockResolvedValue(null),
         update,
         addExternalId,
         addAlias,
@@ -50,7 +61,7 @@ describe("IdentificationService", () => {
     );
 
     await expect(
-      service.identify("show-1", "tmdb", "95396", "user-1"),
+      service.identify("show-1", "tmdb", "tv:95396", "user-1"),
     ).resolves.toEqual(expect.objectContaining({ title: "Severance" }));
 
     expect(update).toHaveBeenCalledWith("show-1", expect.objectContaining({
@@ -60,13 +71,13 @@ describe("IdentificationService", () => {
       isSkeleton: false,
       createdByUserId: null,
     }));
-    expect(addExternalId).toHaveBeenCalledWith("show-1", "tmdb", "95396");
+    expect(addExternalId).toHaveBeenCalledWith("show-1", "tmdb", "tv:95396");
     expect(addAlias).toHaveBeenCalledWith("show-1", "Severence");
     expect(events.emit).toHaveBeenCalledWith("media.image.cache", {
       mediaItemId: "show-1",
       sourceUrl: "https://image/poster.jpg",
     });
-    expect(syncShow).toHaveBeenCalledWith("show-1", "tmdb", "95396", "key");
+    expect(syncShow).toHaveBeenCalledWith("show-1", "tmdb", "tv:95396", "key");
   });
 
   it("does not retain or queue artwork when identifying a TV episode", async () => {
@@ -87,13 +98,24 @@ describe("IdentificationService", () => {
       }),
     };
     const service = new IdentificationService(
+      { logEntry: { findFirst: jest.fn() }, $transaction: jest.fn() } as never,
       {
+        findByIdWithExternalIds: jest.fn().mockResolvedValue({
+          id: "episode-1",
+          type: MediaType.TV_EPISODE,
+          title: "Episode 1",
+          isSkeleton: true,
+          createdByUserId: "user-1",
+          externalIds: [],
+        }),
         findById: jest.fn().mockResolvedValue({
           id: "episode-1",
           type: MediaType.TV_EPISODE,
           title: "Episode 1",
           isSkeleton: true,
+          createdByUserId: "user-1",
         }),
+        findByExternalId: jest.fn().mockResolvedValue(null),
         update,
         addExternalId: jest.fn(),
         addAlias: jest.fn(),

@@ -206,7 +206,7 @@ describe("metadata providers", () => {
               title: "Bohemian Rhapsody",
               length: 354_000,
               "artist-credit": [{ artist: { name: "Queen" } }],
-              releases: [{ date: "1975-10-31" }],
+              releases: [{ id: "release-1", date: "1975-10-31" }],
             },
           ],
         }),
@@ -216,7 +216,12 @@ describe("metadata providers", () => {
       const first = provider.search("Bohemian Rhapsody");
       await jest.advanceTimersByTimeAsync(0);
       await expect(first).resolves.toMatchObject([
-        { duration: 6, description: "Queen", year: 1975 },
+        {
+          duration: 6,
+          description: "Queen",
+          year: 1975,
+          imageUrl: "https://coverartarchive.org/release/release-1/front-250",
+        },
       ]);
       const second = provider.search("Bohemian Rhapsody");
       await jest.advanceTimersByTimeAsync(999);
@@ -228,6 +233,29 @@ describe("metadata providers", () => {
       expect(fetchMock.mock.calls[0][1]).toEqual({
         headers: { "User-Agent": "STrackerr/1.0 (https://github.com/strackrr)" },
       });
+      const firstUrl = String(fetchMock.mock.calls[0][0]);
+      expect(firstUrl).toContain("query=%22Bohemian+Rhapsody%22");
+    });
+
+    it("keeps free-text searches escaped for Lucene", async () => {
+      fetchMock.mockResolvedValue(jsonResponse({ recordings: [] }));
+
+      await new MusicBrainzProvider().search("Ariana Grande (Live)?");
+
+      const url = String(fetchMock.mock.calls[0][0]);
+      expect(url).toContain("query=%22Ariana+Grande+%5C%28Live%5C%29%5C%3F%22");
+    });
+
+    it("retries temporary failures and returns a recoverable error", async () => {
+      fetchMock
+        .mockResolvedValueOnce(new Response("", { status: 503 }))
+        .mockResolvedValueOnce(new Response("", { status: 429, headers: { "Retry-After": "1" } }))
+        .mockResolvedValueOnce(new Response("", { status: 503 }));
+
+      await expect(new MusicBrainzProvider().search("Queen - One Vision")).rejects.toThrow(
+        "MusicBrainz is temporarily unavailable. Please try again in a moment.",
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(3);
     });
   });
 });

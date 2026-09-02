@@ -19,9 +19,9 @@
       <input type="hidden" name="externalId" value="{{this.externalId}}" />
       <button type="submit"
         class="flex w-full items-center gap-3 p-3 text-left hover:bg-bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-text-primary">
-        {{#if this.imageUrl}}
-        <img data-image-fallback src="{{this.imageUrl}}" alt="" loading="lazy" referrerpolicy="no-referrer"
-          class="h-14 w-10 shrink-0 rounded object-cover" />
+        {{#if (preferredImageUrl this.imageUrl this.imageSourceUrl)}}
+        <img data-image-fallback src="{{preferredImageUrl this.imageUrl this.imageSourceUrl}}" alt="" loading="lazy"
+          referrerpolicy="no-referrer" class="h-14 w-10 shrink-0 rounded object-cover" />
         <span
           class="hidden h-14 w-10 shrink-0 flex-col items-center justify-center rounded bg-bg-elevated text-text-secondary"><i
             data-lucide="image" class="h-4 w-4"></i><span class="font-heading text-xs font-bold">{{initial
