@@ -51,6 +51,10 @@ export class StatsController {
       values: chart.values.map((minutes) =>
         Number((minutes / 60).toFixed(1)),
       ),
+      series: chart.series.map((item) => ({
+        ...item,
+        values: item.values.map((minutes) => Number((minutes / 60).toFixed(1))),
+      })),
     };
     const model = {
       periods: STATS_PERIODS.map((item) => ({ ...item, active: item.slug === period })),

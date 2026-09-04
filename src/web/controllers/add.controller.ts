@@ -8,7 +8,7 @@ import {
   Res,
   UseGuards,
 } from "@nestjs/common";
-import { LogSource, type MediaItem, MediaType } from "@prisma/client";
+import { LogSource, MediaType } from "@prisma/client";
 import type { Response } from "express";
 import { LogService } from "../../modules/activity/log.service";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
@@ -17,99 +17,17 @@ import { JwtAuthGuard } from "../../modules/auth/guards/jwt-auth.guard";
 import { MediaService } from "../../modules/media/media.service";
 import { MetadataService } from "../../modules/metadata/metadata.service";
 import type { MetadataProviderName } from "../../modules/metadata/metadata-provider.interface";
-
-interface ConfirmAddBody {
-  type?: string;
-  provider?: string;
-  externalId?: string;
-}
-
-interface SubmitAddBody {
-  type?: string;
-  mediaItemId?: string;
-  title?: string;
-  loggedAt?: string;
-  duration?: string;
-  defaultDuration?: string;
-  notes?: string;
-  seasonNumber?: string;
-  episodeNumber?: string;
-  platform?: string;
-  playerCount?: string;
-  won?: string;
-}
-
-interface EntryFormModel {
-  type: MediaType;
-  typeLabel: string;
-  accentClass: string;
-  mediaItemId?: string;
-  title?: string;
-  loggedAt: string;
-  defaultDuration?: number;
-  duration?: string;
-  notes?: string;
-  seasonNumber?: string;
-  episodeNumber?: string;
-  platform?: string;
-  playerCount?: string;
-  won?: string;
-  isMovie: boolean;
-  isTvEpisode: boolean;
-  isGame: boolean;
-  isBoardGame: boolean;
-  isMusicTrack: boolean;
-  error?: string;
-  errors?: Record<string, string>;
-}
-
-class AddFormValidationError extends Error {
-  constructor(
-    readonly field: string,
-    message: string,
-  ) {
-    super(message);
-  }
-}
-
-const ADD_TYPES = [
-  MediaType.MOVIE,
-  MediaType.TV_EPISODE,
-  MediaType.GAME,
-  MediaType.BOARD_GAME,
-  MediaType.MUSIC_TRACK,
-] as const;
-
-const TYPE_DETAILS: Record<
-  (typeof ADD_TYPES)[number],
-  { label: string; icon: string; accentClass: string }
-> = {
-  [MediaType.MOVIE]: {
-    label: "Movie",
-    icon: "film",
-    accentClass: "type-movie",
-  },
-  [MediaType.TV_EPISODE]: {
-    label: "TV episode",
-    icon: "tv-2",
-    accentClass: "type-tv",
-  },
-  [MediaType.GAME]: {
-    label: "Game",
-    icon: "gamepad-2",
-    accentClass: "type-game",
-  },
-  [MediaType.BOARD_GAME]: {
-    label: "Board game",
-    icon: "dice-5",
-    accentClass: "type-boardgame",
-  },
-  [MediaType.MUSIC_TRACK]: {
-    label: "Music track",
-    icon: "music",
-    accentClass: "type-music",
-  },
-};
+import {
+  ADD_TYPES,
+  AddFormValidationError,
+  buildEntryFormModel,
+  type ConfirmAddBody,
+  parseType,
+  resolveSubmissionMediaItem,
+  type SubmitAddBody,
+  TYPE_DETAILS,
+  validateSubmission,
+} from "./add.controller.helpers";
 
 @Controller("add")
 @UseGuards(JwtAuthGuard)
@@ -135,11 +53,11 @@ export class AddController {
     @CurrentUser() user: AuthenticatedUser,
     @Res() response: Response,
   ) {
-    const type = AddController.parseType(rawType);
+    const type = parseType(rawType);
     if (manual === "true") {
       return response.render("partials/add-entry-form", {
         layout: false,
-        ...AddController.entryFormModel(type),
+        ...buildEntryFormModel(type),
       });
     }
 
@@ -165,7 +83,7 @@ export class AddController {
     @CurrentUser() user: AuthenticatedUser,
     @Res() response: Response,
   ) {
-    const type = AddController.parseType(rawType);
+    const type = parseType(rawType);
     const query = rawQuery?.trim() ?? "";
     if (query.length < 3) {
       return response.render("partials/add-search-results", {
@@ -214,16 +132,12 @@ export class AddController {
     @CurrentUser() user: AuthenticatedUser,
     @Res() response: Response,
   ) {
-    const type = AddController.parseType(body.type);
+    const type = parseType(body.type);
     const providerName = body.provider as MetadataProviderName;
     if (!body.externalId || !providerName) {
       return response.render("partials/add-entry-form", {
         layout: false,
-        ...AddController.entryFormModel(
-          type,
-          body,
-          "Select a valid search result",
-        ),
+        ...buildEntryFormModel(type, body, "Select a valid search result"),
       });
     }
 
@@ -254,7 +168,7 @@ export class AddController {
       });
       return response.render("partials/add-entry-form", {
         layout: false,
-        ...AddController.entryFormModel(type, {
+        ...buildEntryFormModel(type, {
           mediaItemId: mediaItem.id,
           title: mediaItem.title,
           defaultDuration: mediaItem.duration?.toString(),
@@ -263,7 +177,7 @@ export class AddController {
     } catch (error) {
       return response.render("partials/add-entry-form", {
         layout: false,
-        ...AddController.entryFormModel(
+        ...buildEntryFormModel(
           type,
           body,
           error instanceof Error ? error.message : "Unable to load this result",
@@ -280,9 +194,14 @@ export class AddController {
   ) {
     let type: (typeof ADD_TYPES)[number];
     try {
-      type = AddController.parseType(body.type);
-      const validated = AddController.validateSubmission(type, body);
-      const mediaItem = await this.resolveMediaItem(type, body, user.userId);
+      type = parseType(body.type);
+      const validated = validateSubmission(type, body);
+      const mediaItem = await resolveSubmissionMediaItem(
+        this.mediaService,
+        type,
+        body,
+        user.userId,
+      );
       await this.logService.create(
         {
           mediaItemId: mediaItem.id,
@@ -317,7 +236,7 @@ export class AddController {
           type: itemType,
           ...TYPE_DETAILS[itemType],
         })),
-        entryForm: AddController.entryFormModel(
+        entryForm: buildEntryFormModel(
           fallbackType,
           body,
           error instanceof Error ? error.message : "Unable to add activity",
@@ -327,165 +246,5 @@ export class AddController {
         ),
       });
     }
-  }
-
-  private async resolveMediaItem(
-    type: (typeof ADD_TYPES)[number],
-    body: SubmitAddBody,
-    userId: string,
-  ): Promise<MediaItem> {
-    let selected: MediaItem | null = null;
-    if (body.mediaItemId) {
-      selected = await this.mediaService.findById(body.mediaItemId);
-      if (!selected) {
-        throw new Error("Selected media item no longer exists");
-      }
-      if (selected.isSkeleton && selected.createdByUserId !== userId) {
-        throw new ForbiddenException(
-          "You cannot log another user's unidentified item",
-        );
-      }
-    }
-
-    if (type !== MediaType.TV_EPISODE) {
-      if (selected) {
-        if (selected.type !== type) {
-          throw new Error("Selected media item has the wrong type");
-        }
-        return selected;
-      }
-      return this.mediaService.findOrCreateSkeleton(
-        body.title?.trim() ?? "",
-        type,
-        userId,
-      );
-    }
-
-    const seasonNumber = AddController.parsePositiveInteger(
-      body.seasonNumber,
-      "Season number",
-    );
-    const episodeNumber = AddController.parsePositiveInteger(
-      body.episodeNumber,
-      "Episode number",
-    );
-    const show =
-      selected ??
-      (await this.mediaService.findOrCreateSkeleton(
-        body.title?.trim() ?? "",
-        MediaType.TV_SHOW,
-        userId,
-      ));
-    if (show.type !== MediaType.TV_SHOW) {
-      throw new Error("Selected media item is not a TV show");
-    }
-    return this.mediaService.findOrCreateEpisodeSkeleton(
-      show.id,
-      show.title,
-      seasonNumber,
-      episodeNumber,
-      userId,
-    );
-  }
-
-  private static validateSubmission(type: MediaType, body: SubmitAddBody) {
-    if (!body.mediaItemId && !body.title?.trim()) {
-      throw new AddFormValidationError("title", "Title is required");
-    }
-    if (!body.loggedAt || !/^\d{4}-\d{2}-\d{2}$/.test(body.loggedAt)) {
-      throw new AddFormValidationError("loggedAt", "A valid date is required");
-    }
-    const duration = AddController.parseOptionalPositiveInteger(
-      body.duration,
-      "Duration",
-    );
-    if (type === MediaType.GAME && duration === undefined) {
-      throw new AddFormValidationError(
-        "duration",
-        "Duration is required for games",
-      );
-    }
-    if (type === MediaType.GAME && !body.platform?.trim()) {
-      throw new AddFormValidationError(
-        "platform",
-        "Platform is required for games",
-      );
-    }
-    const playerCount = AddController.parseOptionalPositiveInteger(
-      body.playerCount,
-      "Player count",
-    );
-    return {
-      loggedAt: new Date(`${body.loggedAt}T12:00:00`),
-      duration,
-      playerCount,
-    };
-  }
-
-  private static parseType(rawType?: string): (typeof ADD_TYPES)[number] {
-    if (!ADD_TYPES.includes(rawType as (typeof ADD_TYPES)[number])) {
-      throw new Error("Unsupported media type");
-    }
-    return rawType as (typeof ADD_TYPES)[number];
-  }
-
-  private static parsePositiveInteger(
-    value: string | undefined,
-    label: string,
-  ): number {
-    const parsed = Number(value);
-    if (!Number.isInteger(parsed) || parsed < 1) {
-      throw new Error(`${label} must be a positive whole number`);
-    }
-    return parsed;
-  }
-
-  private static parseOptionalPositiveInteger(
-    value: string | undefined,
-    label: string,
-  ): number | undefined {
-    if (!value?.trim()) {
-      return undefined;
-    }
-    return AddController.parsePositiveInteger(value, label);
-  }
-
-  private static entryFormModel(
-    type: (typeof ADD_TYPES)[number],
-    values: Partial<SubmitAddBody> = {},
-    error?: string,
-    errors?: Record<string, string>,
-  ): EntryFormModel {
-    const today = new Date();
-    const localDate = new Date(
-      today.getTime() - today.getTimezoneOffset() * 60_000,
-    )
-      .toISOString()
-      .slice(0, 10);
-    return {
-      type,
-      typeLabel: TYPE_DETAILS[type].label,
-      accentClass: TYPE_DETAILS[type].accentClass,
-      mediaItemId: values.mediaItemId,
-      title: values.title,
-      loggedAt: values.loggedAt ?? localDate,
-      defaultDuration: values.defaultDuration
-        ? Number(values.defaultDuration)
-        : undefined,
-      duration: values.duration,
-      notes: values.notes,
-      seasonNumber: values.seasonNumber,
-      episodeNumber: values.episodeNumber,
-      platform: values.platform,
-      playerCount: values.playerCount,
-      won: values.won,
-      isMovie: type === MediaType.MOVIE,
-      isTvEpisode: type === MediaType.TV_EPISODE,
-      isGame: type === MediaType.GAME,
-      isBoardGame: type === MediaType.BOARD_GAME,
-      isMusicTrack: type === MediaType.MUSIC_TRACK,
-      error,
-      errors,
-    };
   }
 }

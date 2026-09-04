@@ -9,7 +9,6 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
-import { MediaType } from "@prisma/client";
 import { Response } from "express";
 import { AppCacheService } from "../../infrastructure/cache/app-cache.service";
 import { ImageCleanupService } from "../../infrastructure/jobs/image-cleanup.service";
@@ -20,84 +19,22 @@ import { JwtAuthGuard } from "../../modules/auth/guards/jwt-auth.guard";
 import { MetadataService } from "../../modules/metadata/metadata.service";
 import { MetadataProviderName } from "../../modules/metadata/metadata-provider.interface";
 import { UsersService } from "../../modules/users/users.service";
-
-interface SaveTmdbKeyBody {
-  key: string;
-}
-
-interface SaveIgdbCredentialsBody {
-  clientId: string;
-  clientSecret: string;
-}
-
-interface SaveBggKeyBody {
-  key: string;
-}
-
-interface ChangePasswordBody {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-}
-
-interface RemoveProviderBody {
-  confirmRemoval?: string;
-}
-
-interface SaveProviderPreferencesBody {
-  movieProvider?: string;
-  tvShowProvider?: string;
-  animeProvider?: string;
-  gameProvider?: string;
-  boardGameProvider?: string;
-  musicTrackProvider?: string;
-}
-
-interface SettingsFeedback {
-  success?: string;
-  error?: string;
-  passwordErrors?: Record<string, string>;
-  newApiKey?: string;
-}
-
-const PROVIDER_PREFERENCE_FIELDS = [
-  { field: "movieProvider", mediaType: MediaType.MOVIE, label: "Movies" },
-  { field: "tvShowProvider", mediaType: MediaType.TV_SHOW, label: "TV Shows" },
-  {
-    field: "animeProvider",
-    mediaType: MediaType.TV_SHOW,
-    label: "TV Shows (Anime)",
-    anime: true,
-  },
-  { field: "gameProvider", mediaType: MediaType.GAME, label: "Games" },
-  {
-    field: "boardGameProvider",
-    mediaType: MediaType.BOARD_GAME,
-    label: "Board Games",
-  },
-  {
-    field: "musicTrackProvider",
-    mediaType: MediaType.MUSIC_TRACK,
-    label: "Music Tracks",
-  },
-] as const;
-
-const PROVIDER_CREDENTIALS = [
-  { provider: "tmdb", label: "TMDB", credentialLabel: "API key" },
-  {
-    provider: "igdb",
-    label: "IGDB",
-    credentialLabel: "Twitch client credentials",
-  },
-  {
-    provider: "bgg",
-    label: "BoardGameGeek",
-    credentialLabel: "API key",
-  },
-] as const;
-
-const SETTINGS_TABS = ["account", "providers", "maintenance"] as const;
-type SettingsTab = (typeof SETTINGS_TABS)[number];
+import {
+  buildPasswordErrors,
+  type ChangePasswordBody,
+  getProviderPreferences,
+  normalizeSettingsTab,
+  PROVIDER_CREDENTIALS,
+  PROVIDER_PREFERENCE_FIELDS,
+  type RemoveProviderBody,
+  type SaveBggKeyBody,
+  type SaveIgdbCredentialsBody,
+  type SaveProviderPreferencesBody,
+  type SaveTmdbKeyBody,
+  type SettingsFeedback,
+  type SettingsTab,
+  validateProviderName,
+} from "./settings.controller.helpers";
 
 @Controller("settings")
 @UseGuards(JwtAuthGuard, AdminGuard)
@@ -115,7 +52,7 @@ export class SettingsWebController {
     @Res() res: Response,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.renderSettings(res, user, this.normalizeTab(tab));
+    return this.renderSettings(res, user, normalizeSettingsTab(tab));
   }
 
   @Post("metadata-providers")
@@ -231,7 +168,7 @@ export class SettingsWebController {
     @Res() res: Response,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    if (!PROVIDER_CREDENTIALS.some((item) => item.provider === provider)) {
+    if (!validateProviderName(provider)) {
       return this.renderSettings(res, user, "providers", {
         error: "Unknown metadata provider",
       });
@@ -261,16 +198,7 @@ export class SettingsWebController {
     @Res() res: Response,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const passwordErrors: Record<string, string> = {};
-    if (!body.currentPassword) {
-      passwordErrors.currentPassword = "Current password is required";
-    }
-    if (!body.newPassword || body.newPassword.length < 8) {
-      passwordErrors.newPassword = "New password must be at least 8 characters";
-    }
-    if (body.newPassword !== body.confirmPassword) {
-      passwordErrors.confirmPassword = "New passwords do not match";
-    }
+    const passwordErrors = buildPasswordErrors(body);
 
     if (Object.keys(passwordErrors).length > 0) {
       return this.renderSettings(res, user, "account", { passwordErrors });
@@ -336,9 +264,14 @@ export class SettingsWebController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     const started = this.imageCleanupService.startCleanup();
-    return this.renderSettings(res, user, "maintenance", started
-      ? { success: "Unused image cleanup started" }
-      : { error: "Unused image cleanup is already running" });
+    return this.renderSettings(
+      res,
+      user,
+      "maintenance",
+      started
+        ? { success: "Unused image cleanup started" }
+        : { error: "Unused image cleanup is already running" },
+    );
   }
 
   private async saveProviderCredential(
@@ -374,7 +307,11 @@ export class SettingsWebController {
     const [providerKeys, userRecord, providerPreferences] = await Promise.all([
       this.usersService.listProviderKeysForUser(user.userId),
       this.usersService.findById(user.userId),
-      this.getProviderPreferences(user.userId),
+      getProviderPreferences(
+        this.usersService,
+        this.metadataService,
+        user.userId,
+      ),
     ]);
     const configuredProviders = new Set(
       providerKeys.map((key) => key.provider),
@@ -392,37 +329,5 @@ export class SettingsWebController {
       imageCleanup: this.imageCleanupService.getStatus(),
       ...feedback,
     });
-  }
-
-  private normalizeTab(tab?: string): SettingsTab {
-    return SETTINGS_TABS.includes(tab as SettingsTab)
-      ? (tab as SettingsTab)
-      : "account";
-  }
-
-  private async getProviderPreferences(userId: string) {
-    return Promise.all(
-      PROVIDER_PREFERENCE_FIELDS.map(async (preference) => {
-        const savedProvider = await this.usersService.getSetting(
-          userId,
-          this.metadataService.getProviderSettingKey(
-            preference.mediaType,
-            "anime" in preference && preference.anime,
-          ),
-        );
-        const options = this.metadataService.getProviderOptions(
-          preference.mediaType,
-          "anime" in preference && preference.anime,
-        );
-        const selectedProvider = savedProvider ?? options[0]?.name;
-        return {
-          ...preference,
-          options: options.map((option) => ({
-            ...option,
-            selected: option.name === selectedProvider,
-          })),
-        };
-      }),
-    );
   }
 }

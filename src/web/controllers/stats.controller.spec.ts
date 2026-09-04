@@ -51,7 +51,17 @@ describe("StatsController", () => {
     statsService.isValidPeriod.mockReturnValue(true);
     statsService.resolveDateRange.mockReturnValue(range);
     statsService.totalTimeByType.mockResolvedValue({ MOVIE: 60 });
-    statsService.activityChart.mockResolvedValue({ labels: ["Mon", "Tue"], values: [60, 200] });
+    statsService.activityChart.mockResolvedValue({
+      labels: ["Mon", "Tue"],
+      values: [60, 200],
+      series: [
+        { key: "movie", label: "Movie", color: "#F59E0B", values: [60, 0] },
+        { key: "tv", label: "TV", color: "#3B82F6", values: [0, 0] },
+        { key: "game", label: "Game", color: "#22C55E", values: [0, 200] },
+        { key: "boardgame", label: "Board game", color: "#F97316", values: [0, 0] },
+        { key: "music", label: "Music", color: "#EC4899", values: [0, 0] },
+      ],
+    });
     statsService.topItems.mockResolvedValue([]);
     cacheGet.mockResolvedValue(null);
 
@@ -64,7 +74,17 @@ describe("StatsController", () => {
     expect(response.render).toHaveBeenCalledWith(
       "stats",
       expect.objectContaining({
-        chartJson: JSON.stringify({ labels: ["Mon", "Tue"], values: [1, 3.3] }),
+        chartJson: JSON.stringify({
+          labels: ["Mon", "Tue"],
+          values: [1, 3.3],
+          series: [
+            { key: "movie", label: "Movie", color: "#F59E0B", values: [1, 0] },
+            { key: "tv", label: "TV", color: "#3B82F6", values: [0, 0] },
+            { key: "game", label: "Game", color: "#22C55E", values: [0, 3.3] },
+            { key: "boardgame", label: "Board game", color: "#F97316", values: [0, 0] },
+            { key: "music", label: "Music", color: "#EC4899", values: [0, 0] },
+          ],
+        }),
       }),
     );
     expect(cacheSet).toHaveBeenCalledWith(

@@ -26,6 +26,14 @@ export interface DateRange {
 export interface ActivityChartData {
   labels: string[];
   values: number[];
+  series: ActivityChartSeries[];
+}
+
+export interface ActivityChartSeries {
+  key: "movie" | "tv" | "game" | "boardgame" | "music";
+  label: string;
+  color: string;
+  values: number[];
 }
 
 export interface TopItem {
@@ -177,13 +185,59 @@ export class StatsService {
     labelForDate: (date: Date) => string,
   ): ActivityChartData {
     const totals = new Map(labels.map((label) => [label, 0]));
+    const labelIndexByLabel = new Map(labels.map((label, index) => [label, index]));
+    const seriesByKey = new Map(
+      CHART_SERIES.map((item) => [
+        item.key,
+        {
+          key: item.key,
+          label: item.label,
+          color: item.color,
+          values: labels.map(() => 0),
+        },
+      ]),
+    );
+
     for (const entry of entries) {
       const label = labelForDate(entry.loggedAt);
       if (totals.has(label)) {
-        totals.set(label, (totals.get(label) ?? 0) + (entry.duration ?? 0));
+        const minutes = entry.duration ?? 0;
+        totals.set(label, (totals.get(label) ?? 0) + minutes);
+
+        const seriesKey = StatsService.chartSeriesKey(entry.mediaItem.type);
+        const series = seriesByKey.get(seriesKey);
+        const labelIndex = labelIndexByLabel.get(label) ?? -1;
+        if (series && labelIndex >= 0) {
+          series.values[labelIndex] += minutes;
+        }
       }
     }
-    return { labels, values: labels.map((label) => totals.get(label) ?? 0) };
+
+    return {
+      labels,
+      values: labels.map((label) => totals.get(label) ?? 0),
+      series: [...seriesByKey.values()].filter((item) =>
+        item.values.some((value) => value > 0),
+      ),
+    };
+  }
+
+  private static chartSeriesKey(
+    type: MediaType,
+  ): ActivityChartSeries["key"] {
+    if (type === MediaType.MOVIE) {
+      return "movie";
+    }
+    if (type === MediaType.TV_SHOW || type === MediaType.TV_EPISODE) {
+      return "tv";
+    }
+    if (type === MediaType.GAME) {
+      return "game";
+    }
+    if (type === MediaType.BOARD_GAME) {
+      return "boardgame";
+    }
+    return "music";
   }
 
   private static startOfDay(date: Date): Date {
@@ -235,3 +289,13 @@ export class StatsService {
     return labels;
   }
 }
+
+const CHART_SERIES: Array<
+  Pick<ActivityChartSeries, "key" | "label" | "color">
+> = [
+    { key: "movie", label: "Movie", color: "#F59E0B" },
+    { key: "tv", label: "TV", color: "#3B82F6" },
+    { key: "game", label: "Game", color: "#22C55E" },
+    { key: "boardgame", label: "Board game", color: "#F97316" },
+    { key: "music", label: "Music", color: "#EC4899" },
+  ];

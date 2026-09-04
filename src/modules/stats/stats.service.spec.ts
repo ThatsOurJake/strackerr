@@ -91,6 +91,8 @@ describe("StatsService", () => {
 
       expect(chart.labels).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]);
       expect(chart.values).toEqual([30, 0, 0, 0, 0, 0, 60]);
+      expect(chart.series.find((item) => item.key === "movie")?.values).toEqual([30, 0, 0, 0, 0, 0, 0]);
+      expect(chart.series.find((item) => item.key === "game")?.values).toEqual([0, 0, 0, 0, 0, 0, 60]);
     });
 
     it("buckets multi-month periods by week", async () => {
@@ -103,6 +105,8 @@ describe("StatsService", () => {
 
       expect(chart.labels).toEqual(["5/18", "5/25", "6/1"]);
       expect(chart.values).toEqual([20, 40, 0]);
+      expect(chart.series.find((item) => item.key === "movie")?.values).toEqual([20, 0, 0]);
+      expect(chart.series.find((item) => item.key === "game")?.values).toEqual([0, 40, 0]);
     });
 
     it("buckets yearly periods by month", async () => {
@@ -116,6 +120,22 @@ describe("StatsService", () => {
       expect(chart.labels).toHaveLength(12);
       expect(chart.values[0]).toBe(20);
       expect(chart.values[7]).toBe(40);
+      expect(chart.series.find((item) => item.key === "movie")?.values[0]).toBe(20);
+      expect(chart.series.find((item) => item.key === "game")?.values[7]).toBe(40);
+    });
+
+    it("omits media type series with zero total time", async () => {
+      findByUser.mockResolvedValue([
+        createLogEntry("movie", MediaType.MOVIE, { loggedAt: new Date(2026, 0, 5), duration: 20 }),
+      ]);
+
+      const chart = await service.activityChart(
+        "user-1",
+        "this-year",
+        range(new Date(2026, 0, 1), new Date(2026, 11, 31)),
+      );
+
+      expect(chart.series.map((item) => item.key)).toEqual(["movie"]);
     });
 
     it("buckets all-time activity by year", async () => {
@@ -127,7 +147,10 @@ describe("StatsService", () => {
 
       const chart = await service.activityChart("user-1", "all-time", null);
 
-      expect(chart).toEqual({ labels: ["2024", "2025", "2026"], values: [20, 0, 40] });
+      expect(chart.labels).toEqual(["2024", "2025", "2026"]);
+      expect(chart.values).toEqual([20, 0, 40]);
+      expect(chart.series.find((item) => item.key === "movie")?.values).toEqual([20, 0, 0]);
+      expect(chart.series.find((item) => item.key === "game")?.values).toEqual([0, 0, 40]);
       jest.useRealTimers();
     });
   });

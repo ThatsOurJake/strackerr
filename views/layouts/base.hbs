@@ -1,20 +1,16 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en" class="dark" data-theme="dark">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>STrackerr — {{title}}</title>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Outfit:wght@600;700;800&display=swap"
-    rel="stylesheet" />
-  <link rel="stylesheet" href="/css/app.css" />
-  <script src="/js/theme.js"></script>
-  <script src="https://unpkg.com/htmx.org@2.0.10" defer></script>
-  <script src="https://unpkg.com/echarts@6.1.0" defer></script>
-  <script src="https://unpkg.com/lucide@1.33.0" defer></script>
+  <link rel="icon" href="{{assetPath '/favicon.svg'}}" type="image/svg+xml" />
+  <script src="{{assetPath '/js/theme.js'}}"></script>
+  <link rel="stylesheet" href="{{assetPath '/css/app.css'}}" />
+  <script src="{{assetPath '/vendor/htmx/htmx.min.js'}}" defer></script>
+  <script src="{{assetPath '/vendor/echarts/echarts.min.js'}}" defer></script>
+  <script src="{{assetPath '/vendor/lucide/lucide.min.js'}}" defer></script>
 </head>
 
 <body data-csrf-token="{{csrfToken}}" class="min-h-screen overflow-x-hidden bg-bg-base font-body text-text-primary">
@@ -36,7 +32,7 @@
     {{{body}}}
   </main>
   {{/if}}
-  <script src="/js/app.js" defer></script>
+  <script type="module" src="{{assetPath '/js/app.js'}}"></script>
 </body>
 
 </html>

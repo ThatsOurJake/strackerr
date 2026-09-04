@@ -1,0 +1,44 @@
+{
+  "assets": [
+    {
+      "dependency": "htmx.org",
+      "version": "2.0.10",
+      "destination": "/public/vendor/htmx/htmx.min.js"
+    },
+    {
+      "dependency": "echarts",
+      "version": "6.1.0",
+      "destination": "/public/vendor/echarts/echarts.min.js"
+    },
+    {
+      "dependency": "lucide",
+      "version": "1.40.0",
+      "destination": "/public/vendor/lucide/lucide.min.js"
+    },
+    {
+      "dependency": "@fontsource/dm-sans",
+      "version": "5.3.0",
+      "destination": "/public/fonts/dm-sans-latin-400-normal.woff2"
+    },
+    {
+      "dependency": "@fontsource/dm-sans",
+      "version": "5.3.0",
+      "destination": "/public/fonts/dm-sans-latin-500-normal.woff2"
+    },
+    {
+      "dependency": "@fontsource/outfit",
+      "version": "5.3.0",
+      "destination": "/public/fonts/outfit-latin-600-normal.woff2"
+    },
+    {
+      "dependency": "@fontsource/outfit",
+      "version": "5.3.0",
+      "destination": "/public/fonts/outfit-latin-700-normal.woff2"
+    },
+    {
+      "dependency": "@fontsource/outfit",
+      "version": "5.3.0",
+      "destination": "/public/fonts/outfit-latin-800-normal.woff2"
+    }
+  ]
+}

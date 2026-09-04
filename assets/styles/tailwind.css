@@ -1,6 +1,68 @@
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/dm-sans-latin-400-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/dm-sans-latin-500-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/outfit-latin-600-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/outfit-latin-700-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("/fonts/outfit-latin-800-normal.woff2") format("woff2");
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-base: 245 242 236;
+    --bg-surface: 255 255 255;
+    --bg-elevated: 237 233 226;
+    --text-primary: 17 17 17;
+    --text-secondary: 75 85 99;
+    --text-muted: 156 163 175;
+    --border-subtle: 221 216 207;
+  }
+
+  .dark {
+    --bg-base: 17 17 17;
+    --bg-surface: 26 26 26;
+    --bg-elevated: 36 36 36;
+    --text-primary: 240 237 232;
+    --text-secondary: 156 163 175;
+    --text-muted: 107 114 128;
+    --border-subtle: 44 44 44;
+  }
+}
 
 @layer utilities {
   .htmx-indicator {

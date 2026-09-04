@@ -26,10 +26,10 @@ The app shell behaves consistently in both themes, loads critical UI assets from
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-048](../backlog/todo/TICKET-048.md) | Dark mode reliability fixes |
-| [TICKET-049](../backlog/todo/TICKET-049.md) | Self-host fonts and third-party frontend assets |
-| [TICKET-050](../backlog/todo/TICKET-050.md) | Decompose selected controllers without test sprawl |
-| [TICKET-051](../backlog/todo/TICKET-051.md) | Modularize `public/js/app.js` with stable entry point |
+| [TICKET-048](../backlog/done/TICKET-048.md) | Dark mode reliability fixes |
+| [TICKET-049](../backlog/done/TICKET-049.md) | Self-host fonts and third-party frontend assets |
+| [TICKET-050](../backlog/done/TICKET-050.md) | Decompose selected controllers without test sprawl |
+| [TICKET-051](../backlog/done/TICKET-051.md) | Modularize `public/js/app.js` with stable entry point |
 
 ## Done Signal
 - Dark mode works predictably for initial paint, toggling, and persisted preference.
