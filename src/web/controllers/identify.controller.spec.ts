@@ -16,6 +16,9 @@ describe("IdentifyController", () => {
   let findByIdWithExternalIds: jest.Mock;
   let findDetail: jest.Mock;
   let identify: jest.Mock;
+  let getProviderForUser: jest.Mock;
+  let providerSearch: jest.Mock;
+  let providerGetById: jest.Mock;
   let controller: IdentifyController;
   let response: { render: jest.Mock; redirect: jest.Mock; status: jest.Mock; send: jest.Mock };
 
@@ -23,15 +26,20 @@ describe("IdentifyController", () => {
     findByIdWithExternalIds = jest.fn();
     findDetail = jest.fn().mockResolvedValue({ id: "movie-1" });
     identify = jest.fn();
+    providerSearch = jest.fn().mockResolvedValue([]);
+    providerGetById = jest.fn().mockResolvedValue({
+      externalId: "musicbrainz:7f00f0f4-4f5f-4dbd-abf1-b190535ce6d5",
+      title: "Bohemian Rhapsody",
+      type: MediaType.MUSIC_TRACK,
+    });
+    getProviderForUser = jest.fn().mockResolvedValue({
+      provider: { name: "tmdb", search: providerSearch, getById: providerGetById },
+      apiKey: "key",
+    });
     controller = new IdentifyController(
       { findDetail } as unknown as CollectionService,
       { findByIdWithExternalIds } as unknown as MediaService,
-      {
-        getProviderForUser: jest.fn().mockResolvedValue({
-          provider: { name: "tmdb" },
-          apiKey: "key",
-        }),
-      } as unknown as MetadataService,
+      { getProviderForUser } as unknown as MetadataService,
       { identify } as unknown as IdentificationService,
     );
     response = {
@@ -94,6 +102,92 @@ describe("IdentifyController", () => {
     expect(response.render).toHaveBeenCalledWith(
       "partials/identify-panel",
       expect.objectContaining({ actionLabel: "Reidentify" }),
+    );
+  });
+
+  it("returns actionable validation feedback for malformed syntax", async () => {
+    findByIdWithExternalIds.mockResolvedValue({
+      id: "movie-1",
+      type: MediaType.MOVIE,
+      isSkeleton: true,
+      createdByUserId: "user-1",
+      externalIds: [],
+    });
+
+    await controller.search(
+      "movie",
+      "movie-1",
+      "artist:Queen",
+      user,
+      response as unknown as Response,
+    );
+
+    expect(response.render).toHaveBeenCalledWith(
+      "partials/identify-search-results",
+      expect.objectContaining({
+        error: expect.stringContaining("must use quotes"),
+      }),
+    );
+  });
+
+  it("returns a clear error when structured fields are mixed with free text", async () => {
+    findByIdWithExternalIds.mockResolvedValue({
+      id: "track-1",
+      type: MediaType.MUSIC_TRACK,
+      isSkeleton: true,
+      createdByUserId: "user-1",
+      externalIds: [],
+    });
+
+    await controller.search(
+      "music",
+      "track-1",
+      'artist:"Queen" title:"Bohemian Rhapsody" live',
+      user,
+      response as unknown as Response,
+    );
+
+    expect(response.render).toHaveBeenCalledWith(
+      "partials/identify-search-results",
+      expect.objectContaining({
+        error: "Use either structured fields (artist/title/year) or free-text search, not both.",
+      }),
+    );
+  });
+
+  it("resolves shorthand id lookups using the active provider", async () => {
+    findByIdWithExternalIds.mockResolvedValue({
+      id: "track-1",
+      type: MediaType.MUSIC_TRACK,
+      isSkeleton: true,
+      createdByUserId: "user-1",
+      externalIds: [],
+    });
+    getProviderForUser.mockResolvedValue({
+      provider: {
+        name: "musicbrainz",
+        search: providerSearch,
+        getById: providerGetById,
+      },
+      apiKey: undefined,
+    });
+
+    await controller.search(
+      "music",
+      "track-1",
+      "id:7f00f0f4-4f5f-4dbd-abf1-b190535ce6d5",
+      user,
+      response as unknown as Response,
+    );
+
+    expect(getProviderForUser).toHaveBeenCalledWith(MediaType.MUSIC_TRACK, "user-1");
+    expect(providerGetById).toHaveBeenCalledWith(
+      "musicbrainz:7f00f0f4-4f5f-4dbd-abf1-b190535ce6d5",
+      undefined,
+    );
+    expect(response.render).toHaveBeenCalledWith(
+      "partials/identify-search-results",
+      expect.objectContaining({ hasResults: true }),
     );
   });
 });

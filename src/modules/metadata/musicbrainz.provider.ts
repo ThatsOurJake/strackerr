@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { MediaType } from "@prisma/client";
 import {
   IMetadataProvider,
@@ -24,6 +24,7 @@ export class MusicBrainzProvider implements IMetadataProvider {
   readonly name = "musicbrainz" as const;
   private readonly baseUrl = "https://musicbrainz.org/ws/2";
   private readonly userAgent = "STrackerr/1.0 (https://github.com/strackrr)";
+  private readonly logger = new Logger(MusicBrainzProvider.name);
   private requestQueue: Promise<void> = Promise.resolve();
   private lastRequestAt = 0;
 
@@ -60,12 +61,68 @@ export class MusicBrainzProvider implements IMetadataProvider {
   }
 
   private buildSearchQuery(query: string): string {
+    const structured = this.parseStructuredFieldTerms(query);
+    if (structured) {
+      const parts: string[] = [];
+      if (structured.artist) {
+        parts.push(`artist:${this.escapeLuceneValue(structured.artist)}`);
+      }
+      if (structured.title) {
+        parts.push(`recording:${this.escapeLuceneValue(structured.title)}`);
+      }
+      if (structured.year) {
+        parts.push(`date:${this.escapeLuceneValue(structured.year)}`);
+      }
+      if (structured.freeText) {
+        parts.push(this.escapeLuceneValue(structured.freeText));
+      }
+      return parts.join(" AND ");
+    }
+
     const parsed = this.parseArtistAndTrack(query);
     if (!parsed) {
       return this.escapeLuceneValue(query);
     }
 
     return `artist:${this.escapeLuceneValue(parsed.artist)} AND recording:${this.escapeLuceneValue(parsed.track)}`;
+  }
+
+  private parseStructuredFieldTerms(
+    query: string,
+  ): { artist?: string; title?: string; year?: string; freeText?: string } | null {
+    const matches = [...query.matchAll(/(?:^|\s)(artist|title|year):"((?:\\"|[^"])*)"/gi)];
+    if (matches.length === 0) {
+      return null;
+    }
+
+    const parsed: { artist?: string; title?: string; year?: string; freeText?: string } = {};
+    for (const match of matches) {
+      const field = match[1]?.toLowerCase();
+      const value = (match[2] ?? "").replace(/\\"/g, '"').trim();
+      if (!value) {
+        continue;
+      }
+
+      if (field === "artist") {
+        parsed.artist = value;
+      }
+      if (field === "title") {
+        parsed.title = value;
+      }
+      if (field === "year") {
+        parsed.year = value;
+      }
+    }
+
+    const remaining = query
+      .replace(/(?:^|\s)(artist|title|year):"((?:\\"|[^"])*)"/gi, " ")
+      .trim()
+      .replace(/\s+/g, " ");
+    if (remaining) {
+      parsed.freeText = remaining;
+    }
+
+    return parsed;
   }
 
   private parseArtistAndTrack(query: string): { artist: string; track: string } | null {
@@ -114,10 +171,16 @@ export class MusicBrainzProvider implements IMetadataProvider {
 
         const temporary = response.status === 429 || response.status === 503;
         if (temporary) {
+          this.logger.warn(
+            `Temporary MusicBrainz response status=${response.status} attempt=${attempt}`,
+          );
           if (attempt < MAX_RETRY_ATTEMPTS) {
             await wait(this.retryDelayMs(response));
             continue;
           }
+          this.logger.error(
+            `MusicBrainz temporary failure after retries status=${response.status}`,
+          );
           throw new Error(TEMPORARY_FAILURE_MESSAGE);
         }
 
@@ -125,6 +188,9 @@ export class MusicBrainzProvider implements IMetadataProvider {
           `MusicBrainz request failed with status ${response.status}`,
         );
       } catch (error) {
+        this.logger.warn(
+          `MusicBrainz request attempt failed attempt=${attempt} message=${error instanceof Error ? error.message : "unknown"}`,
+        );
         if (attempt >= MAX_RETRY_ATTEMPTS) {
           throw error instanceof Error
             ? error

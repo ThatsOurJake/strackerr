@@ -8,9 +8,9 @@ Allow users to provide explicit identification intent through field-based query 
 ## Scope
 - Introduce a parser for identification input supporting:
   - quoted field terms: `year:"2020" artist:"foo bar" title:"xxx"`
-  - provider-id lookup token: `id:<provider_id>`
-  - optional fallback free text terms in the same query.
-- Define deterministic precedence and conflict handling when both field terms and free text are present.
+  - provider-aware id lookup token: `id:<identifier>`
+  - standalone free text search terms.
+- Reject mixed query modes (structured fields + free text, or id lookup + anything else) with clear validation feedback.
 - Validate malformed syntax with clear user-facing error messages.
 - Add focused syntax help copy near the identify input UI and/or response partial.
 
@@ -22,7 +22,7 @@ Allow users to provide explicit identification intent through field-based query 
 
 ## Acceptance Criteria
 - [ ] Input with `year`, `artist`, and `title` quoted fields parses into a structured object
-- [ ] Input with `id:<provider_id>` parses as a direct identifier lookup intent
-- [ ] Mixed free text + structured fields follows documented precedence
+- [ ] Input with `id:<identifier>` parses as a direct identifier lookup intent
+- [ ] Mixed query modes are rejected with actionable validation feedback
 - [ ] Invalid syntax returns actionable validation feedback
 - [ ] Existing plain-text identify behavior still works

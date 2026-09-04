@@ -15,6 +15,7 @@ import {
 } from "../metadata/metadata-provider.interface";
 import { EpisodeSyncService } from "./episode-sync.service";
 import { MediaService } from "./media.service";
+import { assertProviderExternalId } from "./provider-external-id.validator";
 
 @Injectable()
 export class IdentificationService {
@@ -42,7 +43,7 @@ export class IdentificationService {
       throw new ForbiddenException("You cannot identify this media item");
     }
 
-    this.assertProviderExternalId(providerName, externalId);
+    assertProviderExternalId(providerName, externalId);
 
     const resolvedProvider = await this.metadataService.getProviderForUser(
       mediaItem.type,
@@ -157,22 +158,6 @@ export class IdentificationService {
 
   private catalogTypeFor(type: MediaType): MediaType {
     return type === MediaType.TV_EPISODE ? MediaType.TV_SHOW : type;
-  }
-
-  private assertProviderExternalId(
-    providerName: MetadataProviderName,
-    externalId: string,
-  ): void {
-    const validators: Record<MetadataProviderName, RegExp> = {
-      tmdb: /^(movie|tv):\d+(?::\d+:\d+)?$/,
-      anilist: /^anilist:\d+$/,
-      igdb: /^igdb:\d+$/,
-      bgg: /^bgg:\d+$/,
-      musicbrainz: /^musicbrainz:[a-z0-9-]+$/i,
-    };
-    if (!validators[providerName].test(externalId)) {
-      throw new BadRequestException("Selected identity is invalid");
-    }
   }
 
   private async hasUserAccess(

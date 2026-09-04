@@ -246,6 +246,20 @@ describe("metadata providers", () => {
       expect(url).toContain("query=%22Ariana+Grande+%5C%28Live%5C%29%5C%3F%22");
     });
 
+    it("maps explicit artist title year terms to MusicBrainz field clauses", async () => {
+      fetchMock.mockResolvedValue(jsonResponse({ recordings: [] }));
+
+      await new MusicBrainzProvider().search(
+        'artist:"Queen" title:"Bohemian Rhapsody" year:"1975"',
+      );
+
+      const url = String(fetchMock.mock.calls[0][0]);
+      expect(url).toContain("artist%3A%22Queen%22");
+      expect(url).toContain("recording%3A%22Bohemian+Rhapsody%22");
+      expect(url).toContain("date%3A%221975%22");
+      expect(url).toContain("AND");
+    });
+
     it("retries temporary failures and returns a recoverable error", async () => {
       fetchMock
         .mockResolvedValueOnce(new Response("", { status: 503 }))

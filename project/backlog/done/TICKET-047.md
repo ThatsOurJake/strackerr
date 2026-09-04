@@ -7,7 +7,7 @@ Improve MusicBrainz identification quality by mapping structured query intent di
 
 ## Scope
 - Map parsed `artist`, `title`, and `year` terms to MusicBrainz query conventions used by the provider integration.
-- Support `id:<provider_id>` lookup flow for MusicBrainz entities relevant to identification.
+- Support `id:<identifier>` lookup flow for MusicBrainz entities relevant to identification.
 - Preserve current fallback behavior when structured search produces no confident result.
 - Add recoverable error handling for throttling and transient provider failures in structured flows.
 
@@ -18,6 +18,6 @@ Improve MusicBrainz identification quality by mapping structured query intent di
 
 ## Acceptance Criteria
 - [ ] Structured artist/title/year queries produce useful MusicBrainz results for common identification cases
-- [ ] `id:<provider_id>` triggers provider-id lookup for supported MusicBrainz id formats
+- [ ] `id:<identifier>` triggers provider-id lookup for supported MusicBrainz id formats
 - [ ] No-result and throttled responses surface actionable recoverable UI messaging
 - [ ] Existing identification fallbacks remain available

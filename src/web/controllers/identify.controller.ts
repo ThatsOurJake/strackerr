@@ -15,7 +15,15 @@ import { CurrentUser } from "../../modules/auth/decorators/current-user.decorato
 import { JwtAuthGuard } from "../../modules/auth/guards/jwt-auth.guard";
 import { CollectionService } from "../../modules/collection/collection.service";
 import { IdentificationService } from "../../modules/media/identification.service";
+import {
+  buildProviderSearchQuery,
+  parseIdentificationQuery,
+} from "../../modules/media/identification-query.parser";
 import { MediaService } from "../../modules/media/media.service";
+import {
+  assertProviderExternalId,
+  normalizeProviderExternalId,
+} from "../../modules/media/provider-external-id.validator";
 import { MetadataService } from "../../modules/metadata/metadata.service";
 import type { MetadataProviderName } from "../../modules/metadata/metadata-provider.interface";
 import { typeFromSlug } from "../collection-view-model";
@@ -43,7 +51,10 @@ export class IdentifyController {
     @Res() response: Response,
   ) {
     const item = await this.getAccessibleMediaItem(typeSlug, id, user.userId);
-    const resolved = await this.metadataService.getProviderForUser(item.type, user.userId);
+    const resolved = await this.metadataService.getProviderForUser(
+      item.type,
+      user.userId,
+    );
     const currentIdentity = item.externalIds[0]
       ? `${item.externalIds[0].provider}:${item.externalIds[0].externalId}`
       : "None";
@@ -70,12 +81,69 @@ export class IdentifyController {
   ) {
     const item = await this.getAccessibleMediaItem(typeSlug, id, user.userId);
     const query = rawQuery?.trim() ?? "";
-    if (query.length < 3) {
-      return response.render("partials/identify-search-results", { layout: false });
+    const parsedQueryResult = parseIdentificationQuery(query);
+    if (!parsedQueryResult.ok || !parsedQueryResult.value) {
+      return response.render("partials/identify-search-results", {
+        layout: false,
+        error: parsedQueryResult.error?.message ?? "Invalid query syntax.",
+      });
+    }
+
+    const parsedQuery = parsedQueryResult.value;
+    const hasStructuredFields = Object.values(parsedQuery.fields).some(
+      (value) => Boolean(value),
+    );
+    const hasFreeText = parsedQuery.freeTextTerms.join(" ").trim().length >= 3;
+    if (!parsedQuery.providerLookup && !hasStructuredFields && !hasFreeText) {
+      return response.render("partials/identify-search-results", {
+        layout: false,
+      });
     }
 
     try {
-      const resolved = await this.metadataService.getProviderForUser(item.type, user.userId);
+      if (parsedQuery.providerLookup) {
+        const directLookup = await this.metadataService.getProviderForUser(
+          item.type,
+          user.userId,
+        );
+        if (
+          ["tmdb", "igdb", "bgg"].includes(directLookup.provider.name) &&
+          !directLookup.apiKey
+        ) {
+          return response.render("partials/identify-search-results", {
+            layout: false,
+            missingKey: true,
+          });
+        }
+
+        const normalizedExternalId = normalizeProviderExternalId(
+          directLookup.provider.name,
+          parsedQuery.providerLookup.identifier,
+          item.type,
+        );
+        assertProviderExternalId(
+          directLookup.provider.name,
+          normalizedExternalId,
+        );
+        const result = await directLookup.provider.getById(
+          normalizedExternalId,
+          directLookup.apiKey,
+        );
+        return response.render("partials/identify-search-results", {
+          layout: false,
+          results: [result],
+          hasResults: true,
+          searched: true,
+          provider: directLookup.provider.name,
+          submitUrl: `/collection/${typeSlug}/${id}/identify/confirm`,
+          resultsTarget: `#identify-results-${id}`,
+        });
+      }
+
+      const resolved = await this.metadataService.getProviderForUser(
+        item.type,
+        user.userId,
+      );
       if (
         ["tmdb", "igdb", "bgg"].includes(resolved.provider.name) &&
         !resolved.apiKey
@@ -85,7 +153,15 @@ export class IdentifyController {
           missingKey: true,
         });
       }
-      const results = await resolved.provider.search(query, resolved.apiKey);
+
+      const providerQuery = buildProviderSearchQuery(
+        parsedQuery,
+        resolved.provider.name,
+      );
+      const results = await resolved.provider.search(
+        providerQuery,
+        resolved.apiKey,
+      );
       return response.render("partials/identify-search-results", {
         layout: false,
         results,
@@ -96,9 +172,15 @@ export class IdentifyController {
         resultsTarget: `#identify-results-${id}`,
       });
     } catch (error) {
+      const message =
+        error instanceof Error && /status\s404/i.test(error.message)
+          ? "No result found for that identifier. Try artist/title search instead."
+          : error instanceof Error
+            ? error.message
+            : "Provider search failed";
       return response.render("partials/identify-search-results", {
         layout: false,
-        error: error instanceof Error ? error.message : "Provider search failed",
+        error: message,
       });
     }
   }
@@ -139,11 +221,18 @@ export class IdentifyController {
 
     try {
       const providerName = body.provider as MetadataProviderName;
-      const resolved = await this.metadataService.getProviderForUser(item.type, user.userId, {
-        providerOverride: providerName,
-        anime: providerName === "anilist",
-      });
-      const proposed = await resolved.provider.getById(body.externalId, resolved.apiKey);
+      const resolved = await this.metadataService.getProviderForUser(
+        item.type,
+        user.userId,
+        {
+          providerOverride: providerName,
+          anime: providerName === "anilist",
+        },
+      );
+      const proposed = await resolved.provider.getById(
+        body.externalId,
+        resolved.apiKey,
+      );
       return response.render("partials/identify-confirm", {
         layout: false,
         item,
@@ -155,7 +244,8 @@ export class IdentifyController {
     } catch (error) {
       return response.render("partials/identify-search-results", {
         layout: false,
-        error: error instanceof Error ? error.message : "Unable to load this result",
+        error:
+          error instanceof Error ? error.message : "Unable to load this result",
       });
     }
   }
