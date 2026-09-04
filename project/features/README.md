@@ -21,6 +21,8 @@ This folder defines the product-level features for STrackerr. Each feature file 
 | [FEA-013: Search and Identification Corrections](./FEA-013-search-identification-corrections.md) | Music and TV search improvements plus safe media reidentification | TICKET-037, TICKET-038, TICKET-039 |
 | [FEA-014: Activity and Artwork Improvements](./FEA-014-activity-artwork-improvements.md) | Monthly history, hour-based charts, higher-quality artwork, and image cleanup | TICKET-040, TICKET-041, TICKET-042, TICKET-043 |
 | [FEA-015: Shell and Authentication Visual Polish](./FEA-015-shell-auth-visual-polish.md) | Typography, login identity, and mobile navigation improvements | TICKET-044, TICKET-045 |
+| [FEA-016: Identification Query Ergonomics](./FEA-016-identification-query-ergonomics.md) | Structured identify-query syntax and MusicBrainz-focused lookup improvements | TICKET-046, TICKET-047 |
+| [FEA-017: Shell Reliability, Asset Delivery, and Frontend Maintainability](./FEA-017-shell-reliability-asset-delivery-and-frontend-maintainability.md) | Dark mode reliability, self-hosted frontend assets, and maintainability refactors | TICKET-048, TICKET-049, TICKET-050, TICKET-051 |
 
 ## Agent Workflow
 
