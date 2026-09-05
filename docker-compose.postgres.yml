@@ -13,12 +13,5 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  app:
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://strackerr:strackerr@db:5432/strackerr?schema=public
-
 volumes:
   postgres_data:

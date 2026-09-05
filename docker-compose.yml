@@ -6,8 +6,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: file:./data/prod.db
-      ENCRYPTION_KEY: change-me-32-byte-hex
+      DATABASE_URL: file:./data/dev.db
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
       JWT_SECRET: change-me-jwt-secret
       PORT: 3000
       NODE_ENV: production
