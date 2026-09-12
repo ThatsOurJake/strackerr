@@ -43,8 +43,8 @@ export class StatsController {
     ]);
     const timeByType = Object.entries(totals).map(([type, minutes]) => ({
       ...mediaTypeDetails(type as Parameters<typeof mediaTypeDetails>[0]),
-      duration: formatDuration(minutes),
-      minutes,
+      duration: formatDuration(minutes ?? 0),
+      minutes: minutes ?? 0,
     }));
     const chartInHours = {
       labels: chart.labels,

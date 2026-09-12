@@ -1,10 +1,5 @@
 import { spawnSync } from "node:child_process";
 
-if (process.env.SKIP_APP_POSTINSTALL === "1") {
-  console.log("Skipping app postinstall tasks");
-  process.exit(0);
-}
-
 const run = (command, args) => {
   const result = spawnSync(command, args, {
     stdio: "inherit",
@@ -21,4 +16,10 @@ const run = (command, args) => {
 };
 
 run("prisma", ["generate"]);
+
+if (process.env.SKIP_APP_POSTINSTALL === "1") {
+  console.log("Skipping non-essential app postinstall tasks");
+  process.exit(0);
+}
+
 run("pnpm", ["run", "assets:sync"]);
