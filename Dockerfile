@@ -26,8 +26,6 @@ FROM node:26-alpine AS runtime
 
 WORKDIR /app
 
-RUN npm install -g pnpm@11.6.0
-
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/public ./public
