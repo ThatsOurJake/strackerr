@@ -8,9 +8,9 @@ steps:
     settings:
       auto_tag: true
       username:
-        from_secret: docker_username
+        from_secret: sussy_docker_username
       password:
-        from_secret: docker_password
+        from_secret: sussy_docker_password
       registry: registry.sussy-servers.uk
       repo: registry.sussy-servers.uk/public/strackerr
       tags:
