@@ -1,11 +1,21 @@
-FROM node:26-alpine AS builder
+FROM node:26-alpine AS base
 
 WORKDIR /app
 
 RUN npm install -g pnpm@11.6.0
 
+FROM base AS deps
+
+RUN apk add --no-cache python3 make g++
+ENV DATABASE_URL=file:./prisma/dev.db
+
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./prisma.config.ts
+COPY scripts ./scripts
 RUN pnpm install --frozen-lockfile
+
+FROM deps AS builder
 
 COPY . .
 
