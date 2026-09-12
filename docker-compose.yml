@@ -6,7 +6,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: file:./data/dev.db
+      DATABASE_URL: ${DATABASE_URL:-file:./data/strackerr.db}
       ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
       JWT_SECRET: change-me-jwt-secret
       PORT: 3000

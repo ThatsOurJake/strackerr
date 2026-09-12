@@ -9,7 +9,7 @@
     "tailwind:build": "tailwindcss -i ./assets/styles/tailwind.css -o ./public/css/app.css --minify",
     "tailwind:watch": "tailwindcss -i ./assets/styles/tailwind.css -o ./public/css/app.css --watch",
     "format": "biome format --write src test",
-    "postinstall": "prisma generate && pnpm run assets:sync",
+    "postinstall": "node scripts/postinstall.mjs",
     "start": "nest start",
     "start:dev": "concurrently --names nest,tailwind --kill-others-on-fail \"nest start --watch\" \"pnpm run tailwind:watch\"",
     "start:debug": "nest start --debug --watch",

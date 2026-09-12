@@ -8,6 +8,7 @@ FROM base AS deps
 
 RUN apk add --no-cache python3 make g++
 ENV DATABASE_URL=file:./prisma/dev.db
+ENV SKIP_APP_POSTINSTALL=1
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma
@@ -31,6 +32,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/views ./views
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/package.json ./package.json
 COPY docker/entrypoint.sh /app/entrypoint.sh
 
