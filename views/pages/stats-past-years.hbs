@@ -1,0 +1,68 @@
+<div class="mx-auto max-w-6xl">
+  <a href="/stats?period=this-week" class="text-sm text-text-secondary hover:text-text-primary">Back to stats</a>
+  <h1 class="mt-2 font-heading text-3xl font-extrabold tracking-tight">This time past years</h1>
+  <p class="mt-2 text-sm text-text-secondary">Comparing the current week window across your historical years:
+    {{currentWeekLabel}}</p>
+
+  {{#if hasYears}}
+  <section class="mt-8 grid gap-4">
+    {{#each years}}
+    <article class="rounded-lg border border-border-subtle bg-bg-surface p-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 class="font-heading text-xl font-bold tracking-tight">{{year}}</h2>
+        <span class="text-xs text-text-secondary">{{dateRangeLabel}}</span>
+      </div>
+
+      {{#if hasActivity}}
+      <div class="mt-3 flex flex-wrap items-center gap-4 text-sm text-text-secondary">
+        <span>{{totalDuration}}</span>
+        <span>{{entryCount}} sessions</span>
+      </div>
+
+      <p class="mt-3 text-xs uppercase tracking-wide text-text-secondary">Type mix</p>
+      <div class="mt-1 h-2 w-full overflow-hidden rounded-full bg-bg-elevated">
+        <div class="flex h-full w-full">
+          {{#each typeBreakdownRows}}
+          <span style="width: {{percentage}}%; background-color: {{color}};" title="{{label}} {{duration}}"></span>
+          {{/each}}
+        </div>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-2 text-xs">
+        {{#each typeBreakdownRows}}
+        <span
+          class="inline-flex items-center gap-1 rounded-full border border-border-subtle bg-bg-elevated px-2 py-1 text-text-secondary">
+          <span class="h-2 w-2 rounded-full" style="background-color: {{color}};"></span>{{label}} {{duration}}
+        </span>
+        {{/each}}
+      </div>
+
+      <div class="mt-4 divide-y divide-border-subtle border-y border-border-subtle">
+        {{#each topItems}}
+        <a href="{{detailUrl}}" class="flex items-center gap-3 px-2 py-3 hover:bg-bg-elevated">
+          {{#if (thumbnailUrl imageUrl)}}<img data-image-fallback src="{{thumbnailUrl imageUrl}}" alt=""
+            class="h-14 w-10 rounded object-cover" /><span
+            class="hidden h-14 w-10 shrink-0 flex-col items-center justify-center rounded bg-type-{{accent}}/20 text-type-{{accent}}"><i
+              data-lucide="{{icon}}" class="h-5 w-5"></i><span class="font-heading text-xs font-bold">{{initial
+              title}}</span></span>{{else}}<span
+            class="flex h-14 w-10 items-center justify-center rounded bg-type-{{accent}}/20 text-type-{{accent}}"><i
+              data-lucide="{{icon}}" class="h-5 w-5"></i></span>{{/if}}
+          <div class="min-w-0 flex-1">
+            <h3 class="truncate font-heading font-bold">{{title}}</h3><span
+              class="mt-1 inline-block rounded-full border border-type-{{accent}}/40 bg-type-{{accent}}/15 px-2 py-0.5 font-heading text-[11px] font-semibold uppercase tracking-wide text-type-{{accent}}">{{label}}</span>
+          </div>
+          <span class="shrink-0 text-sm text-text-secondary">{{duration}}</span>
+        </a>
+        {{/each}}
+      </div>
+      {{else}}
+      <p class="mt-3 text-sm text-text-secondary">No activity logged for this week in {{year}}.</p>
+      {{/if}}
+    </article>
+    {{/each}}
+  </section>
+  {{else}}
+  <div class="mt-8 rounded-lg border border-border-subtle bg-bg-surface p-4 text-sm text-text-secondary">
+    No historical years are available yet.
+  </div>
+  {{/if}}
+</div>

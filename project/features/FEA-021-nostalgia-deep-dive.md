@@ -27,8 +27,8 @@ The weekly nostalgia insight becomes a navigable experience that lets users expl
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-060](../backlog/todo/TICKET-060.md) | Add navigation from the weekly nostalgia tile to a dedicated historical view |
-| [TICKET-061](../backlog/todo/TICKET-061.md) | Build the "This time past years" same-week-across-years view |
+| [TICKET-060](../backlog/done/TICKET-060.md) | Add navigation from the weekly nostalgia tile to a dedicated historical view |
+| [TICKET-061](../backlog/done/TICKET-061.md) | Build the "This time past years" same-week-across-years view |
 
 ## Done Signal
 - Users can open a dedicated nostalgia view from the weekly stats tile.

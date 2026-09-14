@@ -13,18 +13,26 @@
   {{#if missingKey}}
   <div class="rounded-lg border border-dashed border-border-subtle bg-bg-surface p-4 text-sm text-text-secondary">
     No API key configured. Add one in <a href="/settings" class="text-text-primary underline">Settings</a> or
-    <button type="button" hx-get="/add/form?type={{type}}&manual=true" hx-target="#add-flow" class="text-text-primary underline">enter manually</button>.
+    <button type="button" hx-get="/add/form?type={{type}}&manual=true" hx-target="#add-flow"
+      class="text-text-primary underline">enter manually</button>.
   </div>
   {{else}}
-  <label for="add-search-{{type}}" class="mb-1 block font-heading text-sm font-semibold text-text-secondary">Title</label>
+  <label for="add-search-{{type}}"
+    class="mb-1 block font-heading text-sm font-semibold text-text-secondary">Title</label>
   <div class="relative">
     <i data-lucide="search" class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-text-secondary"></i>
     <input id="add-search-{{type}}" name="q" type="search" minlength="3" autocomplete="off"
       hx-get="/add/search?type={{type}}" hx-trigger="input changed delay:300ms" hx-target="#add-search-results"
       hx-indicator="#add-search-spinner" placeholder="Type at least 3 characters"
       class="w-full rounded-lg border border-border-subtle bg-bg-elevated py-2 pl-10 pr-3 text-sm placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-text-primary" />
-    <span id="add-search-spinner" class="htmx-indicator absolute right-3 top-2.5 h-4 w-4 animate-spin rounded-full border-2 border-text-secondary border-t-transparent"></span>
+    <span id="add-search-spinner"
+      class="htmx-indicator absolute right-3 top-2.5 h-4 w-4 animate-spin rounded-full border-2 border-text-secondary border-t-transparent"></span>
   </div>
+  <p class="mt-2 text-xs text-text-secondary">
+    Try <span class="font-medium text-text-primary">title:"The Matrix" year:"1999"</span>,
+    <span class="font-medium text-text-primary">artist:"Queen" title:"Bohemian Rhapsody"</span>, or
+    <span class="font-medium text-text-primary">id:12345</span>. Use either structured syntax or plain text.
+  </p>
   <div id="add-search-results" class="mt-3"></div>
   {{/if}}
 </div>

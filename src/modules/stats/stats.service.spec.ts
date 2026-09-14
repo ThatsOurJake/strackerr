@@ -78,6 +78,106 @@ describe("StatsService", () => {
     expect(items[0]).toMatchObject({ totalMinutes: 110, mediaItem: { id: "movie" } });
   });
 
+  describe("formatRangeLabel", () => {
+    it("formats bounded ranges as readable labels", () => {
+      const label = service.formatRangeLabel({
+        from: new Date(2026, 7, 17, 0, 0, 0, 0),
+        to: new Date(2026, 7, 23, 23, 59, 59, 999),
+      });
+
+      expect(label).toBe("17 Aug 2026 - 23 Aug 2026");
+    });
+
+    it("returns an intentional label for all-time", () => {
+      expect(service.formatRangeLabel(null)).toBe("All time");
+    });
+  });
+
+  describe("averageSessionDurationByType", () => {
+    it("calculates average session minutes by media type", async () => {
+      findByUser.mockResolvedValue([
+        createLogEntry("movie-1", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 18), duration: 90 }),
+        createLogEntry("movie-2", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 19), duration: 30 }),
+        createLogEntry("game", MediaType.GAME, { loggedAt: new Date(2026, 7, 19), duration: 45 }),
+      ]);
+
+      const averages = await service.averageSessionDurationByType("user-1", null);
+
+      expect(averages).toEqual([
+        { type: MediaType.MOVIE, sessionCount: 2, totalMinutes: 120, averageMinutes: 60 },
+        { type: MediaType.GAME, sessionCount: 1, totalMinutes: 45, averageMinutes: 45 },
+      ]);
+    });
+  });
+
+  describe("thisWeekPriorYearsInsight", () => {
+    it("returns null when no prior-year equivalent-week activity exists", async () => {
+      findByUser.mockResolvedValue([
+        createLogEntry("current", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 18), duration: 30 }),
+      ]);
+
+      await expect(
+        service.thisWeekPriorYearsInsight("user-1", new Date(2026, 7, 19, 12, 0)),
+      ).resolves.toBeNull();
+    });
+
+    it("returns aggregated prior-year week data with a stable throwback entry", async () => {
+      findByUser.mockResolvedValue([
+        createLogEntry("yr-2025-a", MediaType.GAME, { loggedAt: new Date(2025, 7, 11), duration: 70, mediaItemId: "game-2025" }),
+        createLogEntry("yr-2024-a", MediaType.MOVIE, { loggedAt: new Date(2024, 7, 12), duration: 80, mediaItemId: "movie-2024" }),
+        createLogEntry("yr-2024-b", MediaType.MOVIE, { loggedAt: new Date(2024, 7, 13), duration: 40, mediaItemId: "movie-2024" }),
+      ]);
+
+      const first = await service.thisWeekPriorYearsInsight("user-1", new Date(2026, 7, 19, 12, 0));
+      const second = await service.thisWeekPriorYearsInsight("user-1", new Date(2026, 7, 21, 9, 0));
+
+      expect(first).not.toBeNull();
+      expect(second).not.toBeNull();
+      expect(first?.priorYearsCount).toBe(2);
+      expect(first?.aggregateTotalMinutes).toBe(190);
+      expect(first?.aggregateEntryCount).toBe(3);
+      expect(first?.previousYear.year).toBe(2025);
+      expect(first?.previousYear.totalMinutes).toBe(70);
+      expect(first?.daysCovered).toBe(3);
+      expect(second?.throwbackItem.loggedAt).toEqual(first?.throwbackItem.loggedAt);
+    });
+
+    it("falls back to full-week matching when current n-day window has no prior-year activity", async () => {
+      findByUser.mockResolvedValue([
+        createLogEntry("yr-2025-late-week", MediaType.GAME, { loggedAt: new Date(2025, 7, 15), duration: 50, mediaItemId: "game-2025" }),
+      ]);
+
+      const insight = await service.thisWeekPriorYearsInsight("user-1", new Date(2026, 7, 18, 12, 0));
+
+      expect(insight).not.toBeNull();
+      expect(insight?.daysCovered).toBe(7);
+      expect(insight?.aggregateTotalMinutes).toBe(50);
+      expect(insight?.priorYearsCount).toBe(1);
+    });
+  });
+
+  describe("thisWeekAcrossYears", () => {
+    it("builds year slices for each represented activity year", async () => {
+      findByUser.mockResolvedValue([
+        createLogEntry("y2026", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 18), duration: 60, mediaItemId: "y2026" }),
+        createLogEntry("y2025", MediaType.GAME, { loggedAt: new Date(2025, 0, 10), duration: 20, mediaItemId: "y2025" }),
+        createLogEntry("y2024", MediaType.TV_SHOW, { loggedAt: new Date(2024, 7, 14), duration: 45, mediaItemId: "y2024" }),
+      ]);
+
+      const result = await service.thisWeekAcrossYears("user-1", new Date(2026, 7, 19, 12, 0));
+
+      expect(result.years.map((item) => item.year)).toEqual([2026, 2025, 2024]);
+      expect(result.years.find((item) => item.year === 2025)).toMatchObject({
+        entryCount: 0,
+        totalMinutes: 0,
+      });
+      expect(result.years.find((item) => item.year === 2024)).toMatchObject({
+        entryCount: 1,
+        totalMinutes: 45,
+      });
+    });
+  });
+
   describe("activityChart", () => {
     const range = (from: Date, to: Date): DateRange => ({ from, to });
 

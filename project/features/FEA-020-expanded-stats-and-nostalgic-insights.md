@@ -26,9 +26,9 @@ The stats page explains the active reporting window more clearly and adds memora
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-057](../backlog/todo/TICKET-057.md) | Add visible date-range context to the stats page |
-| [TICKET-058](../backlog/todo/TICKET-058.md) | Add a seeded "This week in prior years" stats insight |
-| [TICKET-059](../backlog/todo/TICKET-059.md) | Add average session duration by type and extensible stat-card support |
+| [TICKET-057](../backlog/done/TICKET-057.md) | Add visible date-range context to the stats page |
+| [TICKET-058](../backlog/done/TICKET-058.md) | Add a seeded "This week in prior years" stats insight |
+| [TICKET-059](../backlog/done/TICKET-059.md) | Add average session duration by type and extensible stat-card support |
 
 ## Done Signal
 - Every stats tab clearly shows the date range it represents.

@@ -41,6 +41,59 @@ export interface TopItem {
   totalMinutes: number;
 }
 
+export interface NostalgiaTypeBreakdownSlice {
+  key: ActivityChartSeries["key"];
+  label: string;
+  color: string;
+  minutes: number;
+}
+
+export interface WeeklyNostalgiaComparison {
+  year: number;
+  totalMinutes: number;
+  entryCount: number;
+  typeBreakdown: NostalgiaTypeBreakdownSlice[];
+}
+
+export interface WeeklyNostalgiaThrowbackItem {
+  mediaItem: LogEntryWithMedia["mediaItem"];
+  durationMinutes: number;
+  loggedAt: Date;
+  year: number;
+}
+
+export interface AverageSessionDurationByType {
+  type: MediaType;
+  sessionCount: number;
+  totalMinutes: number;
+  averageMinutes: number;
+}
+
+export interface WeeklyNostalgiaInsight {
+  range: DateRange;
+  priorYearsCount: number;
+  daysCovered: number;
+  aggregateTotalMinutes: number;
+  aggregateEntryCount: number;
+  typeBreakdown: NostalgiaTypeBreakdownSlice[];
+  previousYear: WeeklyNostalgiaComparison;
+  throwbackItem: WeeklyNostalgiaThrowbackItem;
+}
+
+export interface WeeklyNostalgiaYearSummary {
+  year: number;
+  range: DateRange;
+  totalMinutes: number;
+  entryCount: number;
+  topItems: TopItem[];
+  typeBreakdown: NostalgiaTypeBreakdownSlice[];
+}
+
+export interface WeeklyNostalgiaDeepDive {
+  currentWeekRange: DateRange;
+  years: WeeklyNostalgiaYearSummary[];
+}
+
 @Injectable()
 export class StatsService {
   constructor(private readonly logService: LogService) { }
@@ -118,6 +171,213 @@ export class StatsService {
     limit = 10,
   ): Promise<TopItem[]> {
     const entries = await this.findEntries(userId, range);
+    return this.topItemsFromEntries(entries, limit);
+  }
+
+  async averageSessionDurationByType(
+    userId: string,
+    range: DateRange | null,
+  ): Promise<AverageSessionDurationByType[]> {
+    const entries = await this.findEntries(userId, range);
+    const grouped = new Map<MediaType, { totalMinutes: number; sessionCount: number }>();
+
+    for (const entry of entries) {
+      const current = grouped.get(entry.mediaItem.type) ?? {
+        totalMinutes: 0,
+        sessionCount: 0,
+      };
+      current.totalMinutes += entry.duration ?? 0;
+      current.sessionCount += 1;
+      grouped.set(entry.mediaItem.type, current);
+    }
+
+    return [...grouped.entries()]
+      .map(([type, value]) => ({
+        type,
+        sessionCount: value.sessionCount,
+        totalMinutes: value.totalMinutes,
+        averageMinutes: Math.round(value.totalMinutes / value.sessionCount),
+      }))
+      .sort((left, right) => right.averageMinutes - left.averageMinutes);
+  }
+
+  formatRangeLabel(range: DateRange | null): string {
+    if (range === null) {
+      return "All time";
+    }
+
+    return `${StatsService.formatCalendarDate(range.from)} - ${StatsService.formatCalendarDate(range.to)}`;
+  }
+
+  async thisWeekPriorYearsInsight(
+    userId: string,
+    now = new Date(),
+  ): Promise<WeeklyNostalgiaInsight | null> {
+    const currentWeekRange = StatsService.thisFullWeekRange(now);
+    const daysCovered = StatsService.daysCoveredInCurrentWeek(now);
+    const entries = await this.findEntries(userId, null);
+    const currentYear = now.getFullYear();
+    const years = StatsService.uniqueYears(entries)
+      .filter((year) => year < now.getFullYear());
+
+    const truncatedSummaries = years
+      .map((year) => {
+        const range = StatsService.equivalentWeekRangeForYear(currentWeekRange.from, year);
+        const truncatedRange = StatsService.truncateRangeByDays(range, daysCovered);
+        return this.weeklySummaryForRange(entries, year, truncatedRange);
+      });
+    const fullWeekSummaries = years
+      .map((year) => {
+        const range = StatsService.equivalentWeekRangeForYear(currentWeekRange.from, year);
+        return this.weeklySummaryForRange(entries, year, range);
+      });
+
+    let activeSummaries = truncatedSummaries.filter((item) => item.entryCount > 0);
+    let summariesForComparison = truncatedSummaries;
+    let effectiveDaysCovered = daysCovered;
+
+    if (activeSummaries.length === 0) {
+      activeSummaries = fullWeekSummaries.filter((item) => item.entryCount > 0);
+      summariesForComparison = fullWeekSummaries;
+      effectiveDaysCovered = 7;
+    }
+
+    if (activeSummaries.length === 0) {
+      return null;
+    }
+    const aggregateEntries = activeSummaries.flatMap((summary) =>
+      entries.filter((entry) =>
+        entry.loggedAt >= summary.range.from && entry.loggedAt <= summary.range.to,
+      ),
+    );
+    const aggregateTotalMinutes = aggregateEntries.reduce((sum, entry) => sum + (entry.duration ?? 0), 0);
+    const aggregateTypeBreakdown = this.typeBreakdownFromEntries(aggregateEntries);
+
+    const previousYearSummary = summariesForComparison.find((summary) => summary.year === currentYear - 1) ?? {
+      year: currentYear - 1,
+      range: effectiveDaysCovered === 7
+        ? StatsService.equivalentWeekRangeForYear(currentWeekRange.from, currentYear - 1)
+        : StatsService.truncateRangeByDays(
+          StatsService.equivalentWeekRangeForYear(currentWeekRange.from, currentYear - 1),
+          effectiveDaysCovered,
+        ),
+      totalMinutes: 0,
+      entryCount: 0,
+      topItems: [],
+      typeBreakdown: [],
+    };
+
+    const throwbackEntry = this.pickStableThrowbackEntry(
+      aggregateEntries,
+      `${userId}:${currentYear}:${StatsService.shortDateKey(currentWeekRange.from)}`,
+    );
+    if (!throwbackEntry) {
+      return null;
+    }
+
+    return {
+      range: currentWeekRange,
+      priorYearsCount: activeSummaries.length,
+      daysCovered: effectiveDaysCovered,
+      aggregateTotalMinutes,
+      aggregateEntryCount: aggregateEntries.length,
+      typeBreakdown: aggregateTypeBreakdown,
+      previousYear: {
+        year: previousYearSummary.year,
+        totalMinutes: previousYearSummary.totalMinutes,
+        entryCount: previousYearSummary.entryCount,
+        typeBreakdown: previousYearSummary.typeBreakdown,
+      },
+      throwbackItem: {
+        mediaItem: throwbackEntry.mediaItem,
+        durationMinutes: throwbackEntry.duration ?? 0,
+        loggedAt: throwbackEntry.loggedAt,
+        year: throwbackEntry.loggedAt.getFullYear(),
+      },
+    };
+  }
+
+  async thisWeekAcrossYears(
+    userId: string,
+    now = new Date(),
+  ): Promise<WeeklyNostalgiaDeepDive> {
+    const currentWeekRange = StatsService.thisFullWeekRange(now);
+    const entries = await this.findEntries(userId, null);
+    const years = StatsService.uniqueYears(entries)
+      .sort((left, right) => right - left);
+
+    const summaries = years.map((year) => {
+      const range = StatsService.equivalentWeekRangeForYear(currentWeekRange.from, year);
+      return this.weeklySummaryForRange(entries, year, range);
+    });
+
+    return {
+      currentWeekRange,
+      years: summaries,
+    };
+  }
+
+  private findEntries(
+    userId: string,
+    range: DateRange | null,
+  ): Promise<LogEntryWithMedia[]> {
+    return this.logService.findByUser(userId, {
+      dateFrom: range?.from,
+      dateTo: range?.to,
+    });
+  }
+
+  private weeklySummaryForRange(
+    entries: LogEntryWithMedia[],
+    year: number,
+    range: DateRange,
+  ): WeeklyNostalgiaYearSummary {
+    const rangeEntries = entries.filter((entry) =>
+      entry.loggedAt >= range.from && entry.loggedAt <= range.to,
+    );
+    const totalMinutes = rangeEntries.reduce((sum, entry) => sum + (entry.duration ?? 0), 0);
+    const topItems = this.topItemsFromEntries(rangeEntries, 3);
+    const typeBreakdown = this.typeBreakdownFromEntries(rangeEntries);
+
+    return {
+      year,
+      range,
+      totalMinutes,
+      entryCount: rangeEntries.length,
+      topItems,
+      typeBreakdown,
+    };
+  }
+
+  private typeBreakdownFromEntries(
+    entries: LogEntryWithMedia[],
+  ): NostalgiaTypeBreakdownSlice[] {
+    const totalsBySeries = new Map<ActivityChartSeries["key"], number>(
+      CHART_SERIES.map((series) => [series.key, 0]),
+    );
+
+    for (const entry of entries) {
+      const seriesKey = StatsService.chartSeriesKey(entry.mediaItem.type);
+      totalsBySeries.set(
+        seriesKey,
+        (totalsBySeries.get(seriesKey) ?? 0) + (entry.duration ?? 0),
+      );
+    }
+
+    return CHART_SERIES
+      .map((series) => ({
+        key: series.key,
+        label: series.label,
+        color: series.color,
+        minutes: totalsBySeries.get(series.key) ?? 0,
+      }))
+      .filter((item) => item.minutes > 0);
+  }
+
+  private topItemsFromEntries(
+    entries: LogEntryWithMedia[],
+    limit: number,
+  ): TopItem[] {
     const items = new Map<string, TopItem>();
 
     for (const entry of entries) {
@@ -134,14 +394,23 @@ export class StatsService {
       .slice(0, limit);
   }
 
-  private findEntries(
-    userId: string,
-    range: DateRange | null,
-  ): Promise<LogEntryWithMedia[]> {
-    return this.logService.findByUser(userId, {
-      dateFrom: range?.from,
-      dateTo: range?.to,
+  private pickStableThrowbackEntry(
+    entries: LogEntryWithMedia[],
+    seed: string,
+  ): LogEntryWithMedia | null {
+    if (entries.length === 0) {
+      return null;
+    }
+
+    const sorted = [...entries].sort((left, right) => {
+      const dateDiff = left.loggedAt.getTime() - right.loggedAt.getTime();
+      if (dateDiff !== 0) {
+        return dateDiff;
+      }
+      return left.id.localeCompare(right.id);
     });
+    const index = StatsService.seededIndex(seed, sorted.length);
+    return sorted[index] ?? null;
   }
 
   private buildChart(
@@ -252,6 +521,75 @@ export class StatsService {
     const start = new Date(date);
     start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
     return start;
+  }
+
+  private static endOfWeek(weekStart: Date): Date {
+    return StatsService.endOfDay(new Date(
+      weekStart.getFullYear(),
+      weekStart.getMonth(),
+      weekStart.getDate() + 6,
+    ));
+  }
+
+  private static thisFullWeekRange(now: Date): DateRange {
+    const weekStart = StatsService.startOfWeek(StatsService.startOfDay(now));
+    return {
+      from: weekStart,
+      to: StatsService.endOfWeek(weekStart),
+    };
+  }
+
+  private static truncateRangeByDays(range: DateRange, daysCovered: number): DateRange {
+    const cappedDays = Math.max(1, Math.min(daysCovered, 7));
+    return {
+      from: range.from,
+      to: StatsService.endOfDay(new Date(
+        range.from.getFullYear(),
+        range.from.getMonth(),
+        range.from.getDate() + cappedDays - 1,
+      )),
+    };
+  }
+
+  private static daysCoveredInCurrentWeek(now: Date): number {
+    const weekStart = StatsService.startOfWeek(StatsService.startOfDay(now));
+    const today = StatsService.startOfDay(now);
+    const diff = Math.floor((today.getTime() - weekStart.getTime()) / 86_400_000);
+    return Math.max(1, Math.min(diff + 1, 7));
+  }
+
+  private static equivalentWeekRangeForYear(
+    currentWeekStart: Date,
+    year: number,
+  ): DateRange {
+    const anchor = new Date(currentWeekStart);
+    anchor.setFullYear(year);
+    const from = StatsService.startOfWeek(StatsService.startOfDay(anchor));
+    return {
+      from,
+      to: StatsService.endOfWeek(from),
+    };
+  }
+
+  private static uniqueYears(entries: LogEntryWithMedia[]): number[] {
+    return [...new Set(entries.map((entry) => entry.loggedAt.getFullYear()))];
+  }
+
+  private static seededIndex(seed: string, length: number): number {
+    let hash = 0;
+    for (let index = 0; index < seed.length; index += 1) {
+      hash = ((hash << 5) - hash) + seed.charCodeAt(index);
+      hash |= 0;
+    }
+    return Math.abs(hash) % length;
+  }
+
+  private static formatCalendarDate(date: Date): string {
+    return date.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
   }
 
   private static shortDateKey(date: Date): string {
