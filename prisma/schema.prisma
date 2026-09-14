@@ -46,11 +46,11 @@ model UserMetadataKey {
 }
 
 model MediaItem {
-  id              String            @id @default(cuid())
+  id              String               @id @default(cuid())
   type            MediaType
   title           String
   sortTitle       String
-  isSkeleton      Boolean           @default(false)
+  isSkeleton      Boolean              @default(false)
   createdByUserId String?
   parentId        String?
   seasonNumber    Int?
@@ -60,13 +60,14 @@ model MediaItem {
   imageSourceUrl  String?
   year            Int?
   duration        Int?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  createdByUser   User?             @relation("SkeletonOwner", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  parent          MediaItem?        @relation("EpisodeShow", fields: [parentId], references: [id], onDelete: SetNull)
-  episodes        MediaItem[]       @relation("EpisodeShow")
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  createdByUser   User?                @relation("SkeletonOwner", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  parent          MediaItem?           @relation("EpisodeShow", fields: [parentId], references: [id], onDelete: SetNull)
+  episodes        MediaItem[]          @relation("EpisodeShow")
   aliases         MediaAlias[]
   externalIds     MediaExternalId[]
+  externalAliases MediaExternalAlias[]
   logEntries      LogEntry[]
   cachedImages    CachedImage[]
 
@@ -88,6 +89,18 @@ model MediaExternalId {
   mediaItem   MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
 
   @@unique([provider, externalId])
+}
+
+model MediaExternalAlias {
+  id                String    @id @default(cuid())
+  mediaItemId       String
+  providerNamespace String
+  externalId        String
+  createdAt         DateTime  @default(now())
+  mediaItem         MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+
+  @@unique([providerNamespace, externalId])
+  @@index([mediaItemId])
 }
 
 model LogEntry {

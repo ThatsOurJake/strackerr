@@ -8,8 +8,10 @@ import { ApiV1LogController } from "./api-v1-log.controller";
 describe("ApiV1LogController", () => {
   const mediaService = {
     findByExternalId: jest.fn(),
+    findByExternalAlias: jest.fn(),
     findOrCreateSkeleton: jest.fn(),
     findOrCreateEpisodeSkeleton: jest.fn(),
+    addExternalAliases: jest.fn(),
   };
   const logService = {
     create: jest.fn(),
@@ -99,7 +101,7 @@ describe("ApiV1LogController", () => {
         title: "Arrival",
         loggedAt: "2026-08-25T20:00:00.000Z",
         provider: "tmdb",
-        externalId: "329865",
+        providerId: "329865",
       },
       request,
     );
@@ -110,6 +112,62 @@ describe("ApiV1LogController", () => {
       "user-1",
       LogSource.API,
     );
+  });
+
+  it("attaches external aliases during create when provided", async () => {
+    mediaService.findByExternalId.mockResolvedValue(null);
+    mediaService.findByExternalAlias.mockResolvedValue(null);
+    mediaService.findOrCreateSkeleton.mockResolvedValue({
+      id: "media-3",
+      title: "Half-Life 2",
+      type: MediaType.GAME,
+    });
+    mediaService.addExternalAliases.mockResolvedValue([]);
+    logService.create.mockResolvedValue(
+      createLogEntry("log-4", MediaType.GAME, {
+        mediaItemId: "media-3",
+        title: "Half-Life 2",
+      }),
+    );
+
+    await controller.createGame(
+      {
+        title: "Half-Life 2",
+        externalAliases: [
+          { provider: "steam", id: "app:220" },
+          { provider: "pcgamingwiki", id: "Half-Life_2" },
+        ],
+      },
+      request,
+    );
+
+    expect(mediaService.addExternalAliases).toHaveBeenCalledWith(
+      "media-3",
+      [
+        { providerNamespace: "steam", externalId: "app:220" },
+        { providerNamespace: "pcgamingwiki", externalId: "Half-Life_2" },
+      ],
+    );
+  });
+
+  it("returns a conflict when provided aliases resolve to different media items", async () => {
+    mediaService.findByExternalId.mockResolvedValue(null);
+    mediaService.findByExternalAlias
+      .mockResolvedValueOnce({ id: "media-1", title: "Portal", type: MediaType.GAME })
+      .mockResolvedValueOnce({ id: "media-2", title: "Portal 2", type: MediaType.GAME });
+
+    await expect(
+      controller.createGame(
+        {
+          title: "Portal",
+          externalAliases: [
+            { provider: "steam", id: "app:400" },
+            { provider: "steam", id: "app:620" },
+          ],
+        },
+        request,
+      ),
+    ).rejects.toThrow("Conflicting external aliases resolve to different media items");
   });
 
   it("creates a missing show and episode from the TV-specific payload", async () => {
@@ -170,7 +228,7 @@ describe("ApiV1LogController", () => {
     logService.findByUserPaginated.mockResolvedValue({ data: [], total: 0 });
 
     await expect(
-      controller.findAll({ page: 2, limit: 25 }, request),
+      controller.findAll(undefined, undefined, undefined, "2", "25", request),
     ).resolves.toEqual({
       data: [],
       total: 0,

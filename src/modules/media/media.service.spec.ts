@@ -29,6 +29,15 @@ interface MediaPrismaMock {
     create: jest.Mock;
     upsert: jest.Mock;
   };
+  mediaExternalAlias: {
+    findUnique: jest.Mock;
+    findMany: jest.Mock;
+    create: jest.Mock;
+    deleteMany: jest.Mock;
+  };
+  logEntry: {
+    findFirst: jest.Mock;
+  };
 }
 
 const createPrismaMock = (): MediaPrismaMock => {
@@ -49,6 +58,15 @@ const createPrismaMock = (): MediaPrismaMock => {
       findUnique: jest.fn(),
       create: jest.fn(),
       upsert: jest.fn(),
+    },
+    mediaExternalAlias: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    logEntry: {
+      findFirst: jest.fn(),
     },
   };
 
@@ -128,6 +146,50 @@ describe("MediaService", () => {
       create: { mediaItemId: "media-1", provider: "tmdb", externalId: "123" },
       update: { mediaItemId: "media-1" },
     });
+  });
+
+  it("resolves canonical ids first, then external aliases", async () => {
+    const prisma = createPrismaMock();
+    const service = new MediaService(prisma as unknown as PrismaService);
+
+    prisma.mediaExternalId.findUnique.mockResolvedValueOnce({ mediaItem });
+    await expect(
+      service.resolveByExternalLookup("tmdb", "movie:123"),
+    ).resolves.toEqual(mediaItem);
+    expect(prisma.mediaExternalAlias.findUnique).not.toHaveBeenCalled();
+
+    prisma.mediaExternalId.findUnique.mockResolvedValueOnce(null);
+    prisma.mediaExternalAlias.findUnique.mockResolvedValueOnce({ mediaItem });
+    await expect(
+      service.resolveByExternalLookup("steam", "app:620"),
+    ).resolves.toEqual(mediaItem);
+  });
+
+  it("rejects alias reassignment conflicts and supports list/remove", async () => {
+    const prisma = createPrismaMock();
+    const service = new MediaService(prisma as unknown as PrismaService);
+
+    prisma.mediaExternalAlias.findUnique.mockResolvedValueOnce({
+      mediaItemId: "media-2",
+      providerNamespace: "steam",
+      externalId: "620",
+    });
+
+    await expect(
+      service.addExternalAlias("media-1", " Steam ", "620"),
+    ).rejects.toThrow("Alias is already assigned to another media item");
+
+    prisma.mediaExternalAlias.findMany.mockResolvedValueOnce([
+      { providerNamespace: "steam", externalId: "620" },
+    ]);
+    prisma.mediaExternalAlias.deleteMany.mockResolvedValueOnce({ count: 1 });
+
+    await expect(service.listExternalAliases("media-1")).resolves.toEqual([
+      { providerNamespace: "steam", externalId: "620" },
+    ]);
+    await expect(
+      service.removeExternalAlias("media-1", "Steam", "620"),
+    ).resolves.toBe(true);
   });
 
   it("queues identified artwork for local caching", async () => {

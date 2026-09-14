@@ -1,9 +1,10 @@
-import { UnauthorizedException } from "@nestjs/common";
+import { ConflictException, UnauthorizedException } from "@nestjs/common";
 import { type LogSource, type MediaItem, MediaType } from "@prisma/client";
 import type { Request } from "express";
 import type { CreateLogData, LogEntryWithMedia, LogService } from "../activity/log.service";
 import type { MediaService } from "../media/media.service";
 import type { BaseCreateLogDto } from "./dto/log.dto";
+import type { ExternalAliasDto } from "./dto/media-alias.dto";
 import {
   type CreatedBoardGameLogResponseDto,
   type CreatedGameLogResponseDto,
@@ -39,10 +40,40 @@ export const resolveApiLogMediaItem = async (
   options: CreateTypedLogOptions,
   userId: string,
 ): Promise<MediaItem> => {
+  const resolveFromExternalAliases = async (
+    aliases: ExternalAliasDto[] | undefined,
+  ): Promise<MediaItem | null> => {
+    if (!aliases || aliases.length === 0) {
+      return null;
+    }
+
+    let resolved: MediaItem | null = null;
+    for (const alias of aliases) {
+      const match = await mediaService.findByExternalAlias(
+        alias.provider,
+        alias.id,
+      );
+
+      if (!match) {
+        continue;
+      }
+
+      if (resolved && resolved.id !== match.id) {
+        throw new ConflictException(
+          "Conflicting external aliases resolve to different media items",
+        );
+      }
+
+      resolved = match;
+    }
+
+    return resolved;
+  };
+
   const matched =
-    options.dto.provider && options.dto.externalId
-      ? await mediaService.findByExternalId(options.dto.provider, options.dto.externalId)
-      : null;
+    options.dto.provider && options.dto.providerId
+      ? await mediaService.findByExternalId(options.dto.provider, options.dto.providerId)
+      : await resolveFromExternalAliases(options.dto.externalAliases);
 
   if (options.type !== MediaType.TV_EPISODE) {
     return (
@@ -76,6 +107,17 @@ export const createApiLogEntry = async (
 ): Promise<CreatedLogResponseDto> => {
   const userId = getApiRequestUserId(options.request);
   const mediaItem = await resolveApiLogMediaItem(mediaService, options, userId);
+
+  if (options.dto.externalAliases?.length) {
+    await mediaService.addExternalAliases(
+      mediaItem.id,
+      options.dto.externalAliases.map((alias) => ({
+        providerNamespace: alias.provider,
+        externalId: alias.id,
+      })),
+    );
+  }
+
   const createData: CreateLogData = {
     mediaItemId: mediaItem.id,
     loggedAt: options.dto.loggedAt ? new Date(options.dto.loggedAt) : new Date(),

@@ -1,10 +1,23 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { MediaType } from "@prisma/client";
 import { Transform, Type } from "class-transformer";
-import { IsEnum, IsIn, IsInt, IsOptional, IsString, Max, Min, MinLength } from "class-validator";
+import {
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from "class-validator";
 import { STATS_PERIODS, type StatsPeriodSlug } from "../../stats/stats.service";
 
 const PERIOD_SLUGS = STATS_PERIODS.map(({ slug }) => slug);
+const PROVIDER_NAMESPACE_PATTERN = /^[a-z0-9](?:[a-z0-9._:-]{0,62}[a-z0-9])?$/;
 
 export class MediaSearchQueryDto {
   @ApiProperty({ example: "Sever", description: "Case-insensitive title or alias search", minLength: 2 })
@@ -33,3 +46,25 @@ export class StatsQueryDto {
   @Max(9999)
   year?: number;
 }
+
+export class MediaExternalAliasLookupQueryDto {
+  @ApiProperty({ example: "steam", description: "Provider namespace alias" })
+  @Transform(({ value }) => typeof value === "string" ? value.trim().toLowerCase() : value)
+  @IsString()
+  @IsNotEmpty()
+  @Matches(PROVIDER_NAMESPACE_PATTERN)
+  provider!: string;
+
+  @ApiProperty({
+    example: "app:620",
+    description: "Provider external ID alias",
+    maxLength: 128,
+  })
+  @Transform(({ value }) => typeof value === "string" ? value.trim() : value)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(128)
+  externalId!: string;
+}
+
+export class DeleteMediaExternalAliasQueryDto extends MediaExternalAliasLookupQueryDto { }

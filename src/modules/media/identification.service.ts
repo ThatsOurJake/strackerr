@@ -272,6 +272,37 @@ export class IdentificationService {
           });
         }
       }
+
+      const sourceExternalAliases = await transaction.mediaExternalAlias.findMany({
+        where: { mediaItemId: source.id },
+        select: {
+          providerNamespace: true,
+          externalId: true,
+        },
+      });
+
+      for (const alias of sourceExternalAliases) {
+        await transaction.mediaExternalAlias.upsert({
+          where: {
+            providerNamespace_externalId: {
+              providerNamespace: alias.providerNamespace,
+              externalId: alias.externalId,
+            },
+          },
+          create: {
+            mediaItemId: target.id,
+            providerNamespace: alias.providerNamespace,
+            externalId: alias.externalId,
+          },
+          update: {
+            mediaItemId: target.id,
+          },
+        });
+      }
+
+      await transaction.mediaExternalAlias.deleteMany({
+        where: { mediaItemId: source.id },
+      });
     });
 
     await this.mediaService.addAlias(target.id, source.title);

@@ -1,7 +1,8 @@
-import { Injectable, Optional } from "@nestjs/common";
+import { ConflictException, Injectable, Optional } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import {
   type MediaAlias,
+  type MediaExternalAlias,
   type MediaItem,
   MediaType,
   Prisma,
@@ -9,6 +10,10 @@ import {
 import { PrismaService } from "../../infrastructure/database/prisma.service";
 import { Events } from "../../infrastructure/events/event-names";
 import { stripHtmlTags } from "../../infrastructure/security/sanitize-string";
+import {
+  type NormalizedExternalAlias,
+  normalizeExternalAlias,
+} from "./external-alias.validator";
 
 export interface CreateMediaData {
   type: MediaType;
@@ -27,6 +32,11 @@ export interface CreateMediaData {
 
 export interface CreateIdentifiedMediaData extends CreateMediaData {
   provider: string;
+  externalId: string;
+}
+
+export interface ExternalAliasInput {
+  providerNamespace: string;
   externalId: string;
 }
 
@@ -89,15 +99,56 @@ export class MediaService {
     return result?.mediaItem ?? null;
   }
 
+  async findByExternalAlias(
+    providerNamespace: string,
+    externalId: string,
+  ): Promise<MediaItem | null> {
+    const normalized = normalizeExternalAlias(providerNamespace, externalId);
+    const result = await this.prisma.mediaExternalAlias.findUnique({
+      where: {
+        providerNamespace_externalId: {
+          providerNamespace: normalized.providerNamespace,
+          externalId: normalized.externalId,
+        },
+      },
+      include: { mediaItem: true },
+    });
+
+    return result?.mediaItem ?? null;
+  }
+
+  async resolveByExternalLookup(
+    providerNamespace: string,
+    externalId: string,
+  ): Promise<MediaItem | null> {
+    const normalized = normalizeExternalAlias(providerNamespace, externalId);
+    const canonical = await this.findByExternalId(
+      normalized.providerNamespace,
+      normalized.externalId,
+    );
+    if (canonical) {
+      return canonical;
+    }
+
+    return this.findByExternalAlias(
+      normalized.providerNamespace,
+      normalized.externalId,
+    );
+  }
+
   async findOrCreateIdentified(
     data: CreateIdentifiedMediaData,
   ): Promise<MediaItem> {
-    const existing = await this.findByExternalId(data.provider, data.externalId);
+    const existing = await this.findByExternalId(
+      data.provider,
+      data.externalId,
+    );
     if (existing) {
       return existing;
     }
 
-    const { provider, externalId, imageUrl, imageSourceUrl, ...mediaData } = data;
+    const { provider, externalId, imageUrl, imageSourceUrl, ...mediaData } =
+      data;
     const sourceUrl = imageSourceUrl ?? imageUrl ?? undefined;
     const sanitizedMediaData = {
       ...mediaData,
@@ -138,7 +189,12 @@ export class MediaService {
     userId: string,
   ): Promise<MediaItem> {
     const existing = await this.prisma.mediaItem.findFirst({
-      where: { parentId, seasonNumber, episodeNumber, type: MediaType.TV_EPISODE },
+      where: {
+        parentId,
+        seasonNumber,
+        episodeNumber,
+        type: MediaType.TV_EPISODE,
+      },
     });
 
     if (existing) {
@@ -183,6 +239,34 @@ export class MediaService {
 
   findById(id: string): Promise<MediaItem | null> {
     return this.prisma.mediaItem.findUnique({ where: { id } });
+  }
+
+  async hasUserAccess(mediaItemId: string, userId: string): Promise<boolean> {
+    const mediaItem = await this.findById(mediaItemId);
+    if (!mediaItem) {
+      return false;
+    }
+
+    if (mediaItem.isSkeleton) {
+      return mediaItem.createdByUserId === userId;
+    }
+
+    if (mediaItem.createdByUserId === userId) {
+      return true;
+    }
+
+    const linkedLog = await this.prisma.logEntry.findFirst({
+      where: {
+        userId,
+        mediaItem:
+          mediaItem.type === MediaType.TV_SHOW
+            ? { OR: [{ id: mediaItem.id }, { parentId: mediaItem.id }] }
+            : { id: mediaItem.id },
+      },
+      select: { id: true },
+    });
+
+    return Boolean(linkedLog);
   }
 
   findByIdWithExternalIds(id: string) {
@@ -258,6 +342,109 @@ export class MediaService {
     return await this.prisma.mediaItem.findUniqueOrThrow({
       where: { id: result.mediaItemId },
     });
+  }
+
+  async listExternalAliases(
+    mediaItemId: string,
+  ): Promise<MediaExternalAlias[]> {
+    return this.prisma.mediaExternalAlias.findMany({
+      where: { mediaItemId },
+      orderBy: [{ providerNamespace: "asc" }, { externalId: "asc" }],
+    });
+  }
+
+  async addExternalAlias(
+    mediaItemId: string,
+    providerNamespace: string,
+    externalId: string,
+  ): Promise<MediaExternalAlias> {
+    const normalized = normalizeExternalAlias(providerNamespace, externalId);
+    const existing = await this.prisma.mediaExternalAlias.findUnique({
+      where: {
+        providerNamespace_externalId: {
+          providerNamespace: normalized.providerNamespace,
+          externalId: normalized.externalId,
+        },
+      },
+    });
+
+    if (existing?.mediaItemId && existing.mediaItemId !== mediaItemId) {
+      throw new ConflictException(
+        "Alias is already assigned to another media item",
+      );
+    }
+
+    if (existing) {
+      return existing;
+    }
+
+    try {
+      return await this.prisma.mediaExternalAlias.create({
+        data: {
+          mediaItemId,
+          providerNamespace: normalized.providerNamespace,
+          externalId: normalized.externalId,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        throw new ConflictException(
+          "Alias is already assigned to another media item",
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  async addExternalAliases(
+    mediaItemId: string,
+    aliases: ExternalAliasInput[],
+  ): Promise<MediaExternalAlias[]> {
+    const deduped = new Map<string, NormalizedExternalAlias>();
+    for (const alias of aliases) {
+      const normalized = normalizeExternalAlias(
+        alias.providerNamespace,
+        alias.externalId,
+      );
+      deduped.set(
+        `${normalized.providerNamespace}::${normalized.externalId}`,
+        normalized,
+      );
+    }
+
+    const added: MediaExternalAlias[] = [];
+    for (const alias of deduped.values()) {
+      added.push(
+        await this.addExternalAlias(
+          mediaItemId,
+          alias.providerNamespace,
+          alias.externalId,
+        ),
+      );
+    }
+
+    return added;
+  }
+
+  async removeExternalAlias(
+    mediaItemId: string,
+    providerNamespace: string,
+    externalId: string,
+  ): Promise<boolean> {
+    const normalized = normalizeExternalAlias(providerNamespace, externalId);
+    const deleted = await this.prisma.mediaExternalAlias.deleteMany({
+      where: {
+        mediaItemId,
+        providerNamespace: normalized.providerNamespace,
+        externalId: normalized.externalId,
+      },
+    });
+
+    return deleted.count > 0;
   }
 
   static normaliseAlias(title: string): string {

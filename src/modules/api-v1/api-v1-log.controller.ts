@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -9,6 +10,7 @@ import {
 } from "@nestjs/common";
 import {
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiSecurity,
   ApiTags,
@@ -30,7 +32,6 @@ import {
   CreateMovieLogDto,
   CreateMusicLogDto,
   CreateTvEpisodeLogDto,
-  GetLogsQueryDto,
 } from "./dto/log.dto";
 import {
   CreatedBoardGameLogResponseDto,
@@ -157,6 +158,21 @@ export class ApiV1LogController {
 
   @Get()
   @ApiOperation({ summary: "List activity log entries" })
+  @ApiQuery({ name: "type", enum: MediaType, required: false })
+  @ApiQuery({
+    name: "dateFrom",
+    type: String,
+    required: false,
+    example: "2026-01-01",
+  })
+  @ApiQuery({
+    name: "dateTo",
+    type: String,
+    required: false,
+    example: "2026-12-31",
+  })
+  @ApiQuery({ name: "page", type: Number, required: false, example: 1 })
+  @ApiQuery({ name: "limit", type: Number, required: false, example: 50 })
   @ApiResponse({
     status: 200,
     type: PaginatedLogsResponseDto,
@@ -164,24 +180,50 @@ export class ApiV1LogController {
   })
   @ApiResponse({ status: 401, description: "Invalid or missing API key" })
   async findAll(
-    @Query() query: GetLogsQueryDto,
+    @Query("type") type: MediaType | undefined,
+    @Query("dateFrom") dateFrom: string | undefined,
+    @Query("dateTo") dateTo: string | undefined,
+    @Query("page") rawPage: string | undefined,
+    @Query("limit") rawLimit: string | undefined,
     @Req() request: Request,
   ): Promise<PaginatedLogsResponseDto> {
+    if (type && !Object.values(MediaType).includes(type)) {
+      throw new BadRequestException("type is invalid");
+    }
+
+    const page = rawPage ? Number.parseInt(rawPage, 10) : 1;
+    const limit = rawLimit ? Number.parseInt(rawLimit, 10) : 50;
+    if (!Number.isInteger(page) || page < 1) {
+      throw new BadRequestException("page must be at least 1");
+    }
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      throw new BadRequestException("limit must be between 1 and 100");
+    }
+
+    const parsedDateFrom = dateFrom ? new Date(dateFrom) : undefined;
+    const parsedDateTo = dateTo ? new Date(dateTo) : undefined;
+    if (parsedDateFrom && Number.isNaN(parsedDateFrom.getTime())) {
+      throw new BadRequestException("dateFrom must be a valid ISO date");
+    }
+    if (parsedDateTo && Number.isNaN(parsedDateTo.getTime())) {
+      throw new BadRequestException("dateTo must be a valid ISO date");
+    }
+
     const result = await this.logService.findByUserPaginated(
       getApiRequestUserId(request),
       {
-        type: query.type,
-        dateFrom: query.dateFrom ? new Date(query.dateFrom) : undefined,
-        dateTo: query.dateTo ? new Date(query.dateTo) : undefined,
+        type,
+        dateFrom: parsedDateFrom,
+        dateTo: parsedDateTo,
       },
-      query.page,
-      query.limit,
+      page,
+      limit,
     );
 
     return {
       data: result.data.map((entry) => toApiLogResponse(entry)),
       total: result.total,
-      page: query.page,
+      page,
     };
   }
 

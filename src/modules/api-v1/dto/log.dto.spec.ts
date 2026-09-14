@@ -23,7 +23,7 @@ describe("typed log DTOs", () => {
       loggedAt: "2999-01-01T00:00:00.000Z",
       duration: 1441,
       provider: "unknown",
-      externalId: "1",
+      providerId: "1",
     });
     const errors = await validate(dto);
 
@@ -53,5 +53,30 @@ describe("typed log DTOs", () => {
     });
 
     await expect(validate(dto)).resolves.toHaveLength(0);
+  });
+
+  it("accepts external aliases with normalized provider namespaces", async () => {
+    const dto = plainToInstance(CreateMovieLogDto, {
+      title: "Half-Life 2",
+      externalAliases: [
+        { provider: " Steam ", id: "app:220" },
+      ],
+    });
+
+    await expect(validate(dto)).resolves.toHaveLength(0);
+    expect(dto.externalAliases?.[0]?.provider).toBe("steam");
+  });
+
+  it("rejects external aliases with ids longer than 128 characters", async () => {
+    const dto = plainToInstance(CreateMovieLogDto, {
+      title: "Half-Life 2",
+      externalAliases: [
+        { provider: "steam", id: "x".repeat(129) },
+      ],
+    });
+    const errors = await validate(dto);
+
+    const aliasErrors = errors.find(({ property }) => property === "externalAliases");
+    expect(aliasErrors).toBeDefined();
   });
 });

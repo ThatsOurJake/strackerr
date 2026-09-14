@@ -1,7 +1,7 @@
 # FEA-018: Consumer API and External ID Aliases
 
 ## Outcome
-External integrations get consumer-focused API documentation and can create, resolve, and retrieve media through stable external aliases without exposing internal web or HTMX routes.
+The openai documentation is tidied up to avoid confusion for external consumings and stop exposing HTMX routes. New and updated endpoints to help with alias look-up and creation. 
 
 ## Scope
 - Restrict generated OpenAPI output to the public API surface so Swagger shows only consumer-relevant API endpoints.
@@ -30,9 +30,9 @@ External integrations get consumer-focused API documentation and can create, res
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-052](../backlog/todo/TICKET-052.md) | Limit OpenAPI output to the public API surface |
-| [TICKET-053](../backlog/todo/TICKET-053.md) | Add first-class external ID alias storage and resolution |
-| [TICKET-054](../backlog/todo/TICKET-054.md) | Expose alias management and alias-based lookup in API v1 |
+| [TICKET-052](../backlog/done/TICKET-052.md) | Limit OpenAPI output to the public API surface |
+| [TICKET-053](../backlog/done/TICKET-053.md) | Add first-class external ID alias storage and resolution |
+| [TICKET-054](../backlog/done/TICKET-054.md) | Expose alias management and alias-based lookup in API v1 |
 
 ## Done Signal
 - Swagger documents only the intended public API routes and examples.

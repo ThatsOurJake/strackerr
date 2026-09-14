@@ -2,6 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { MediaType } from "@prisma/client";
 import { Type } from "class-transformer";
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsDateString,
   IsEnum,
@@ -15,9 +17,11 @@ import {
   Min,
   registerDecorator,
   ValidateIf,
+  ValidateNested,
   type ValidationArguments,
   type ValidationOptions,
 } from "class-validator";
+import { ExternalAliasDto } from "./media-alias.dto";
 
 export const MEDIA_PROVIDERS = [
   "tmdb",
@@ -71,7 +75,7 @@ export class BaseCreateLogDto {
     example: "tmdb",
     description: "Optional external provider used to identify the media",
   })
-  @ValidateIf((dto: BaseCreateLogDto) => dto.externalId !== undefined)
+  @ValidateIf((dto: BaseCreateLogDto) => dto.providerId !== undefined)
   @IsIn(MEDIA_PROVIDERS)
   provider?: string;
 
@@ -84,11 +88,27 @@ export class BaseCreateLogDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  externalId?: string;
+  providerId?: string;
+
+  @ApiPropertyOptional({
+    type: [ExternalAliasDto],
+    description:
+      "Optional additional external aliases attached to the media item",
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => ExternalAliasDto)
+  externalAliases?: ExternalAliasDto[];
 }
 
 export class TitledCreateLogDto extends BaseCreateLogDto {
-  @ApiProperty({ example: "Arrival", description: "Media title", maxLength: 500 })
+  @ApiProperty({
+    example: "Arrival",
+    description: "Media title",
+    maxLength: 500,
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(500)
@@ -98,7 +118,11 @@ export class TitledCreateLogDto extends BaseCreateLogDto {
 export class CreateMovieLogDto extends TitledCreateLogDto { }
 
 export class CreateTvEpisodeLogDto extends BaseCreateLogDto {
-  @ApiProperty({ example: "Severance", description: "TV show title", maxLength: 500 })
+  @ApiProperty({
+    example: "Severance",
+    description: "TV show title",
+    maxLength: 500,
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(500)
@@ -116,7 +140,11 @@ export class CreateTvEpisodeLogDto extends BaseCreateLogDto {
 }
 
 export class CreateGameLogDto extends TitledCreateLogDto {
-  @ApiPropertyOptional({ example: "PC", description: "Game platform", maxLength: 100 })
+  @ApiPropertyOptional({
+    example: "PC",
+    description: "Game platform",
+    maxLength: 100,
+  })
   @IsOptional()
   @IsString()
   @MaxLength(100)
@@ -124,14 +152,22 @@ export class CreateGameLogDto extends TitledCreateLogDto {
 }
 
 export class CreateBoardGameLogDto extends TitledCreateLogDto {
-  @ApiPropertyOptional({ example: 4, description: "Number of players", minimum: 1, maximum: 50 })
+  @ApiPropertyOptional({
+    example: 4,
+    description: "Number of players",
+    minimum: 1,
+    maximum: 50,
+  })
   @IsOptional()
   @IsInt()
   @Min(1)
   @Max(50)
   players?: number;
 
-  @ApiPropertyOptional({ example: true, description: "Whether the API-key owner won" })
+  @ApiPropertyOptional({
+    example: true,
+    description: "Whether the API-key owner won",
+  })
   @IsOptional()
   @IsBoolean()
   won?: boolean;
