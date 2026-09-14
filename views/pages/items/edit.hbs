@@ -1,0 +1,178 @@
+<div class="mx-auto max-w-5xl">
+  <a href="{{cancelUrl}}"
+    class="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary"><i
+      data-lucide="arrow-left" class="h-4 w-4"></i>Back to item</a>
+
+  <header class="mt-5 border-b border-border-subtle pb-6">
+    <span
+      class="inline-block rounded-full border border-type-{{accent}}/40 bg-type-{{accent}}/15 px-2 py-0.5 font-heading text-[11px] font-semibold uppercase tracking-wide text-type-{{accent}}">Edit
+      {{label}}</span>
+    <h1 class="mt-3 font-heading text-3xl font-extrabold tracking-tight">{{titleValue}}</h1>
+    <p class="mt-2 max-w-3xl text-sm text-text-secondary">Make all changes here, then confirm once to apply metadata,
+      aliases, and selected history removals together.</p>
+    {{#if error}}<p class="mt-4 rounded-lg border border-red-500/40 bg-red-500/15 px-3 py-2 text-sm text-red-300">
+      {{error}}</p>{{/if}}
+  </header>
+
+  <form action="{{saveUrl}}" method="post" class="mt-6 grid gap-6" id="item-edit-form">
+    <input type="hidden" name="_csrf" value="{{csrfToken}}" />
+    <section class="rounded-lg border border-border-subtle bg-bg-surface p-4">
+      <h2 class="font-heading text-xl font-bold">Item Identity</h2>
+      <dl class="mt-4 grid gap-3 sm:grid-cols-2">
+        <div class="sm:col-span-2">
+          <dt class="font-heading text-sm font-semibold text-text-secondary">Media item ID</dt>
+          <dd
+            class="mt-1 break-all rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2 text-sm text-text-primary">
+            {{itemId}}</dd>
+        </div>
+        <div>
+          <dt class="font-heading text-sm font-semibold text-text-secondary">Provider</dt>
+          {{#if hasCanonicalIdentity}}
+          <dd class="mt-1 rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2 text-sm text-text-primary">
+            {{canonicalIdentityProvider}}
+          </dd>
+          {{else}}
+          <dd
+            class="mt-1 rounded-lg border border-dashed border-border-subtle bg-bg-elevated px-3 py-2 text-sm text-text-secondary">
+            Not identified
+          </dd>
+          {{/if}}
+        </div>
+        <div>
+          <dt class="font-heading text-sm font-semibold text-text-secondary">Provider ID</dt>
+          {{#if hasCanonicalIdentity}}
+          <dd
+            class="mt-1 break-all rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2 text-sm text-text-primary">
+            {{canonicalIdentityExternalId}}
+          </dd>
+          {{else}}
+          <dd
+            class="mt-1 rounded-lg border border-dashed border-border-subtle bg-bg-elevated px-3 py-2 text-sm text-text-secondary">
+            Not identified
+          </dd>
+          {{/if}}
+        </div>
+      </dl>
+    </section>
+
+    <section class="rounded-lg border border-border-subtle bg-bg-surface p-4">
+      <h2 class="font-heading text-xl font-bold">Metadata</h2>
+      <div class="mt-4 grid gap-4">
+        <label class="block">
+          <span class="mb-1 block font-heading text-sm font-semibold text-text-secondary">Title</span>
+          <input type="text" name="title" required value="{{titleValue}}"
+            class="w-full rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-type-{{accent}}" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block font-heading text-sm font-semibold text-text-secondary">Description</span>
+          <textarea name="description" rows="4"
+            class="w-full rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-type-{{accent}}">{{descriptionValue}}</textarea>
+        </label>
+      </div>
+    </section>
+
+    <section class="rounded-lg border border-border-subtle bg-bg-surface p-4">
+      <h2 class="font-heading text-xl font-bold">History Rows</h2>
+      <p class="mt-1 text-sm text-text-secondary">Select exact rows you want to permanently remove on save.</p>
+      {{#if hasHistoryRows}}
+      <div class="mt-4 divide-y divide-border-subtle border-y border-border-subtle">
+        {{#each historyRows}}
+        <label class="flex cursor-pointer items-center justify-between gap-4 py-3">
+          <span class="min-w-0">
+            <span class="block text-sm text-text-primary">{{date}}</span>
+            <span class="block truncate text-xs text-text-secondary">{{sourceLabel}}</span>
+          </span>
+          <span class="flex items-center gap-3">
+            <span class="text-xs text-text-secondary">{{durationLabel}}</span>
+            <input type="checkbox" name="removeLogEntryIds" value="{{id}}" {{#if selected}}checked{{/if}}
+              class="h-4 w-4 rounded border-border-subtle bg-bg-elevated text-red-500 focus:ring-red-500"
+              data-history-checkbox />
+          </span>
+        </label>
+        {{/each}}
+      </div>
+      {{else}}
+      <p class="mt-4 text-sm text-text-secondary">No history rows available for this item.</p>
+      {{/if}}
+    </section>
+
+    <section class="rounded-lg border border-border-subtle bg-bg-surface p-4">
+      <h2 class="font-heading text-xl font-bold">External Aliases</h2>
+      <p class="mt-1 text-sm text-text-secondary">Add, edit, or mark aliases for removal. Changes apply only when you
+        save.</p>
+      <div class="mt-4 grid gap-3" id="alias-rows">
+        {{#if hasAliases}}
+        {{#each aliases}}
+        <div class="rounded-lg border border-border-subtle bg-bg-elevated/60 p-3" data-alias-row
+          data-row-key="{{rowKey}}">
+          <input type="hidden" name="aliasRowKey" value="{{rowKey}}" />
+          <input type="hidden" name="aliasId" value="{{id}}" />
+          <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+            <label>
+              <span class="mb-1 block font-heading text-sm font-semibold text-text-secondary">Provider</span>
+              <input type="text" name="aliasProviderNamespace" value="{{providerNamespace}}" placeholder="tmdb"
+                class="w-full rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-type-{{../accent}}" />
+            </label>
+            <label>
+              <span class="mb-1 block font-heading text-sm font-semibold text-text-secondary">External ID</span>
+              <input type="text" name="aliasExternalId" value="{{externalId}}" placeholder="12345"
+                class="w-full rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-type-{{../accent}}" />
+            </label>
+            <label class="mt-6 inline-flex items-center gap-2 text-sm text-text-secondary">
+              <input type="checkbox" name="aliasRemove" value="{{rowKey}}" {{#if remove}}checked{{/if}}
+                class="h-4 w-4 rounded border-border-subtle bg-bg-elevated text-red-500 focus:ring-red-500"
+                data-alias-remove-checkbox />
+              Remove
+            </label>
+          </div>
+        </div>
+        {{/each}}
+        {{/if}}
+      </div>
+      <button type="button" id="add-alias-row"
+        class="mt-3 inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2 font-heading text-xs font-semibold text-text-primary hover:bg-bg-surface">
+        <i data-lucide="plus" class="h-4 w-4"></i>Add alias
+      </button>
+      <template id="alias-row-template">
+        <div class="rounded-lg border border-border-subtle bg-bg-elevated/60 p-3" data-alias-row>
+          <input type="hidden" name="aliasRowKey" value="" data-alias-row-key />
+          <input type="hidden" name="aliasId" value="" />
+          <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+            <label>
+              <span class="mb-1 block font-heading text-sm font-semibold text-text-secondary">Provider</span>
+              <input type="text" name="aliasProviderNamespace" value="" placeholder="tmdb"
+                class="w-full rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-type-{{accent}}" />
+            </label>
+            <label>
+              <span class="mb-1 block font-heading text-sm font-semibold text-text-secondary">External ID</span>
+              <input type="text" name="aliasExternalId" value="" placeholder="12345"
+                class="w-full rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-type-{{accent}}" />
+            </label>
+            <label class="mt-6 inline-flex items-center gap-2 text-sm text-text-secondary">
+              <input type="checkbox" name="aliasRemove" value="" data-alias-remove-checkbox
+                class="h-4 w-4 rounded border-border-subtle bg-bg-elevated text-red-500 focus:ring-red-500" />
+              Remove
+            </label>
+          </div>
+        </div>
+      </template>
+    </section>
+
+    <section class="rounded-lg border border-red-500/30 bg-red-500/10 p-4">
+      <h2 class="font-heading text-lg font-bold text-red-200">Confirm changes</h2>
+      <p class="mt-1 text-sm text-red-200/90">Saving is irreversible. Deleted history rows and removed aliases cannot be
+        restored.</p>
+      <p class="mt-3 text-sm text-red-200/90">Selected removals: <span
+          id="history-removal-count">{{selectedHistoryCount}}</span> history row(s), <span
+          id="alias-removal-count">{{selectedAliasRemovalCount}}</span> alias row(s).</p>
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        <button type="submit"
+          class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 font-heading text-sm font-semibold text-white active:scale-[0.98]">
+          <i data-lucide="save" class="h-4 w-4"></i>Save all changes
+        </button>
+        <a href="{{cancelUrl}}"
+          class="inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-elevated px-4 py-2 font-heading text-sm font-semibold text-text-primary hover:bg-bg-surface">Cancel</a>
+      </div>
+    </section>
+  </form>
+</div>

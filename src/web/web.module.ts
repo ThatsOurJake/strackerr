@@ -17,6 +17,7 @@ import { CollectionController } from "./controllers/collection.controller";
 import { DashboardController } from "./controllers/dashboard.controller";
 import { HistoryController } from "./controllers/history.controller";
 import { IdentifyController } from "./controllers/identify.controller";
+import { ItemController } from "./controllers/item.controller";
 import { SearchController } from "./controllers/search.controller";
 import { SettingsWebController } from "./controllers/settings.controller";
 import { StatsController } from "./controllers/stats.controller";
@@ -42,6 +43,7 @@ import { StatsController } from "./controllers/stats.controller";
     HistoryController,
     StatsController,
     CollectionController,
+    ItemController,
     AddController,
     IdentifyController,
   ],

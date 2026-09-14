@@ -1,6 +1,10 @@
 import { MediaType } from "@prisma/client";
 import type { MediaDetail } from "../modules/collection/collection.service";
-import { toCollectionViewModel, toMediaDetailViewModel } from "./collection-view-model";
+import {
+  toCollectionViewModel,
+  toItemEditViewModel,
+  toMediaDetailViewModel,
+} from "./collection-view-model";
 
 describe("collection view models", () => {
   it("preserves additive filters in type, letter, and pagination URLs", () => {
@@ -81,5 +85,61 @@ describe("collection view models", () => {
     expect(toMediaDetailViewModel(skeleton).identifyActionLabel).toBe("Identify");
     expect(toMediaDetailViewModel(identified).identifyUrl).toBe("/collection/movie/movie-1/identify");
     expect(toMediaDetailViewModel(identified).identifyActionLabel).toBe("Reidentify");
+  });
+
+  it("builds edit view rows for history and aliases with selected removals", () => {
+    const detail = {
+      id: "show-1",
+      type: MediaType.TV_SHOW,
+      title: "The Show",
+      description: "Description",
+      imageUrl: null,
+      externalAliases: [
+        {
+          id: "alias-1",
+          mediaItemId: "show-1",
+          providerNamespace: "tmdb",
+          externalId: "123",
+          createdAt: new Date("2026-09-01T00:00:00Z"),
+        },
+      ],
+      logEntries: [
+        {
+          id: "log-1",
+          loggedAt: new Date("2026-09-02T00:00:00Z"),
+          duration: 50,
+        },
+      ],
+      episodes: [
+        {
+          id: "episode-1",
+          seasonNumber: 1,
+          episodeNumber: 1,
+          title: "Pilot",
+          logEntries: [{ id: "log-2", loggedAt: new Date("2026-09-03T00:00:00Z"), duration: 40 }],
+        },
+      ],
+    } as unknown as MediaDetail;
+
+    const model = toItemEditViewModel(detail, {
+      title: "Edited Show",
+      description: "Updated",
+      removeLogEntryIds: ["log-2"],
+      aliases: [
+        {
+          rowKey: "alias-1",
+          id: "alias-1",
+          providerNamespace: "tmdb",
+          externalId: "123",
+          remove: true,
+        },
+      ],
+    });
+
+    expect(model.titleValue).toBe("Edited Show");
+    expect(model.historyRows.length).toBe(2);
+    expect(model.historyRows[0]).toMatchObject({ id: "log-2", selected: true });
+    expect(model.selectedHistoryCount).toBe(1);
+    expect(model.selectedAliasRemovalCount).toBe(1);
   });
 });

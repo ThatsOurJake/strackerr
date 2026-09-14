@@ -27,6 +27,7 @@ This folder defines the product-level features for STrackerr. Each feature file 
 | [FEA-019: Collection Search and Music Collection Usability](./FEA-019-collection-search-and-music-collection-usability.md) | Board-game search-result artwork fixes plus collection handling that removes music from the All tab | TICKET-055, TICKET-056 |
 | [FEA-020: Expanded Stats and Nostalgic Insights](./FEA-020-expanded-stats-and-nostalgic-insights.md) | Visible period ranges, prior-years weekly callbacks, and richer stats-page insight cards | TICKET-057, TICKET-058, TICKET-059 |
 | [FEA-021: Nostalgia Deep Dive](./FEA-021-nostalgia-deep-dive.md) | A dedicated same-week-across-years nostalgia view launched from the weekly stats tile | TICKET-060, TICKET-061 |
+| [FEA-022: Item Metadata Editing and Alias/History Management](./FEA-022-item-metadata-editing-and-alias-history-management.md) | A secondary item-page edit flow for title/description updates, bulk-selected history-row removals, and external alias add/edit/remove in one confirm action | TICKET-062, TICKET-063, TICKET-064 |
 
 ## Agent Workflow
 

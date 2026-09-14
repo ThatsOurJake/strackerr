@@ -72,7 +72,7 @@ export const toCollectionViewModel = (page: CollectionPage, filters: CollectionF
     return {
       ...item,
       ...details,
-      detailUrl: `/collection/${details.path}/${item.id}`,
+      detailUrl: `/items/${item.id}`,
       identifyUrl: item.isSkeleton
         ? `/collection/${details.path}/${item.id}/identify`
         : null,
@@ -124,6 +124,8 @@ export const toMediaDetailViewModel = (item: MediaDetail) => {
     ...item,
     ...details,
     title: item.title,
+    itemUrl: `/items/${item.id}`,
+    editUrl: `/items/${item.id}/edit`,
     identifyUrl: `/collection/${details.path}/${item.id}/identify`,
     identifyActionLabel: item.isSkeleton ? "Identify" : "Reidentify",
     artist: item.type === MediaType.MUSIC_TRACK ? item.description : null,
@@ -149,5 +151,68 @@ export const toMediaDetailViewModel = (item: MediaDetail) => {
         };
       }),
     })),
+  };
+};
+
+export const toItemEditViewModel = (
+  item: MediaDetail,
+  values?: {
+    title?: string;
+    description?: string;
+    removeLogEntryIds?: string[];
+    aliases?: Array<{ rowKey: string; id?: string; providerNamespace: string; externalId: string; remove: boolean }>;
+  },
+) => {
+  const details = mediaTypeDetails(item.type);
+  const canonicalIdentity = item.externalIds?.[0] ?? null;
+  const historyRows = [
+    ...item.logEntries.map((entry) => ({
+      id: entry.id,
+      date: formatDate(entry.loggedAt),
+      durationLabel: entry.duration === null ? "No duration" : formatDuration(entry.duration),
+      sourceLabel: item.title,
+      loggedAt: entry.loggedAt,
+    })),
+    ...item.episodes.flatMap((episode) =>
+      episode.logEntries.map((entry) => ({
+        id: entry.id,
+        date: formatDate(entry.loggedAt),
+        durationLabel: entry.duration === null ? "No duration" : formatDuration(entry.duration),
+        sourceLabel: `S${episode.seasonNumber ?? 0}E${episode.episodeNumber ?? 0} - ${episode.title}`,
+        loggedAt: entry.loggedAt,
+      })),
+    ),
+  ].sort((left, right) => right.loggedAt.getTime() - left.loggedAt.getTime());
+
+  const selectedRemovals = new Set(values?.removeLogEntryIds ?? []);
+  const aliases = values?.aliases ?? item.externalAliases.map((alias) => ({
+    rowKey: alias.id,
+    id: alias.id,
+    providerNamespace: alias.providerNamespace,
+    externalId: alias.externalId,
+    remove: false,
+  }));
+
+  return {
+    ...item,
+    ...details,
+    itemUrl: `/items/${item.id}`,
+    saveUrl: `/items/${item.id}/edit`,
+    cancelUrl: `/items/${item.id}`,
+    itemId: item.id,
+    hasCanonicalIdentity: Boolean(canonicalIdentity),
+    canonicalIdentityProvider: canonicalIdentity?.provider ?? null,
+    canonicalIdentityExternalId: canonicalIdentity?.externalId ?? null,
+    titleValue: values?.title ?? item.title,
+    descriptionValue: values?.description ?? item.description ?? "",
+    historyRows: historyRows.map((row) => ({
+      ...row,
+      selected: selectedRemovals.has(row.id),
+    })),
+    hasHistoryRows: historyRows.length > 0,
+    aliases,
+    hasAliases: aliases.length > 0,
+    selectedHistoryCount: [...selectedRemovals].length,
+    selectedAliasRemovalCount: aliases.filter((alias) => alias.remove).length,
   };
 };
