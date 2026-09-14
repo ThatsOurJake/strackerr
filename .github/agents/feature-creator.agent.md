@@ -39,6 +39,7 @@ If key context is missing, ask the user for it before finalizing.
 2. Align with roadmap and dependencies
 - Review the feature catalog and identify where the new feature fits.
 - Call out dependencies, ordering concerns, and overlap with existing features.
+- If the underlying dependency is considered done then there is no need to mark it that feature will not act as a blocker for the feature being drafted.
 
 3. Validate UX and security expectations
 - Ensure user flow fits the current product shape and does not feel isolated.

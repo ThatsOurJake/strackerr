@@ -23,6 +23,10 @@ This folder defines the product-level features for STrackerr. Each feature file 
 | [FEA-015: Shell and Authentication Visual Polish](./FEA-015-shell-auth-visual-polish.md) | Typography, login identity, and mobile navigation improvements | TICKET-044, TICKET-045 |
 | [FEA-016: Identification Query Ergonomics](./FEA-016-identification-query-ergonomics.md) | Structured identify-query syntax and MusicBrainz-focused lookup improvements | TICKET-046, TICKET-047 |
 | [FEA-017: Shell Reliability, Asset Delivery, and Frontend Maintainability](./FEA-017-shell-reliability-asset-delivery-and-frontend-maintainability.md) | Dark mode reliability, self-hosted frontend assets, and maintainability refactors | TICKET-048, TICKET-049, TICKET-050, TICKET-051 |
+| [FEA-018: Consumer API and External ID Aliases](./FEA-018-consumer-api-and-external-id-aliases.md) | Consumer-only Swagger output plus global provider/external ID aliases for canonical media lookup | TICKET-052, TICKET-053, TICKET-054 |
+| [FEA-019: Collection Search and Music Collection Usability](./FEA-019-collection-search-and-music-collection-usability.md) | Board-game search-result artwork fixes plus collection handling that removes music from the All tab | TICKET-055, TICKET-056 |
+| [FEA-020: Expanded Stats and Nostalgic Insights](./FEA-020-expanded-stats-and-nostalgic-insights.md) | Visible period ranges, prior-years weekly callbacks, and richer stats-page insight cards | TICKET-057, TICKET-058, TICKET-059 |
+| [FEA-021: Nostalgia Deep Dive](./FEA-021-nostalgia-deep-dive.md) | A dedicated same-week-across-years nostalgia view launched from the weekly stats tile | TICKET-060, TICKET-061 |
 
 ## Agent Workflow
 
