@@ -140,6 +140,39 @@ describe("metadata providers", () => {
   });
 
   describe("BggProvider", () => {
+    it("enriches search results with artwork from a single batched thing request", async () => {
+      fetchMock
+        .mockResolvedValueOnce(
+          new Response(
+            '<items><item id="13"><name type="primary" sortindex="1" value="Catan"/></item><item id="42"><name type="primary" sortindex="1" value="Tigris &amp;amp; Euphrates"/></item></items>',
+          ),
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            '<items><item id="13"><image>https://cf.geekdo-images.com/catan.jpg</image></item><item id="42"><thumbnail>https://cf.geekdo-images.com/tigris-thumb.jpg</thumbnail></item></items>',
+          ),
+        );
+
+      const results = await new BggProvider().search("strategy", "bgg-key");
+
+      expect(results).toEqual([
+        expect.objectContaining({
+          externalId: "bgg:13",
+          title: "Catan",
+          imageUrl: "https://cf.geekdo-images.com/catan.jpg",
+          type: MediaType.BOARD_GAME,
+        }),
+        expect.objectContaining({
+          externalId: "bgg:42",
+          title: "Tigris &amp; Euphrates",
+          imageUrl: "https://cf.geekdo-images.com/tigris-thumb.jpg",
+          type: MediaType.BOARD_GAME,
+        }),
+      ]);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(String(fetchMock.mock.calls[1][0])).toContain("/thing?id=13%2C42");
+    });
+
     it("parses XML and decodes the board game description", async () => {
       fetchMock.mockResolvedValue(
         new Response(

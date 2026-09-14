@@ -11,6 +11,10 @@ export const COLLECTION_MEDIA_TYPES = [
   MediaType.MUSIC_TRACK,
 ] as const;
 
+const COLLECTION_ALL_MEDIA_TYPES = COLLECTION_MEDIA_TYPES.filter(
+  (type) => type !== MediaType.MUSIC_TRACK,
+);
+
 export type CollectionMediaType = (typeof COLLECTION_MEDIA_TYPES)[number];
 
 export interface CollectionFilters {
@@ -55,7 +59,7 @@ export class CollectionService {
   async findCollection(userId: string, filters: CollectionFilters): Promise<CollectionPage> {
     const items = await this.prisma.mediaItem.findMany({
       where: {
-        type: filters.type ?? { in: [...COLLECTION_MEDIA_TYPES] },
+        type: filters.type ?? { in: [...COLLECTION_ALL_MEDIA_TYPES] },
         isSkeleton: filters.unidentified ? true : undefined,
         OR: [
           { createdByUserId: userId },

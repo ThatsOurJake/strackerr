@@ -22,6 +22,7 @@ interface BggItem {
   id: string | number;
   name?: BggName | BggName[];
   yearpublished?: BggValue;
+  thumbnail?: string;
   image?: string;
   description?: string;
   playingtime?: BggValue;
@@ -45,8 +46,9 @@ export class BggProvider implements IMetadataProvider {
     url.searchParams.set("query", query);
     url.searchParams.set("type", "boardgame");
     const response = await this.fetchXml(url, apiKey);
-    const items = this.asArray(response.items?.item as BggItem | BggItem[]);
-    return items.slice(0, 10).map((item) => this.mapItem(item));
+    const items = this.asArray(response.items?.item as BggItem | BggItem[]).slice(0, 10);
+    const imageLookup = await this.fetchThingImages(items, apiKey);
+    return items.map((item) => this.mapItem(item, imageLookup.get(String(item.id))));
   }
 
   async getById(externalId: string, apiKey?: string): Promise<MediaItemDetail> {
@@ -92,7 +94,33 @@ export class BggProvider implements IMetadataProvider {
     return this.parser.parse(await response.text()) as BggResponse;
   }
 
-  private mapItem(item: BggItem): MediaItemDetail {
+  private async fetchThingImages(
+    items: BggItem[],
+    apiKey?: string,
+  ): Promise<Map<string, string>> {
+    const ids = items
+      .map((item) => String(item.id).trim())
+      .filter((id) => id.length > 0);
+    if (ids.length === 0) {
+      return new Map();
+    }
+
+    const url = new URL(`${this.baseUrl}/thing`);
+    url.searchParams.set("id", ids.join(","));
+    const response = await this.fetchXml(url, apiKey);
+    const detailItems = this.asArray(response.items?.item as BggItem | BggItem[]);
+    const imageLookup = new Map<string, string>();
+    for (const detailItem of detailItems) {
+      const imageUrl = detailItem.image || detailItem.thumbnail || undefined;
+      if (!imageUrl) {
+        continue;
+      }
+      imageLookup.set(String(detailItem.id), imageUrl);
+    }
+    return imageLookup;
+  }
+
+  private mapItem(item: BggItem, fallbackImageUrl?: string): MediaItemDetail {
     const names = this.asArray(item.name);
     const primaryName =
       names.find((name) => String(name.sortindex) === "1") ?? names[0];
@@ -100,7 +128,7 @@ export class BggProvider implements IMetadataProvider {
       externalId: `bgg:${item.id}`,
       title: String(primaryName?.value ?? "Untitled"),
       year: this.numberValue(item.yearpublished),
-      imageUrl: item.image || undefined,
+      imageUrl: item.image || item.thumbnail || fallbackImageUrl,
       description: item.description ? decode(item.description) : undefined,
       duration: this.numberValue(item.playingtime),
       type: MediaType.BOARD_GAME,

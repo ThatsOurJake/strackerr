@@ -26,8 +26,8 @@ Collection and add-flow search remain clear and performant as the library grows,
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-055](../backlog/todo/TICKET-055.md) | Fix BoardGameGeek search-result artwork behavior |
-| [TICKET-056](../backlog/todo/TICKET-056.md) | Exclude music from the All collection view with clear performance messaging |
+| [TICKET-055](../backlog/done/TICKET-055.md) | Fix BoardGameGeek search-result artwork behavior |
+| [TICKET-056](../backlog/done/TICKET-056.md) | Exclude music from the All collection view with clear performance messaging |
 
 ## Done Signal
 - BoardGameGeek add-search results and identified board-game pages present consistent artwork behavior when the provider supplies images.

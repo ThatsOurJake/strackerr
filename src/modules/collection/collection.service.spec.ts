@@ -57,6 +57,20 @@ describe("CollectionService", () => {
     });
   });
 
+  it("excludes music tracks from the default all collection query", async () => {
+    findMany.mockResolvedValue([]);
+
+    await service.findCollection("user-2", {});
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          type: { in: [MediaType.MOVIE, MediaType.TV_SHOW, MediaType.GAME, MediaType.BOARD_GAME] },
+        }),
+      }),
+    );
+  });
+
   it("sorts by sort title and classifies non-Latin and numeric titles under hash", async () => {
     findMany.mockResolvedValue([
       mediaItem("japanese", "七人の侍"),
