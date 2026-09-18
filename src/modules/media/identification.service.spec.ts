@@ -135,4 +135,91 @@ describe("IdentificationService", () => {
     );
     expect(events.emit).not.toHaveBeenCalled();
   });
+
+  it("rejects configured-alias identification when media is already identified", async () => {
+    const service = new IdentificationService(
+      { logEntry: { findFirst: jest.fn() }, $transaction: jest.fn() } as never,
+      {
+        findById: jest.fn().mockResolvedValue({
+          id: "movie-1",
+          type: MediaType.MOVIE,
+          title: "Arrival",
+          isSkeleton: false,
+          createdByUserId: "user-1",
+        }),
+      } as unknown as MediaService,
+      {} as MetadataService,
+      {} as EpisodeSyncService,
+    );
+
+    await expect(
+      service.identifyFromConfiguredAlias("movie-1", "user-1"),
+    ).rejects.toThrow("already identified");
+  });
+
+  it("fails clearly when configured provider alias is missing", async () => {
+    const service = new IdentificationService(
+      { logEntry: { findFirst: jest.fn() }, $transaction: jest.fn() } as never,
+      {
+        findById: jest.fn().mockResolvedValue({
+          id: "movie-1",
+          type: MediaType.MOVIE,
+          title: "Arrival",
+          isSkeleton: true,
+          createdByUserId: "user-1",
+        }),
+        listExternalAliases: jest.fn().mockResolvedValue([
+          { providerNamespace: "steam", externalId: "app:620" },
+        ]),
+      } as unknown as MediaService,
+      {
+        getProviderForUser: jest.fn().mockResolvedValue({
+          provider: { name: "tmdb" },
+        }),
+      } as unknown as MetadataService,
+      {} as EpisodeSyncService,
+    );
+
+    await expect(
+      service.identifyFromConfiguredAlias("movie-1", "user-1"),
+    ).rejects.toThrow("missing external alias");
+  });
+
+  it("uses the configured provider alias to identify a skeleton item", async () => {
+    const service = new IdentificationService(
+      { logEntry: { findFirst: jest.fn() }, $transaction: jest.fn() } as never,
+      {
+        findById: jest.fn().mockResolvedValue({
+          id: "movie-1",
+          type: MediaType.MOVIE,
+          title: "Arrival",
+          isSkeleton: true,
+          createdByUserId: "user-1",
+        }),
+        listExternalAliases: jest.fn().mockResolvedValue([
+          { providerNamespace: "tmdb", externalId: "movie:329865" },
+        ]),
+      } as unknown as MediaService,
+      {
+        getProviderForUser: jest.fn().mockResolvedValue({
+          provider: { name: "tmdb" },
+          apiKey: "tmdb-key",
+        }),
+      } as unknown as MetadataService,
+      {} as EpisodeSyncService,
+    );
+
+    const identifySpy = jest
+      .spyOn(service, "identify")
+      .mockResolvedValue({ id: "movie-1" } as never);
+
+    await service.identifyFromConfiguredAlias("movie-1", "user-1");
+
+    expect(identifySpy).toHaveBeenCalledWith(
+      "movie-1",
+      "tmdb",
+      "movie:329865",
+      "user-1",
+    );
+  });
 });

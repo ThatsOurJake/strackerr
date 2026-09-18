@@ -1,15 +1,15 @@
 import { MediaType } from "@prisma/client";
 import type { PrismaService } from "../../infrastructure/database/prisma.service";
-import { createLogEntry } from "../../test-utils/log-entry.factory";
-import { LogService } from "./log.service";
+import { createActivityEntry } from "../../test-utils/activity-entry.factory";
+import { ActivityService } from "./activity.service";
 
-describe("LogService", () => {
+describe("ActivityService", () => {
   let findMany: jest.Mock;
-  let service: LogService;
+  let service: ActivityService;
 
   beforeEach(() => {
     findMany = jest.fn();
-    service = new LogService({ logEntry: { findMany } } as unknown as PrismaService);
+    service = new ActivityService({ logEntry: { findMany } } as unknown as PrismaService);
   });
 
   it("scopes retrieval to the requested user and filters", async () => {
@@ -36,10 +36,10 @@ describe("LogService", () => {
 
   it("groups entries by local calendar day and collapses music", () => {
     const entries = [
-      createLogEntry("movie", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 24, 23, 45), duration: 120 }),
-      createLogEntry("track-1", MediaType.MUSIC_TRACK, { loggedAt: new Date(2026, 7, 24, 8), duration: 4 }),
-      createLogEntry("track-2", MediaType.MUSIC_TRACK, { loggedAt: new Date(2026, 7, 24, 7), duration: null }),
-      createLogEntry("game", MediaType.GAME, { loggedAt: new Date(2026, 7, 23, 22), duration: 60 }),
+      createActivityEntry("movie", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 24, 23, 45), duration: 120 }),
+      createActivityEntry("track-1", MediaType.MUSIC_TRACK, { loggedAt: new Date(2026, 7, 24, 8), duration: 4 }),
+      createActivityEntry("track-2", MediaType.MUSIC_TRACK, { loggedAt: new Date(2026, 7, 24, 7), duration: null }),
+      createActivityEntry("game", MediaType.GAME, { loggedAt: new Date(2026, 7, 23, 22), duration: 60 }),
     ];
 
     const groups = service.groupByDay(entries);

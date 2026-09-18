@@ -1,6 +1,6 @@
 import { LogSource, MediaType } from "@prisma/client";
 import type { Response } from "express";
-import type { LogService } from "../../modules/activity/log.service";
+import type { ActivityService } from "../../modules/activity/activity.service";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
 import type { MediaService } from "../../modules/media/media.service";
 import type { MetadataService } from "../../modules/metadata/metadata.service";
@@ -30,7 +30,7 @@ describe("AddController", () => {
     controller = new AddController(
       {} as MetadataService,
       mediaService as unknown as MediaService,
-      { create: createLog } as unknown as LogService,
+      { create: createLog } as unknown as ActivityService,
     );
     response = {
       redirect: jest.fn(),

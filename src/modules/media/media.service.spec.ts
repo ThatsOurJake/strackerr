@@ -165,6 +165,36 @@ describe("MediaService", () => {
     ).resolves.toEqual(mediaItem);
   });
 
+  it("resolves titles through normalized aliases with user access checks", async () => {
+    const prisma = createPrismaMock();
+    const service = new MediaService(prisma as unknown as PrismaService);
+
+    prisma.mediaAlias.findUnique.mockResolvedValue({
+      mediaItem: {
+        id: "media-1",
+        type: MediaType.MOVIE,
+        title: "Arrival",
+        isSkeleton: true,
+        createdByUserId: "user-1",
+      },
+    });
+    prisma.mediaItem.findUnique.mockResolvedValue({
+      id: "media-1",
+      type: MediaType.MOVIE,
+      title: "Arrival",
+      isSkeleton: true,
+      createdByUserId: "user-1",
+    });
+
+    await expect(
+      service.resolveByTitleForUser("user-1", " Arrival "),
+    ).resolves.toEqual(expect.objectContaining({ id: "media-1" }));
+    expect(prisma.mediaAlias.findUnique).toHaveBeenCalledWith({
+      where: { alias: "arrival" },
+      include: { mediaItem: true },
+    });
+  });
+
   it("rejects alias reassignment conflicts and supports list/remove", async () => {
     const prisma = createPrismaMock();
     const service = new MediaService(prisma as unknown as PrismaService);

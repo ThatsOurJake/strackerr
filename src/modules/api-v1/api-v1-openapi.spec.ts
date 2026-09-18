@@ -5,12 +5,15 @@ import {
   SwaggerModule,
 } from "@nestjs/swagger";
 import { Test } from "@nestjs/testing";
-import { LogService } from "../activity/log.service";
+import { ActivityService } from "../activity/activity.service";
+import { IdentificationService } from "../media/identification.service";
 import { MediaService } from "../media/media.service";
-import { ApiV1LogController } from "./api-v1-log.controller";
+import { ApiV1ActivityController } from "./api-v1-activity.controller";
 import { ApiV1MediaController } from "./api-v1-media.controller";
 import { ApiKeyGuard } from "./guards/api-key.guard";
 import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
+
+jest.mock("@paralleldrive/cuid2", () => ({ createId: jest.fn() }));
 
 @Controller("internal")
 class InternalController {
@@ -21,10 +24,11 @@ class InternalController {
 }
 
 @Module({
-  controllers: [ApiV1LogController, ApiV1MediaController],
+  controllers: [ApiV1ActivityController, ApiV1MediaController],
   providers: [
     { provide: MediaService, useValue: {} },
-    { provide: LogService, useValue: {} },
+    { provide: ActivityService, useValue: {} },
+    { provide: IdentificationService, useValue: {} },
   ],
 })
 class ApiDocsPublicModule { }
@@ -67,14 +71,14 @@ describe("API v1 OpenAPI responses", () => {
   });
 
   it.each([
-    ["movie", "CreatedMovieLogResponseDto"],
-    ["tv-episode", "CreatedTvEpisodeLogResponseDto"],
-    ["game", "CreatedGameLogResponseDto"],
-    ["board-game", "CreatedBoardGameLogResponseDto"],
-    ["music", "CreatedMusicLogResponseDto"],
-  ])("documents /log/%s with %s", (route, schemaName) => {
+    ["movie", "CreatedMovieActivityResponseDto"],
+    ["tv-episode", "CreatedTvEpisodeActivityResponseDto"],
+    ["game", "CreatedGameActivityResponseDto"],
+    ["board-game", "CreatedBoardGameActivityResponseDto"],
+    ["music", "CreatedMusicActivityResponseDto"],
+  ])("documents /activity/%s with %s", (route, schemaName) => {
     const response =
-      document.paths[`/api/v1/log/${route}`]?.post?.responses?.["201"];
+      document.paths[`/api/v1/activity/${route}`]?.post?.responses?.["201"];
     if (!response || "$ref" in response) {
       throw new Error(`Missing inline 201 response for ${route}`);
     }
@@ -86,7 +90,17 @@ describe("API v1 OpenAPI responses", () => {
   });
 
   it("only includes TV episode fields in the TV creation schema", () => {
-    const schema = document.components?.schemas?.CreatedTvEpisodeLogResponseDto;
+    const wrapperSchema = document.components?.schemas?.CreatedTvEpisodeActivityResponseDto;
+    if (!wrapperSchema || "$ref" in wrapperSchema) {
+      throw new Error("Missing inline TV episode wrapper response schema");
+    }
+
+    expect(wrapperSchema.properties?.data).toEqual({
+      allOf: [{ $ref: "#/components/schemas/CreatedTvEpisodeActivityDto" }],
+      description: "Created activity entry",
+    });
+
+    const schema = document.components?.schemas?.CreatedTvEpisodeActivityDto;
     if (!schema || "$ref" in schema) {
       throw new Error("Missing inline TV episode response schema");
     }
@@ -110,7 +124,7 @@ describe("API v1 OpenAPI responses", () => {
   it("documents only /api/ paths and excludes internal routes", () => {
     const documentedPaths = Object.keys(document.paths);
 
-    expect(documentedPaths).toEqual(expect.arrayContaining(["/api/v1/log/movie", "/api/v1/media/search"]));
+    expect(documentedPaths).toEqual(expect.arrayContaining(["/api/v1/activity/movie", "/api/v1/media/search"]));
     expect(documentedPaths.length).toBeGreaterThan(0);
     for (const path of documentedPaths) {
       expect(path.startsWith("/api/")).toBe(true);

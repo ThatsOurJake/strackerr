@@ -1,8 +1,11 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
+  NotFoundException,
   Optional,
+  UnprocessableEntityException,
 } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { type MediaItem, MediaType } from "@prisma/client";
@@ -26,6 +29,82 @@ export class IdentificationService {
     private readonly episodeSyncService: EpisodeSyncService,
     @Optional() private readonly events?: EventEmitter2,
   ) { }
+
+  async identifyFromConfiguredAlias(
+    mediaItemId: string,
+    userId: string,
+  ): Promise<MediaItem> {
+    const mediaItem = await this.mediaService.findById(mediaItemId);
+    if (!mediaItem) {
+      throw new NotFoundException("Media item not found");
+    }
+
+    const hasAccess = await this.hasUserAccess(mediaItem, userId);
+    if (!hasAccess) {
+      throw new NotFoundException("Media item not found");
+    }
+
+    if (!mediaItem.isSkeleton) {
+      throw new ConflictException(
+        "Media item is already identified and cannot be identified again",
+      );
+    }
+
+    const resolvedProvider = await this.metadataService.getProviderForUser(
+      mediaItem.type,
+      userId,
+    );
+    const providerName = resolvedProvider.provider.name;
+    const externalAliases = await this.mediaService.listExternalAliases(mediaItemId);
+    const providerAliases = externalAliases.filter(
+      (alias) => alias.providerNamespace === providerName,
+    );
+
+    if (providerAliases.length === 0) {
+      throw new UnprocessableEntityException(
+        `Cannot identify item: missing external alias for configured provider ${providerName}`,
+      );
+    }
+
+    if (providerAliases.length > 1) {
+      throw new ConflictException(
+        `Cannot identify item: multiple aliases found for configured provider ${providerName}`,
+      );
+    }
+
+    const providerAlias = providerAliases[0];
+    try {
+      assertProviderExternalId(providerName, providerAlias.externalId);
+    } catch {
+      throw new UnprocessableEntityException(
+        `Cannot identify item: configured provider alias ${providerAlias.externalId} is invalid for ${providerName}`,
+      );
+    }
+
+    try {
+      return await this.identify(
+        mediaItemId,
+        providerName,
+        providerAlias.externalId,
+        userId,
+      );
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof ConflictException ||
+        error instanceof ForbiddenException
+      ) {
+        throw error;
+      }
+
+      const failureMessage = error instanceof Error
+        ? error.message
+        : "Unknown provider failure";
+      throw new UnprocessableEntityException(
+        `Cannot identify item: provider lookup failed for ${providerName} alias ${providerAlias.externalId}. ${failureMessage}`,
+      );
+    }
+  }
 
   async identify(
     mediaItemId: string,

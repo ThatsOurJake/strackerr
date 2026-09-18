@@ -10,7 +10,7 @@ import { PrismaModule } from "./infrastructure/database/prisma.module";
 import { ImageCacheService } from "./infrastructure/jobs/image-cache.service";
 import { LogModule } from "./infrastructure/logging/log.module";
 import { WebThrottlerGuard } from "./infrastructure/security/web-throttler.guard";
-import { LogModule as ActivityLogModule } from "./modules/activity/log.module";
+import { ActivityModule } from "./modules/activity/activity.module";
 import { ApiV1Module } from "./modules/api-v1/api-v1.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { JwtCookieMiddleware } from "./modules/auth/middleware/jwt-cookie.middleware";
@@ -33,7 +33,7 @@ import { WebModule } from "./web/web.module";
     UsersModule,
     MediaModule,
     MetadataModule,
-    ActivityLogModule,
+    ActivityModule,
     ApiV1Module,
     LogModule,
     SearchModule,

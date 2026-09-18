@@ -1,7 +1,7 @@
 import { MediaType } from "@prisma/client";
-import type { LogEntryWithMedia } from "../modules/activity/log.service";
+import type { ActivityEntryWithMedia } from "../modules/activity/activity.service";
 
-export interface LogEntryOverrides {
+export interface ActivityEntryOverrides {
   userId?: string;
   mediaItemId?: string;
   loggedAt?: Date;
@@ -17,11 +17,11 @@ export interface LogEntryOverrides {
   parentTitle?: string;
 }
 
-export const createLogEntry = (
+export const createActivityEntry = (
   id: string,
   type: MediaType,
-  overrides: LogEntryOverrides = {},
-): LogEntryWithMedia => {
+  overrides: ActivityEntryOverrides = {},
+): ActivityEntryWithMedia => {
   const loggedAt = overrides.loggedAt ?? new Date(2026, 7, 24, 12);
   const mediaItemId = overrides.mediaItemId ?? `media-${id}`;
   const parent = overrides.parentTitle ? {

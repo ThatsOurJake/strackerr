@@ -1,9 +1,9 @@
 import { Module } from "@nestjs/common";
-import { LogModule } from "../activity/log.module";
+import { ActivityModule } from "../activity/activity.module";
 import { StatsService } from "./stats.service";
 
 @Module({
-  imports: [LogModule],
+  imports: [ActivityModule],
   providers: [StatsService],
   exports: [StatsService],
 })

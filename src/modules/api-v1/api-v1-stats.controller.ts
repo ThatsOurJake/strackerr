@@ -1,9 +1,10 @@
-import { BadRequestException, Controller, Get, Query, Req, UnauthorizedException, UseGuards } from "@nestjs/common";
+import { BadRequestException, Controller, Get, Query, Req, UseGuards } from "@nestjs/common";
 import { ApiOperation, ApiQuery, ApiResponse, ApiSecurity, ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 import type { Request } from "express";
-import { LogService } from "../activity/log.service";
+import { ActivityService } from "../activity/activity.service";
 import { STATS_PERIODS, type StatsPeriodSlug, StatsService } from "../stats/stats.service";
+import { getApiRequestUserId } from "./api-v1-activity.controller.helpers";
 import { StatsResponseDto } from "./dto/response.dto";
 import { ApiKeyGuard } from "./guards/api-key.guard";
 import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
@@ -16,7 +17,7 @@ import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
 export class ApiV1StatsController {
   constructor(
     private readonly statsService: StatsService,
-    private readonly logService: LogService,
+    private readonly activityService: ActivityService,
   ) { }
 
   @Get()
@@ -57,26 +58,24 @@ export class ApiV1StatsController {
       ? { from: new Date(year, 0, 1), to: new Date(year + 1, 0, 1, 0, 0, 0, -1) }
       : this.statsService.resolveDateRange(parsedPeriod ?? "this-year");
 
-    if (!request.user) {
-      throw new UnauthorizedException("Invalid or missing API key");
-    }
-
-    const userId = request.user.userId;
+    const userId = getApiRequestUserId(request);
     const [totalTimeByType, topItems, entries] = await Promise.all([
       this.statsService.totalTimeByType(userId, range),
       this.statsService.topItems(userId, range),
-      this.logService.findByUser(userId, { dateFrom: range?.from, dateTo: range?.to }),
+      this.activityService.findByUser(userId, { dateFrom: range?.from, dateTo: range?.to }),
     ]);
 
     return {
-      totalTimeByType,
-      topItems: topItems.map(({ mediaItem, totalMinutes }) => ({
-        id: mediaItem.id,
-        title: mediaItem.title,
-        type: mediaItem.type,
-        totalMinutes,
-      })),
-      totalSessions: entries.length,
+      data: {
+        totalTimeByType,
+        topItems: topItems.map(({ mediaItem, totalMinutes }) => ({
+          id: mediaItem.id,
+          title: mediaItem.title,
+          type: mediaItem.type,
+          totalMinutes,
+        })),
+        totalSessions: entries.length,
+      },
     };
   }
 }

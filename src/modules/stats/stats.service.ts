@@ -1,9 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { MediaType } from "@prisma/client";
 import {
-  LogEntryWithMedia,
-  LogService,
-} from "../activity/log.service";
+  ActivityEntryWithMedia,
+  ActivityService,
+} from "../activity/activity.service";
 
 export const STATS_PERIODS = [
   { slug: "this-week", label: "This week" },
@@ -37,7 +37,7 @@ export interface ActivityChartSeries {
 }
 
 export interface TopItem {
-  mediaItem: LogEntryWithMedia["mediaItem"];
+  mediaItem: ActivityEntryWithMedia["mediaItem"];
   totalMinutes: number;
 }
 
@@ -56,7 +56,7 @@ export interface WeeklyNostalgiaComparison {
 }
 
 export interface WeeklyNostalgiaThrowbackItem {
-  mediaItem: LogEntryWithMedia["mediaItem"];
+  mediaItem: ActivityEntryWithMedia["mediaItem"];
   durationMinutes: number;
   loggedAt: Date;
   year: number;
@@ -96,7 +96,7 @@ export interface WeeklyNostalgiaDeepDive {
 
 @Injectable()
 export class StatsService {
-  constructor(private readonly logService: LogService) { }
+  constructor(private readonly activityService: ActivityService) { }
 
   isValidPeriod(period: string): period is StatsPeriodSlug {
     return STATS_PERIODS.some(({ slug }) => slug === period);
@@ -320,15 +320,15 @@ export class StatsService {
   private findEntries(
     userId: string,
     range: DateRange | null,
-  ): Promise<LogEntryWithMedia[]> {
-    return this.logService.findByUser(userId, {
+  ): Promise<ActivityEntryWithMedia[]> {
+    return this.activityService.findByUser(userId, {
       dateFrom: range?.from,
       dateTo: range?.to,
     });
   }
 
   private weeklySummaryForRange(
-    entries: LogEntryWithMedia[],
+    entries: ActivityEntryWithMedia[],
     year: number,
     range: DateRange,
   ): WeeklyNostalgiaYearSummary {
@@ -350,7 +350,7 @@ export class StatsService {
   }
 
   private typeBreakdownFromEntries(
-    entries: LogEntryWithMedia[],
+    entries: ActivityEntryWithMedia[],
   ): NostalgiaTypeBreakdownSlice[] {
     const totalsBySeries = new Map<ActivityChartSeries["key"], number>(
       CHART_SERIES.map((series) => [series.key, 0]),
@@ -375,7 +375,7 @@ export class StatsService {
   }
 
   private topItemsFromEntries(
-    entries: LogEntryWithMedia[],
+    entries: ActivityEntryWithMedia[],
     limit: number,
   ): TopItem[] {
     const items = new Map<string, TopItem>();
@@ -395,9 +395,9 @@ export class StatsService {
   }
 
   private pickStableThrowbackEntry(
-    entries: LogEntryWithMedia[],
+    entries: ActivityEntryWithMedia[],
     seed: string,
-  ): LogEntryWithMedia | null {
+  ): ActivityEntryWithMedia | null {
     if (entries.length === 0) {
       return null;
     }
@@ -414,7 +414,7 @@ export class StatsService {
   }
 
   private buildChart(
-    entries: LogEntryWithMedia[],
+    entries: ActivityEntryWithMedia[],
     slug: StatsPeriodSlug,
     range: DateRange | null,
   ): ActivityChartData {
@@ -449,7 +449,7 @@ export class StatsService {
   }
 
   private sumByLabels(
-    entries: LogEntryWithMedia[],
+    entries: ActivityEntryWithMedia[],
     labels: string[],
     labelForDate: (date: Date) => string,
   ): ActivityChartData {
@@ -571,7 +571,7 @@ export class StatsService {
     };
   }
 
-  private static uniqueYears(entries: LogEntryWithMedia[]): number[] {
+  private static uniqueYears(entries: ActivityEntryWithMedia[]): number[] {
     return [...new Set(entries.map((entry) => entry.loggedAt.getFullYear()))];
   }
 

@@ -237,6 +237,28 @@ export class MediaService {
     });
   }
 
+  async resolveByTitleForUser(
+    userId: string,
+    title: string,
+  ): Promise<MediaItem | null> {
+    const normalizedAlias = MediaService.normaliseAlias(title);
+    const aliasMatch = await this.prisma.mediaAlias.findUnique({
+      where: { alias: normalizedAlias },
+      include: { mediaItem: true },
+    });
+
+    if (!aliasMatch) {
+      return null;
+    }
+
+    const hasAccess = await this.hasUserAccess(aliasMatch.mediaItem.id, userId);
+    if (!hasAccess) {
+      return null;
+    }
+
+    return aliasMatch.mediaItem;
+  }
+
   findById(id: string): Promise<MediaItem | null> {
     return this.prisma.mediaItem.findUnique({ where: { id } });
   }

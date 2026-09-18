@@ -1,6 +1,6 @@
 import type { Response } from "express";
 import type { AppCacheService } from "../../infrastructure/cache/app-cache.service";
-import type { LogService } from "../../modules/activity/log.service";
+import type { ActivityService } from "../../modules/activity/activity.service";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
 import { HistoryController } from "./history.controller";
 
@@ -26,7 +26,7 @@ describe("HistoryController", () => {
     cacheGet = jest.fn().mockResolvedValue(null);
     cacheSet = jest.fn();
     controller = new HistoryController(
-      { findByUser, groupByDay } as unknown as LogService,
+      { findByUser, groupByDay } as unknown as ActivityService,
       { get: cacheGet, set: cacheSet } as unknown as AppCacheService,
     );
     response = { redirect: jest.fn(), render: jest.fn() };

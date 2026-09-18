@@ -1,7 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { MediaType } from "@prisma/client";
-import { Transform } from "class-transformer";
-import { IsNotEmpty, IsString, Matches, MaxLength } from "class-validator";
+import { Transform, Type } from "class-transformer";
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  ValidateNested,
+} from "class-validator";
 
 const PROVIDER_NAMESPACE_PATTERN = /^[a-z0-9](?:[a-z0-9._:-]{0,62}[a-z0-9])?$/;
 
@@ -53,4 +63,92 @@ export class ResolvedMediaResponseDto {
 export class MediaExternalAliasesResponseDto {
   @ApiProperty({ type: [ExternalAliasDto], description: "External aliases on this media item" })
   data!: ExternalAliasDto[];
+}
+
+export class ResolveMediaQueryDto {
+  @ApiPropertyOptional({
+    example: "cm123",
+    description: "Resolve by existing STrackerr item id",
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  mediaItemId?: string;
+
+  @ApiPropertyOptional({
+    example: "Severance",
+    description: "Resolve by title",
+    maxLength: 500,
+  })
+  @IsOptional()
+  @Transform(({ value }) => typeof value === "string" ? value.trim() : value)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
+  title?: string;
+
+  @ApiPropertyOptional({
+    example: "steam",
+    description: "Resolve by external alias namespace",
+  })
+  @IsOptional()
+  @Transform(({ value }) => typeof value === "string" ? value.trim().toLowerCase() : value)
+  @IsString()
+  @IsNotEmpty()
+  @Matches(PROVIDER_NAMESPACE_PATTERN)
+  provider?: string;
+
+  @ApiPropertyOptional({
+    example: "app:620",
+    description: "Resolve by external alias id",
+    maxLength: 128,
+  })
+  @IsOptional()
+  @Transform(({ value }) => typeof value === "string" ? value.trim() : value)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(128)
+  id?: string;
+}
+
+export class CreateMediaItemDto {
+  @ApiProperty({
+    enum: MediaType,
+    example: MediaType.MOVIE,
+    description: "Media type for the new item",
+  })
+  @IsEnum(MediaType)
+  type!: MediaType;
+
+  @ApiProperty({
+    example: "Arrival",
+    description: "Media title",
+    maxLength: 500,
+  })
+  @Transform(({ value }) => typeof value === "string" ? value.trim() : value)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
+  title!: string;
+
+  @ApiPropertyOptional({
+    type: [ExternalAliasDto],
+    description: "Optional external aliases attached at creation time",
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => ExternalAliasDto)
+  externalAliases?: ExternalAliasDto[];
+}
+
+export class CreatedMediaResponseDto {
+  @ApiProperty({ type: MediaItemDto, description: "Created media item" })
+  data!: MediaItemDto;
+}
+
+export class IdentifiedMediaResponseDto {
+  @ApiProperty({ type: MediaItemDto, description: "Updated identified media item" })
+  data!: MediaItemDto;
 }

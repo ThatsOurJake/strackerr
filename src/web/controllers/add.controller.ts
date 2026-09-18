@@ -10,7 +10,7 @@ import {
 } from "@nestjs/common";
 import { LogSource, MediaType } from "@prisma/client";
 import type { Response } from "express";
-import { LogService } from "../../modules/activity/log.service";
+import { ActivityService } from "../../modules/activity/activity.service";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
 import { CurrentUser } from "../../modules/auth/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../../modules/auth/guards/jwt-auth.guard";
@@ -35,7 +35,7 @@ export class AddController {
   constructor(
     private readonly metadataService: MetadataService,
     private readonly mediaService: MediaService,
-    private readonly logService: LogService,
+    private readonly activityService: ActivityService,
   ) { }
 
   @Get()
@@ -202,7 +202,7 @@ export class AddController {
         body,
         user.userId,
       );
-      await this.logService.create(
+      await this.activityService.create(
         {
           mediaItemId: mediaItem.id,
           loggedAt: validated.loggedAt,

@@ -2,7 +2,7 @@ import { Controller, Get, Res, UseGuards } from "@nestjs/common";
 import type { Response } from "express";
 import { AppCacheService } from "../../infrastructure/cache/app-cache.service";
 import { CacheKeys } from "../../infrastructure/cache/cache-keys";
-import { LogService } from "../../modules/activity/log.service";
+import { ActivityService } from "../../modules/activity/activity.service";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
 import { CurrentUser } from "../../modules/auth/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../../modules/auth/guards/jwt-auth.guard";
@@ -16,7 +16,7 @@ import {
 @UseGuards(JwtAuthGuard)
 export class DashboardController {
   constructor(
-    private readonly logService: LogService,
+    private readonly activityService: ActivityService,
     private readonly cacheService: AppCacheService,
   ) { }
 
@@ -35,7 +35,7 @@ export class DashboardController {
     const dateFrom = new Date();
     dateFrom.setDate(dateFrom.getDate() - 6);
     dateFrom.setHours(0, 0, 0, 0);
-    const entries = await this.logService.findByUser(user.userId, { dateFrom });
+    const entries = await this.activityService.findByUser(user.userId, { dateFrom });
     const totals = new Map<string, number>();
     for (const entry of entries) {
       totals.set(
@@ -44,7 +44,7 @@ export class DashboardController {
       );
     }
     const model = {
-      days: toDayViewModels(this.logService.groupByDay(entries)),
+      days: toDayViewModels(this.activityService.groupByDay(entries)),
       sessionCount: entries.length,
       stats: [...totals.entries()].map(([type, minutes]) => ({
         ...mediaTypeDetails(type as Parameters<typeof mediaTypeDetails>[0]),
