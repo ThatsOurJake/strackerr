@@ -35,7 +35,7 @@ import {
   ResolvedMediaResponseDto,
   ResolveMediaQueryDto,
 } from "./dto/media-alias.dto";
-import { MediaSearchResponseDto } from "./dto/response.dto";
+import { ApiErrorResponseDto, MediaSearchResponseDto } from "./dto/response.dto";
 import { ApiKeyGuard } from "./guards/api-key.guard";
 import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
 
@@ -122,7 +122,7 @@ export class ApiV1MediaController {
     type: MediaSearchResponseDto,
     description: "Matching media items",
   })
-  @ApiResponse({ status: 401, description: "Invalid or missing API key" })
+  @ApiResponse({ status: 401, type: ApiErrorResponseDto, description: "Invalid or missing API key" })
   async search(
     @Query("q") rawQuery: string,
     @Query("type") type: MediaType | undefined,
@@ -181,11 +181,13 @@ export class ApiV1MediaController {
   })
   @ApiResponse({
     status: 400,
+    type: ApiErrorResponseDto,
     description: "Mixed, missing, or invalid resolve lookup mode",
   })
-  @ApiResponse({ status: 401, description: "Invalid or missing API key" })
+  @ApiResponse({ status: 401, type: ApiErrorResponseDto, description: "Invalid or missing API key" })
   @ApiResponse({
     status: 404,
+    type: ApiErrorResponseDto,
     description: "No accessible media item found for the lookup",
   })
   async resolve(
@@ -239,8 +241,8 @@ export class ApiV1MediaController {
     type: ResolvedMediaResponseDto,
     description: "Accessible media item",
   })
-  @ApiResponse({ status: 401, description: "Invalid or missing API key" })
-  @ApiResponse({ status: 404, description: "Media item not found" })
+  @ApiResponse({ status: 401, type: ApiErrorResponseDto, description: "Invalid or missing API key" })
+  @ApiResponse({ status: 404, type: ApiErrorResponseDto, description: "Media item not found" })
   async getById(
     @Param("mediaItemId") mediaItemId: string,
     @Req() request: Request,
@@ -267,10 +269,11 @@ export class ApiV1MediaController {
     type: CreatedMediaResponseDto,
     description: "Media item created",
   })
-  @ApiResponse({ status: 400, description: "Invalid creation payload" })
-  @ApiResponse({ status: 401, description: "Invalid or missing API key" })
+  @ApiResponse({ status: 400, type: ApiErrorResponseDto, description: "Invalid creation payload" })
+  @ApiResponse({ status: 401, type: ApiErrorResponseDto, description: "Invalid or missing API key" })
   @ApiResponse({
     status: 409,
+    type: ApiErrorResponseDto,
     description: "One or more external aliases are already assigned",
   })
   async create(
@@ -318,15 +321,17 @@ export class ApiV1MediaController {
     type: IdentifiedMediaResponseDto,
     description: "Media item identified",
   })
-  @ApiResponse({ status: 401, description: "Invalid or missing API key" })
-  @ApiResponse({ status: 404, description: "Media item not found" })
+  @ApiResponse({ status: 401, type: ApiErrorResponseDto, description: "Invalid or missing API key" })
+  @ApiResponse({ status: 404, type: ApiErrorResponseDto, description: "Media item not found" })
   @ApiResponse({
     status: 409,
+    type: ApiErrorResponseDto,
     description:
       "Media item is already identified or alias mapping is ambiguous",
   })
   @ApiResponse({
     status: 422,
+    type: ApiErrorResponseDto,
     description:
       "Identification could not run due to missing alias or provider lookup failure",
   })
@@ -357,9 +362,9 @@ export class ApiV1MediaController {
     type: MediaExternalAliasesResponseDto,
     description: "External aliases",
   })
-  @ApiResponse({ status: 401, description: "Invalid or missing API key" })
-  @ApiResponse({ status: 403, description: "No access to this media item" })
-  @ApiResponse({ status: 404, description: "Media item not found" })
+  @ApiResponse({ status: 401, type: ApiErrorResponseDto, description: "Invalid or missing API key" })
+  @ApiResponse({ status: 403, type: ApiErrorResponseDto, description: "No access to this media item" })
+  @ApiResponse({ status: 404, type: ApiErrorResponseDto, description: "Media item not found" })
   async listExternalAliases(
     @Param("mediaItemId") mediaItemId: string,
     @Req() request: Request,
@@ -388,11 +393,12 @@ export class ApiV1MediaController {
     type: MediaExternalAliasesResponseDto,
     description: "Alias attached",
   })
-  @ApiResponse({ status: 401, description: "Invalid or missing API key" })
-  @ApiResponse({ status: 403, description: "No access to this media item" })
-  @ApiResponse({ status: 404, description: "Media item not found" })
+  @ApiResponse({ status: 401, type: ApiErrorResponseDto, description: "Invalid or missing API key" })
+  @ApiResponse({ status: 403, type: ApiErrorResponseDto, description: "No access to this media item" })
+  @ApiResponse({ status: 404, type: ApiErrorResponseDto, description: "Media item not found" })
   @ApiResponse({
     status: 409,
+    type: ApiErrorResponseDto,
     description: "Alias is already assigned to another media item",
   })
   async createExternalAlias(
@@ -436,9 +442,9 @@ export class ApiV1MediaController {
     maxLength: 128,
   })
   @ApiResponse({ status: 204, description: "Alias removed" })
-  @ApiResponse({ status: 401, description: "Invalid or missing API key" })
-  @ApiResponse({ status: 403, description: "No access to this media item" })
-  @ApiResponse({ status: 404, description: "Media item or alias not found" })
+  @ApiResponse({ status: 401, type: ApiErrorResponseDto, description: "Invalid or missing API key" })
+  @ApiResponse({ status: 403, type: ApiErrorResponseDto, description: "No access to this media item" })
+  @ApiResponse({ status: 404, type: ApiErrorResponseDto, description: "Media item or alias not found" })
   async removeExternalAlias(
     @Param("mediaItemId") mediaItemId: string,
     @Query("provider") provider: string,

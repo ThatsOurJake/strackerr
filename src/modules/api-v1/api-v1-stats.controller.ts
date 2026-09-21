@@ -5,7 +5,7 @@ import type { Request } from "express";
 import { ActivityService } from "../activity/activity.service";
 import { STATS_PERIODS, type StatsPeriodSlug, StatsService } from "../stats/stats.service";
 import { getApiRequestUserId } from "./api-v1-activity.controller.helpers";
-import { StatsResponseDto } from "./dto/response.dto";
+import { ApiErrorResponseDto, StatsResponseDto } from "./dto/response.dto";
 import { ApiKeyGuard } from "./guards/api-key.guard";
 import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
 
@@ -25,8 +25,8 @@ export class ApiV1StatsController {
   @ApiQuery({ name: "period", enum: STATS_PERIODS.map(({ slug }) => slug), required: false })
   @ApiQuery({ name: "year", type: Number, required: false, example: 2026 })
   @ApiResponse({ status: 200, type: StatsResponseDto, description: "User-scoped activity summary" })
-  @ApiResponse({ status: 400, description: "Invalid or conflicting period filters" })
-  @ApiResponse({ status: 401, description: "Invalid or missing API key" })
+  @ApiResponse({ status: 400, type: ApiErrorResponseDto, description: "Invalid or conflicting period filters" })
+  @ApiResponse({ status: 401, type: ApiErrorResponseDto, description: "Invalid or missing API key" })
   async getStats(
     @Query("period") period: string | undefined,
     @Query("year") rawYear: string | undefined,

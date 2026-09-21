@@ -20,7 +20,10 @@ import {
 import { Throttle } from "@nestjs/throttler";
 import { LogSource, MediaType } from "@prisma/client";
 import type { Request } from "express";
-import { type CreateActivityData, ActivityService } from "../activity/activity.service";
+import {
+  ActivityService,
+  type CreateActivityData,
+} from "../activity/activity.service";
 import { MediaService } from "../media/media.service";
 import {
   getApiRequestUserId,
@@ -35,8 +38,9 @@ import {
   CreateTvEpisodeActivityDto,
 } from "./dto/activity.dto";
 import {
-  CreatedBoardGameActivityResponseDto,
+  ApiErrorResponseDto,
   type CreatedActivityResponseDto,
+  CreatedBoardGameActivityResponseDto,
   CreatedGameActivityResponseDto,
   CreatedMovieActivityResponseDto,
   CreatedMusicActivityResponseDto,
@@ -64,19 +68,41 @@ export class ApiV1ActivityController {
     type: CreatedMovieActivityResponseDto,
     description: "Movie activity logged",
   })
-  @ApiResponse({ status: 400, description: "Invalid request fields" })
-  @ApiResponse({ status: 401, description: "Invalid or missing API key" })
-  @ApiResponse({ status: 404, description: "Media item not found" })
-  @ApiResponse({ status: 409, description: "Duplicate entry" })
+  @ApiResponse({
+    status: 400,
+    type: ApiErrorResponseDto,
+    description: "Invalid request fields",
+  })
+  @ApiResponse({
+    status: 401,
+    type: ApiErrorResponseDto,
+    description: "Invalid or missing API key",
+  })
+  @ApiResponse({
+    status: 404,
+    type: ApiErrorResponseDto,
+    description: "Media item not found",
+  })
+  @ApiResponse({
+    status: 409,
+    type: ApiErrorResponseDto,
+    description: "Duplicate entry",
+  })
   async createMovie(
     @Body() dto: CreateMovieActivityDto,
     @Req() request: Request,
   ): Promise<CreatedMovieActivityResponseDto> {
     const userId = getApiRequestUserId(request);
     await this.assertRouteMediaType(dto.mediaItemId, userId, [MediaType.MOVIE]);
-    const created = await this.createActivityEntry(dto.mediaItemId, dto, userId);
+    const created = await this.createActivityEntry(
+      dto.mediaItemId,
+      dto,
+      userId,
+    );
     if (created.type !== MediaType.MOVIE) {
-      throw new BadRequestException("Activity route does not support media type");
+      throw new BadRequestException(
+        "Activity route does not support media type",
+      );
     }
 
     return {
@@ -93,10 +119,26 @@ export class ApiV1ActivityController {
     type: CreatedTvEpisodeActivityResponseDto,
     description: "TV episode activity logged",
   })
-  @ApiResponse({ status: 400, description: "Invalid request fields" })
-  @ApiResponse({ status: 401, description: "Invalid or missing API key" })
-  @ApiResponse({ status: 404, description: "Media item not found" })
-  @ApiResponse({ status: 409, description: "Duplicate entry" })
+  @ApiResponse({
+    status: 400,
+    type: ApiErrorResponseDto,
+    description: "Invalid request fields",
+  })
+  @ApiResponse({
+    status: 401,
+    type: ApiErrorResponseDto,
+    description: "Invalid or missing API key",
+  })
+  @ApiResponse({
+    status: 404,
+    type: ApiErrorResponseDto,
+    description: "Media item not found",
+  })
+  @ApiResponse({
+    status: 409,
+    type: ApiErrorResponseDto,
+    description: "Duplicate entry",
+  })
   async createTvEpisode(
     @Body() dto: CreateTvEpisodeActivityDto,
     @Req() request: Request,
@@ -119,7 +161,9 @@ export class ApiV1ActivityController {
 
       const created = await this.createActivityEntry(target.id, dto, userId);
       if (created.type !== MediaType.TV_EPISODE) {
-        throw new BadRequestException("Activity route does not support media type");
+        throw new BadRequestException(
+          "Activity route does not support media type",
+        );
       }
 
       return {
@@ -137,7 +181,9 @@ export class ApiV1ActivityController {
 
     const created = await this.createActivityEntry(episode.id, dto, userId);
     if (created.type !== MediaType.TV_EPISODE) {
-      throw new BadRequestException("Activity route does not support media type");
+      throw new BadRequestException(
+        "Activity route does not support media type",
+      );
     }
 
     return {
@@ -152,21 +198,44 @@ export class ApiV1ActivityController {
     type: CreatedGameActivityResponseDto,
     description: "Game activity logged",
   })
-  @ApiResponse({ status: 400, description: "Invalid request fields" })
-  @ApiResponse({ status: 401, description: "Invalid or missing API key" })
-  @ApiResponse({ status: 404, description: "Media item not found" })
-  @ApiResponse({ status: 409, description: "Duplicate entry" })
+  @ApiResponse({
+    status: 400,
+    type: ApiErrorResponseDto,
+    description: "Invalid request fields",
+  })
+  @ApiResponse({
+    status: 401,
+    type: ApiErrorResponseDto,
+    description: "Invalid or missing API key",
+  })
+  @ApiResponse({
+    status: 404,
+    type: ApiErrorResponseDto,
+    description: "Media item not found",
+  })
+  @ApiResponse({
+    status: 409,
+    type: ApiErrorResponseDto,
+    description: "Duplicate entry",
+  })
   async createGame(
     @Body() dto: CreateGameActivityDto,
     @Req() request: Request,
   ): Promise<CreatedGameActivityResponseDto> {
     const userId = getApiRequestUserId(request);
     await this.assertRouteMediaType(dto.mediaItemId, userId, [MediaType.GAME]);
-    const created = await this.createActivityEntry(dto.mediaItemId, dto, userId, {
-      platform: dto.platform,
-    });
+    const created = await this.createActivityEntry(
+      dto.mediaItemId,
+      dto,
+      userId,
+      {
+        platform: dto.platform,
+      },
+    );
     if (created.type !== MediaType.GAME) {
-      throw new BadRequestException("Activity route does not support media type");
+      throw new BadRequestException(
+        "Activity route does not support media type",
+      );
     }
 
     return {
@@ -181,10 +250,26 @@ export class ApiV1ActivityController {
     type: CreatedBoardGameActivityResponseDto,
     description: "Board game activity logged",
   })
-  @ApiResponse({ status: 400, description: "Invalid request fields" })
-  @ApiResponse({ status: 401, description: "Invalid or missing API key" })
-  @ApiResponse({ status: 404, description: "Media item not found" })
-  @ApiResponse({ status: 409, description: "Duplicate entry" })
+  @ApiResponse({
+    status: 400,
+    type: ApiErrorResponseDto,
+    description: "Invalid request fields",
+  })
+  @ApiResponse({
+    status: 401,
+    type: ApiErrorResponseDto,
+    description: "Invalid or missing API key",
+  })
+  @ApiResponse({
+    status: 404,
+    type: ApiErrorResponseDto,
+    description: "Media item not found",
+  })
+  @ApiResponse({
+    status: 409,
+    type: ApiErrorResponseDto,
+    description: "Duplicate entry",
+  })
   async createBoardGame(
     @Body() dto: CreateBoardGameActivityDto,
     @Req() request: Request,
@@ -193,12 +278,19 @@ export class ApiV1ActivityController {
     await this.assertRouteMediaType(dto.mediaItemId, userId, [
       MediaType.BOARD_GAME,
     ]);
-    const created = await this.createActivityEntry(dto.mediaItemId, dto, userId, {
-      playerCount: dto.players,
-      won: dto.won,
-    });
+    const created = await this.createActivityEntry(
+      dto.mediaItemId,
+      dto,
+      userId,
+      {
+        playerCount: dto.players,
+        won: dto.won,
+      },
+    );
     if (created.type !== MediaType.BOARD_GAME) {
-      throw new BadRequestException("Activity route does not support media type");
+      throw new BadRequestException(
+        "Activity route does not support media type",
+      );
     }
 
     return {
@@ -213,10 +305,26 @@ export class ApiV1ActivityController {
     type: CreatedMusicActivityResponseDto,
     description: "Music activity logged",
   })
-  @ApiResponse({ status: 400, description: "Invalid request fields" })
-  @ApiResponse({ status: 401, description: "Invalid or missing API key" })
-  @ApiResponse({ status: 404, description: "Media item not found" })
-  @ApiResponse({ status: 409, description: "Duplicate entry" })
+  @ApiResponse({
+    status: 400,
+    type: ApiErrorResponseDto,
+    description: "Invalid request fields",
+  })
+  @ApiResponse({
+    status: 401,
+    type: ApiErrorResponseDto,
+    description: "Invalid or missing API key",
+  })
+  @ApiResponse({
+    status: 404,
+    type: ApiErrorResponseDto,
+    description: "Media item not found",
+  })
+  @ApiResponse({
+    status: 409,
+    type: ApiErrorResponseDto,
+    description: "Duplicate entry",
+  })
   async createMusic(
     @Body() dto: CreateMusicActivityDto,
     @Req() request: Request,
@@ -225,9 +333,15 @@ export class ApiV1ActivityController {
     await this.assertRouteMediaType(dto.mediaItemId, userId, [
       MediaType.MUSIC_TRACK,
     ]);
-    const created = await this.createActivityEntry(dto.mediaItemId, dto, userId);
+    const created = await this.createActivityEntry(
+      dto.mediaItemId,
+      dto,
+      userId,
+    );
     if (created.type !== MediaType.MUSIC_TRACK) {
-      throw new BadRequestException("Activity route does not support media type");
+      throw new BadRequestException(
+        "Activity route does not support media type",
+      );
     }
 
     return {
@@ -257,8 +371,16 @@ export class ApiV1ActivityController {
     description:
       "Paginated user-scoped activity entries for the requested media item",
   })
-  @ApiResponse({ status: 401, description: "Invalid or missing API key" })
-  @ApiResponse({ status: 404, description: "Media item not found" })
+  @ApiResponse({
+    status: 401,
+    type: ApiErrorResponseDto,
+    description: "Invalid or missing API key",
+  })
+  @ApiResponse({
+    status: 404,
+    type: ApiErrorResponseDto,
+    description: "Media item not found",
+  })
   async findAll(
     @Param("mediaItemId") mediaItemId: string,
     @Query("dateFrom") dateFrom: string | undefined,

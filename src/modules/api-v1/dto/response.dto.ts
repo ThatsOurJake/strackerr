@@ -1,6 +1,37 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { MediaType } from "@prisma/client";
 
+export class ApiErrorDto {
+  @ApiProperty({ example: 422, description: "HTTP status code" })
+  statusCode!: number;
+
+  @ApiProperty({
+    example: "Identification could not run due to missing alias",
+    description: "Primary error message",
+  })
+  message!: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ["loggedAt must be an ISO date string"],
+    description: "Optional validation or field-level details",
+  })
+  details?: string[];
+}
+
+export class ApiErrorResponseDto {
+  @ApiProperty({
+    type: ApiErrorDto,
+    description: "Standardized API error envelope",
+    example: {
+      statusCode: 400,
+      message: "Invalid request fields",
+      details: ["loggedAt must be an ISO date string"],
+    },
+  })
+  error!: ApiErrorDto;
+}
+
 export class ActivityEntryResponseDto {
   @ApiProperty({ example: "clog123", description: "Activity entry identifier" })
   id!: string;
