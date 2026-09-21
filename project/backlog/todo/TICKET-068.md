@@ -28,3 +28,6 @@ Expose a consumer-facing endpoint that lets clients trigger identification for o
 - [ ] Upstream metadata lookup failures are surfaced in a consumer-usable way without exposing internal stack details
 - [ ] Swagger documents the new importer workflow and no longer presents legacy `/log` routes
 - [ ] Automated coverage verifies endpoint responses and public OpenAPI route contents
+
+## Progress Notes
+- 2026-09-21: Added and documented `GET /api/v1/profile` as a consumer-facing API-key sanity-check endpoint in API v1, with standardized error envelope and 404 behavior for invalid/missing keys.

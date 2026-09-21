@@ -32,6 +32,25 @@ export class ApiErrorResponseDto {
   error!: ApiErrorDto;
 }
 
+export class ApiProfileDto {
+  @ApiProperty({ example: "clx123", description: "User identifier" })
+  id!: string;
+
+  @ApiProperty({ example: "john", description: "Username attached to the API key" })
+  username!: string;
+
+  @ApiProperty({ example: false, description: "Whether the user has administrator access" })
+  isAdmin!: boolean;
+
+  @ApiProperty({ example: "2026-01-01T12:00:00.000Z", description: "Profile creation time" })
+  createdAt!: Date;
+}
+
+export class ApiProfileResponseDto {
+  @ApiProperty({ type: ApiProfileDto, description: "Authenticated API profile" })
+  data!: ApiProfileDto;
+}
+
 export class ActivityEntryResponseDto {
   @ApiProperty({ example: "clog123", description: "Activity entry identifier" })
   id!: string;
