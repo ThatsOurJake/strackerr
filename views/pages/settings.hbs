@@ -255,6 +255,30 @@
           up unused images</button>
       </form>
     </div>
+    <div class="rounded border border-border bg-bg-surface p-4">
+      <h2 class="mb-2 text-heading font-heading">Orphaned Item Cleanup</h2>
+      <p class="mb-4 text-body text-text-secondary">Remove non-skeleton catalog items no user references and that are
+        not
+        attached to parent-child relationships.</p>
+      {{#if (eq orphanedItemCleanup.state 'running')}}
+      <p class="mb-4 text-body text-type-tv" role="status">Cleanup is running in the background.</p>
+      {{/if}}
+      {{#if (eq orphanedItemCleanup.state 'completed')}}
+      <p class="mb-4 text-body text-text-secondary" role="status">Last cleanup removed
+        {{orphanedItemCleanup.removedItems}}
+        item(s) with {{orphanedItemCleanup.failedItems}} failure(s).</p>
+      {{/if}}
+      {{#if (eq orphanedItemCleanup.state 'failed')}}
+      <p class="mb-4 text-body text-red-400" role="alert">The last cleanup failed. Check the application logs.</p>
+      {{/if}}
+      <form method="POST" action="/settings/items/cleanup-orphaned" hx-post="/settings/items/cleanup-orphaned"
+        hx-target="body">
+        <input type="hidden" name="_csrf" value="{{csrfToken}}" />
+        <button type="submit" {{#if (eq orphanedItemCleanup.state 'running' )}}disabled{{/if}}
+          class="rounded bg-type-music px-4 py-2 font-heading text-body font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Clean
+          up orphaned items</button>
+      </form>
+    </div>
   </section>
   {{/if}}
 </div>

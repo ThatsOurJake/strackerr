@@ -54,13 +54,19 @@ const createDetail = () => ({
 describe("ItemController", () => {
   let findDetail: jest.Mock;
   let bulkEditItem: jest.Mock;
+  let removeItemForUser: jest.Mock;
   let controller: ItemController;
   let response: { render: jest.Mock; status: jest.Mock; send: jest.Mock; redirect: jest.Mock };
 
   beforeEach(() => {
     findDetail = jest.fn().mockResolvedValue(createDetail());
     bulkEditItem = jest.fn().mockResolvedValue({ itemId: "item-1", stillAccessible: true });
-    controller = new ItemController({ findDetail, bulkEditItem } as unknown as CollectionService);
+    removeItemForUser = jest.fn().mockResolvedValue({ removed: true, itemTitle: "Arrival" });
+    controller = new ItemController({
+      findDetail,
+      bulkEditItem,
+      removeItemForUser,
+    } as unknown as CollectionService);
     response = {
       render: jest.fn(),
       status: jest.fn().mockReturnThis(),
@@ -187,6 +193,35 @@ describe("ItemController", () => {
 
     expect(response.redirect).toHaveBeenCalledWith(
       "/collection?success=Item%20changes%20saved",
+    );
+  });
+
+  it("removes the item and redirects to collection with a success message", async () => {
+    await controller.remove(
+      "item-1",
+      user,
+      { confirmTitle: "Arrival" },
+      response as unknown as Response,
+    );
+
+    expect(removeItemForUser).toHaveBeenCalledWith("user-7", "item-1", "Arrival");
+    expect(response.redirect).toHaveBeenCalledWith(
+      "/collection?successCode=ITEM_REMOVED",
+    );
+  });
+
+  it("redirects to collection with an error when item removal fails", async () => {
+    removeItemForUser.mockResolvedValueOnce({ removed: false });
+
+    await controller.remove(
+      "item-1",
+      user,
+      { confirmTitle: "Wrong" },
+      response as unknown as Response,
+    );
+
+    expect(response.redirect).toHaveBeenCalledWith(
+      "/collection?errorCode=ITEM_REMOVE_FAILED",
     );
   });
 });

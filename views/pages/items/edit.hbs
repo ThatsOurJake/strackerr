@@ -174,5 +174,48 @@
           class="inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-elevated px-4 py-2 font-heading text-sm font-semibold text-text-primary hover:bg-bg-surface">Cancel</a>
       </div>
     </section>
+
+    <section class="rounded-lg border border-red-500/40 bg-red-500/10 p-4" aria-labelledby="delete-item-heading">
+      <h2 id="delete-item-heading" class="font-heading text-lg font-bold text-red-200">Delete from collection</h2>
+      <p class="mt-1 text-sm text-red-200/90">This permanently removes {{itemTitle}} from your collection and deletes
+        all of your history for this item. This cannot be undone.</p>
+      <div class="mt-4">
+        <button type="button" id="open-delete-item-confirm"
+          class="inline-flex items-center gap-2 rounded-lg border border-red-400/60 bg-red-600 px-4 py-2 font-heading text-sm font-semibold text-white active:scale-[0.98]">
+          <i data-lucide="trash-2" class="h-4 w-4"></i>Delete item
+        </button>
+      </div>
+    </section>
   </form>
+
+  <div id="delete-item-dialog" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/70 p-4"
+    role="dialog" aria-modal="true" aria-labelledby="delete-item-dialog-title">
+    <div class="w-full max-w-lg rounded-lg border border-red-500/40 bg-bg-surface p-4">
+      <h2 id="delete-item-dialog-title" class="font-heading text-xl font-bold text-red-200">Confirm permanent removal
+      </h2>
+      <p class="mt-2 text-sm text-text-secondary">Type <span class="font-heading text-text-primary">{{itemTitle}}</span>
+        to confirm permanent removal. This deletes all of your history rows for this item.</p>
+
+      <form method="post" action="{{deleteUrl}}" class="mt-4 grid gap-4" id="delete-item-form">
+        <input type="hidden" name="_csrf" value="{{csrfToken}}" />
+        <label class="block">
+          <span class="mb-1 block font-heading text-sm font-semibold text-text-secondary">Confirm item title</span>
+          <input type="text" id="delete-item-confirm-input" name="confirmTitle" autocomplete="off"
+            data-confirm-title="{{itemTitle}}"
+            class="w-full rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-red-500"
+            placeholder="{{itemTitle}}" required />
+        </label>
+        <p id="delete-item-confirm-error" class="hidden text-sm text-red-300" role="alert">Title does not match.
+          Deletion was not submitted.</p>
+        <div class="flex flex-wrap items-center gap-3">
+          <button type="submit"
+            class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 font-heading text-sm font-semibold text-white active:scale-[0.98]">
+            <i data-lucide="trash-2" class="h-4 w-4"></i>Delete permanently
+          </button>
+          <button type="button" id="cancel-delete-item"
+            class="inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-elevated px-4 py-2 font-heading text-sm font-semibold text-text-primary hover:bg-bg-surface">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>

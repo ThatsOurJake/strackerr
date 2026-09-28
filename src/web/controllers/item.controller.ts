@@ -44,6 +44,10 @@ interface ItemEditBody {
   aliasRemove?: string | string[];
 }
 
+interface ItemDeleteBody {
+  confirmTitle?: string;
+}
+
 @Controller("items")
 @UseGuards(JwtAuthGuard)
 export class ItemController {
@@ -121,6 +125,29 @@ export class ItemController {
       }
       throw error;
     }
+  }
+
+  @Post(":id/delete")
+  async remove(
+    @Param("id") id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: ItemDeleteBody,
+    @Res() response: Response,
+  ) {
+    const result = await this.collectionService.removeItemForUser(
+      user.userId,
+      id,
+      body.confirmTitle,
+    );
+    if (!result.removed || !result.itemTitle) {
+      return response.redirect(
+        "/collection?errorCode=ITEM_REMOVE_FAILED",
+      );
+    }
+
+    return response.redirect(
+      "/collection?successCode=ITEM_REMOVED",
+    );
   }
 
   private parseBody(body: ItemEditBody) {

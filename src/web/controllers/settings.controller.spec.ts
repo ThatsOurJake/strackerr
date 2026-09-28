@@ -1,6 +1,7 @@
 import type { Response } from "express";
 import type { AppCacheService } from "../../infrastructure/cache/app-cache.service";
 import type { ImageCleanupService } from "../../infrastructure/jobs/image-cleanup.service";
+import type { OrphanedItemCleanupService } from "../../infrastructure/jobs/orphaned-item-cleanup.service";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
 import type { MetadataService } from "../../modules/metadata/metadata.service";
 import type { UsersService } from "../../modules/users/users.service";
@@ -36,6 +37,7 @@ describe("SettingsWebController", () => {
   };
   let clearForUser: jest.Mock;
   let startCleanup: jest.Mock;
+  let startOrphanedCleanup: jest.Mock;
   let controller: SettingsWebController;
   let response: { render: jest.Mock };
 
@@ -77,6 +79,7 @@ describe("SettingsWebController", () => {
     };
     clearForUser = jest.fn();
     startCleanup = jest.fn().mockReturnValue(true);
+    startOrphanedCleanup = jest.fn().mockReturnValue(true);
     controller = new SettingsWebController(
       usersService as unknown as UsersService,
       { clearForUser } as unknown as AppCacheService,
@@ -85,6 +88,10 @@ describe("SettingsWebController", () => {
         startCleanup,
         getStatus: jest.fn().mockReturnValue({ state: "idle" }),
       } as unknown as ImageCleanupService,
+      {
+        startCleanup: startOrphanedCleanup,
+        getStatus: jest.fn().mockReturnValue({ state: "idle" }),
+      } as unknown as OrphanedItemCleanupService,
     );
     response = { render: jest.fn() };
   });
@@ -284,6 +291,29 @@ describe("SettingsWebController", () => {
       "settings",
       expect.objectContaining({
         error: "Unused image cleanup is already running",
+      }),
+    );
+  });
+
+  it("starts orphaned item cleanup without awaiting the job", async () => {
+    await controller.cleanupOrphanedItems(response as unknown as Response, user);
+
+    expect(startOrphanedCleanup).toHaveBeenCalledTimes(1);
+    expect(response.render).toHaveBeenCalledWith(
+      "settings",
+      expect.objectContaining({ success: "Orphaned item cleanup started" }),
+    );
+  });
+
+  it("reports when orphaned item cleanup is already running", async () => {
+    startOrphanedCleanup.mockReturnValue(false);
+
+    await controller.cleanupOrphanedItems(response as unknown as Response, user);
+
+    expect(response.render).toHaveBeenCalledWith(
+      "settings",
+      expect.objectContaining({
+        error: "Orphaned item cleanup is already running",
       }),
     );
   });
