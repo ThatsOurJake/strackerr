@@ -38,7 +38,7 @@ import {
 } from "./settings.controller.helpers";
 
 @Controller("settings")
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(JwtAuthGuard)
 export class SettingsWebController {
   constructor(
     private readonly usersService: UsersService,
@@ -261,6 +261,7 @@ export class SettingsWebController {
   }
 
   @Post("images/cleanup")
+  @UseGuards(AdminGuard)
   async cleanupImages(
     @Res() res: Response,
     @CurrentUser() user: AuthenticatedUser,
@@ -277,6 +278,7 @@ export class SettingsWebController {
   }
 
   @Post("items/cleanup-orphaned")
+  @UseGuards(AdminGuard)
   async cleanupOrphanedItems(
     @Res() res: Response,
     @CurrentUser() user: AuthenticatedUser,
@@ -338,6 +340,7 @@ export class SettingsWebController {
     return res.render("settings", {
       title: "Settings",
       username: userRecord?.username,
+      isAdmin: userRecord?.isAdmin ?? user.isAdmin,
       activeTab,
       providerCredentials: PROVIDER_CREDENTIALS.map((provider) => ({
         ...provider,
