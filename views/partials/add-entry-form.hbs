@@ -13,12 +13,52 @@
     <div>
       <label for="add-title" class="mb-1 block font-heading text-sm font-semibold text-text-secondary">{{#if
         isTvEpisode}}Show title{{else}}Title{{/if}}</label>
-      <input id="add-title" name="title" value="{{title}}" required {{#if mediaItemId}}readonly{{/if}}
+      <input id="add-title" name="title" value="{{title}}" required {{#if mediaItemId}}readonly{{/if}} {{#if
+        isTvEpisode}}{{#unless mediaItemId}}hx-get="/add/tv-show-candidates" hx-trigger="input changed delay:300ms"
+        hx-target="#tv-show-candidate-picker" hx-swap="innerHTML" hx-include="#add-title, [name='existingShowId']"
+        {{/unless}}{{/if}}
         class="w-full rounded-lg border {{#if errors.title}}border-red-500{{else}}border-border-subtle{{/if}} bg-bg-elevated px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-text-primary read-only:text-text-secondary" />
       {{#if errors.title}}<p class="mt-1 text-xs text-red-400">{{errors.title}}</p>{{/if}}
     </div>
 
     {{#if isTvEpisode}}
+    {{#unless mediaItemId}}
+    <div id="tv-show-candidate-picker">
+      {{#if hasShowCandidates}}
+      <div class="rounded-lg border border-border-subtle bg-bg-surface p-3">
+        <p class="mb-2 text-xs text-text-secondary">If this show already exists in your collection, select it below.
+          Leave unselected to create a new show item.</p>
+
+        <div>
+          <label for="existing-show-id"
+            class="mb-1 block font-heading text-xs font-semibold uppercase tracking-wide text-text-secondary">
+            Existing show
+          </label>
+          <select id="existing-show-id" name="existingShowId"
+            class="w-full rounded-lg border {{#if errors.existingShowId}}border-red-500{{else}}border-border-subtle{{/if}} bg-bg-elevated px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-type-tv">
+            <option value="">Select a show</option>
+            {{#each showCandidates}}
+            <option value="{{id}}" {{#if (eq ../existingShowId id)}}selected{{/if}}>{{title}}{{#if year}}
+              ({{year}}){{/if}}{{#if isSkeleton}} - Unidentified{{/if}}</option>
+            {{/each}}
+          </select>
+          {{#if errors.existingShowId}}<p class="mt-1 text-xs text-red-400">{{errors.existingShowId}}</p>{{/if}}
+        </div>
+      </div>
+      {{else}}
+      {{#if hasShowQuery}}
+      <p class="rounded-lg border border-dashed border-border-subtle bg-bg-surface p-3 text-xs text-text-secondary">
+        No existing shows matched this title. A new show item will be created when you submit.
+      </p>
+      {{else}}
+      <p class="rounded-lg border border-dashed border-border-subtle bg-bg-surface p-3 text-xs text-text-secondary">
+        Start typing a show title to check if it already exists in your collection.
+      </p>
+      {{/if}}
+      {{/if}}
+    </div>
+    {{/unless}}
+
     <div class="grid grid-cols-2 gap-3">
       <div>
         <label for="season-number"

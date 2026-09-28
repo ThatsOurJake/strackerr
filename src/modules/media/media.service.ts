@@ -237,6 +237,32 @@ export class MediaService {
     });
   }
 
+  searchTvShowCandidatesForUser(userId: string, query: string): Promise<MediaItem[]> {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) {
+      return Promise.resolve([]);
+    }
+
+    return this.prisma.mediaItem.findMany({
+      where: {
+        type: MediaType.TV_SHOW,
+        OR: [
+          { title: { contains: trimmedQuery } },
+          { aliases: { some: { alias: { contains: trimmedQuery } } } },
+        ],
+        AND: {
+          OR: [
+            { createdByUserId: userId },
+            { logEntries: { some: { userId } } },
+            { episodes: { some: { logEntries: { some: { userId } } } } },
+          ],
+        },
+      },
+      orderBy: [{ isSkeleton: "desc" }, { title: "asc" }, { year: "asc" }],
+      take: 20,
+    });
+  }
+
   async resolveByTitleForUser(
     userId: string,
     title: string,

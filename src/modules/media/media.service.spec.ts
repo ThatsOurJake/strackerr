@@ -202,6 +202,46 @@ describe("MediaService", () => {
     });
   });
 
+  it("searches TV show candidates scoped to the user", async () => {
+    const prisma = createPrismaMock();
+    const service = new MediaService(prisma as unknown as PrismaService);
+    prisma.mediaItem.findMany.mockResolvedValue([
+      {
+        id: "show-1",
+        type: MediaType.TV_SHOW,
+        title: "Severance",
+        year: 2022,
+        isSkeleton: true,
+        createdByUserId: "user-1",
+      },
+    ]);
+
+    await expect(
+      service.searchTvShowCandidatesForUser("user-1", "Severance"),
+    ).resolves.toEqual([
+      expect.objectContaining({ id: "show-1", title: "Severance" }),
+    ]);
+
+    expect(prisma.mediaItem.findMany).toHaveBeenCalledWith({
+      where: {
+        type: MediaType.TV_SHOW,
+        OR: [
+          { title: { contains: "Severance" } },
+          { aliases: { some: { alias: { contains: "Severance" } } } },
+        ],
+        AND: {
+          OR: [
+            { createdByUserId: "user-1" },
+            { logEntries: { some: { userId: "user-1" } } },
+            { episodes: { some: { logEntries: { some: { userId: "user-1" } } } } },
+          ],
+        },
+      },
+      orderBy: [{ isSkeleton: "desc" }, { title: "asc" }, { year: "asc" }],
+      take: 20,
+    });
+  });
+
   it("returns first accessible match when duplicate titles exist", async () => {
     const prisma = createPrismaMock();
     const service = new MediaService(prisma as unknown as PrismaService);

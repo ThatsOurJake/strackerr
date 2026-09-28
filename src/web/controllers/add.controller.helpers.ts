@@ -12,6 +12,7 @@ export interface SubmitAddBody {
   type?: string;
   mediaItemId?: string;
   title?: string;
+  existingShowId?: string;
   loggedAt?: string;
   duration?: string;
   defaultDuration?: string;
@@ -29,6 +30,10 @@ export interface EntryFormModel {
   accentClass: string;
   mediaItemId?: string;
   title?: string;
+  existingShowId?: string;
+  hasShowQuery: boolean;
+  hasShowCandidates: boolean;
+  showCandidates: TvShowCandidate[];
   loggedAt: string;
   defaultDuration?: number;
   duration?: string;
@@ -45,6 +50,13 @@ export interface EntryFormModel {
   isMusicTrack: boolean;
   error?: string;
   errors?: Record<string, string>;
+}
+
+export interface TvShowCandidate {
+  id: string;
+  title: string;
+  year: number | null;
+  isSkeleton: boolean;
 }
 
 export interface TypeDetail {
@@ -156,6 +168,7 @@ export const buildEntryFormModel = (
   values: Partial<SubmitAddBody> = {},
   error?: string,
   errors?: Record<string, string>,
+  showCandidates: TvShowCandidate[] = [],
 ): EntryFormModel => {
   const today = new Date();
   const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60_000)
@@ -168,6 +181,10 @@ export const buildEntryFormModel = (
     accentClass: TYPE_DETAILS[type].accentClass,
     mediaItemId: values.mediaItemId,
     title: values.title,
+    existingShowId: values.existingShowId,
+    hasShowQuery: Boolean(values.title?.trim()),
+    hasShowCandidates: showCandidates.length > 0,
+    showCandidates,
     loggedAt: values.loggedAt ?? localDate,
     defaultDuration: values.defaultDuration ? Number(values.defaultDuration) : undefined,
     duration: values.duration,
@@ -217,8 +234,22 @@ export const resolveSubmissionMediaItem = async (
 
   const seasonNumber = parsePositiveInteger(body.seasonNumber, "Season number");
   const episodeNumber = parsePositiveInteger(body.episodeNumber, "Episode number");
+
+  let explicitSelection: MediaItem | null = null;
+  if (!selected && body.existingShowId?.trim()) {
+    explicitSelection = await mediaService.findById(body.existingShowId.trim());
+    if (!explicitSelection) {
+      throw new Error("Selected show no longer exists");
+    }
+    const hasAccess = await mediaService.hasUserAccess(explicitSelection.id, userId);
+    if (!hasAccess) {
+      throw new ForbiddenException("You cannot use another user's show");
+    }
+  }
+
   const show =
     selected ??
+    explicitSelection ??
     (await mediaService.findOrCreateSkeleton(body.title?.trim() ?? "", MediaType.TV_SHOW, userId));
 
   if (show.type !== MediaType.TV_SHOW) {

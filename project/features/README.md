@@ -31,6 +31,7 @@ This folder defines the product-level features for STrackerr. Each feature file 
 | [FEA-023: API Item Resolution, Activity Routes, and Manual Identification](./FEA-023-api-item-resolution-activity-routes-and-manual-identification.md) | Replace title-first log flows with explicit resolve/create/activity contracts, rename `/log` to `/activity`, and add item-scoped manual identification | TICKET-065, TICKET-066, TICKET-067, TICKET-068 |
 | [FEA-024: Collection Item Removal](./FEA-024-collection-item-removal.md) | UI-only item removal from the item edit screen, plus an admin Maintenance action that clears orphaned catalog items | TICKET-069, TICKET-070, TICKET-071 |
 | [FEA-025: Permission-Based Settings Access](./FEA-025-permission-based-settings-access.md) | Open Settings to all authenticated users for password, API key, and provider credentials while keeping global maintenance actions administrator-only | TICKET-072, TICKET-073 |
+| [FEA-026: Manual TV Episode Parent Selection](./FEA-026-manual-tv-episode-parent-selection.md) | Manual TV episode add flow that allows attaching episodes to existing collection shows (identified or not) before creating a new parent item | TICKET-074, TICKET-075, TICKET-076 |
 
 ## Agent Workflow
 
