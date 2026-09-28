@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AppService } from "../app.service";
 import { ImageCleanupService } from "../infrastructure/jobs/image-cleanup.service";
+import { OrphanedItemCleanupService } from "../infrastructure/jobs/orphaned-item-cleanup.service";
 import { LogModule } from "../modules/activity/log.module";
 import { AuthModule } from "../modules/auth/auth.module";
 import { CollectionModule } from "../modules/collection/collection.module";
@@ -47,6 +48,6 @@ import { StatsController } from "./controllers/stats.controller";
     AddController,
     IdentifyController,
   ],
-  providers: [AppService, ImageCleanupService],
+  providers: [AppService, ImageCleanupService, OrphanedItemCleanupService],
 })
 export class WebModule { }

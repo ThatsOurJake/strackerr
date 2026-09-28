@@ -18,6 +18,15 @@ const DETAIL_VIEWS = {
   MUSIC_TRACK: "collection/music-track",
 } as const;
 
+const COLLECTION_FEEDBACK_MESSAGES = {
+  success: {
+    ITEM_REMOVED: "Item removed from your collection",
+  },
+  error: {
+    ITEM_REMOVE_FAILED: "Could not remove item. It may already be gone.",
+  },
+} as const;
+
 @Controller("collection")
 @UseGuards(JwtAuthGuard)
 export class CollectionController {
@@ -29,11 +38,15 @@ export class CollectionController {
     @Query("filter") filter: string | undefined,
     @Query("letter") letter: string | undefined,
     @Query("page") page: string | undefined,
+    @Query("successCode") successCode: string | undefined,
+    @Query("errorCode") errorCode: string | undefined,
     @CurrentUser() user: AuthenticatedUser,
     @Res() response: Response,
   ) {
     const model = await this.getCollectionModel(user.userId, type, filter, letter, page);
-    return response.render("collection", { title: "Collection", ...model });
+    const success = this.resolveFeedbackMessage("success", successCode);
+    const error = this.resolveFeedbackMessage("error", errorCode);
+    return response.render("collection", { title: "Collection", success, error, ...model });
   }
 
   @Get("partial")
@@ -88,5 +101,17 @@ export class CollectionController {
   private static parsePage(rawPage?: string): number {
     const page = Number.parseInt(rawPage ?? "1", 10);
     return Number.isFinite(page) && page > 0 ? page : 1;
+  }
+
+  private resolveFeedbackMessage(
+    type: "success" | "error",
+    code?: string,
+  ): string | undefined {
+    if (!code) {
+      return undefined;
+    }
+
+    const messages = COLLECTION_FEEDBACK_MESSAGES[type] as Record<string, string>;
+    return messages[code];
   }
 }

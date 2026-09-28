@@ -35,6 +35,8 @@ describe("CollectionController", () => {
       "unidentified",
       "o",
       "2",
+      "ITEM_REMOVED",
+      undefined,
       user,
       response as unknown as Response,
     );
@@ -47,7 +49,11 @@ describe("CollectionController", () => {
     });
     expect(response.render).toHaveBeenCalledWith(
       "collection",
-      expect.objectContaining({ title: "Collection", hasItems: false }),
+      expect.objectContaining({
+        title: "Collection",
+        hasItems: false,
+        success: "Item removed from your collection",
+      }),
     );
   });
 

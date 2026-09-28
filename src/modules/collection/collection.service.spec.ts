@@ -32,6 +32,7 @@ describe("CollectionService", () => {
     logEntry: { deleteMany: jest.Mock };
   };
   let service: CollectionService;
+  let emit: jest.Mock;
 
   beforeEach(() => {
     prisma = {
@@ -56,7 +57,11 @@ describe("CollectionService", () => {
     prisma.$transaction.mockImplementation(
       async (callback: (transaction: typeof prisma) => unknown) => callback(prisma),
     );
-    service = new CollectionService(prisma as unknown as PrismaService);
+    emit = jest.fn();
+    service = new CollectionService(
+      prisma as unknown as PrismaService,
+      { emit } as never,
+    );
   });
 
   it("scopes collection items and rolls episode activity up to parent shows", async () => {
@@ -233,5 +238,89 @@ describe("CollectionService", () => {
 
     expect(prisma.mediaItem.update).not.toHaveBeenCalled();
     expect(prisma.logEntry.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("removes a user's item activity in one transaction and clears user ownership", async () => {
+    prisma.mediaItem.findUnique
+      .mockResolvedValueOnce({ id: "show-1", type: MediaType.TV_SHOW, parentId: null })
+      .mockResolvedValueOnce({
+        ...mediaItem("show-1", "Severance", { type: MediaType.TV_SHOW, createdByUserId: "user-2" }),
+        externalAliases: [],
+        externalIds: [],
+        logEntries: [{ id: "log-1", userId: "user-2", loggedAt: new Date("2026-09-01T12:00:00Z") }],
+        episodes: [
+          {
+            ...mediaItem("episode-1", "S1E1", {
+              type: MediaType.TV_EPISODE,
+              parentId: "show-1",
+              seasonNumber: 1,
+              episodeNumber: 1,
+            }),
+            logEntries: [{ id: "log-2", userId: "user-2", loggedAt: new Date("2026-09-02T12:00:00Z") }],
+          },
+        ],
+      });
+    prisma.logEntry.deleteMany.mockResolvedValueOnce({ count: 2 });
+
+    const result = await service.removeItemForUser("user-2", "show-1", "Severance");
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.logEntry.deleteMany).toHaveBeenCalledWith({
+      where: {
+        userId: "user-2",
+        mediaItemId: { in: ["show-1", "episode-1"] },
+      },
+    });
+    expect(prisma.mediaItem.update).toHaveBeenCalledWith({
+      where: { id: "show-1" },
+      data: { createdByUserId: null },
+    });
+    expect(emit).toHaveBeenCalledWith("log.entry.changed", { userId: "user-2" });
+    expect(result).toEqual({ removed: true, itemTitle: "Severance" });
+  });
+
+  it("returns not found style result when the user has no access", async () => {
+    prisma.mediaItem.findUnique.mockResolvedValueOnce(null);
+
+    const result = await service.removeItemForUser("user-2", "missing", "Missing");
+
+    expect(result).toEqual({ removed: false });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it("does not report success when another user owns all activity", async () => {
+    prisma.mediaItem.findUnique
+      .mockResolvedValueOnce({ id: "movie-1", type: MediaType.MOVIE, parentId: null })
+      .mockResolvedValueOnce({
+        ...mediaItem("movie-1", "Arrival", { createdByUserId: null }),
+        externalAliases: [],
+        externalIds: [],
+        logEntries: [{ id: "foreign-log", userId: "user-9", loggedAt: new Date("2026-09-01T12:00:00Z") }],
+        episodes: [],
+      });
+    prisma.logEntry.deleteMany.mockResolvedValueOnce({ count: 0 });
+
+    const result = await service.removeItemForUser("user-2", "movie-1", "Arrival");
+
+    expect(result).toEqual({ removed: false });
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it("requires an exact title confirmation before deleting", async () => {
+    prisma.mediaItem.findUnique
+      .mockResolvedValueOnce({ id: "movie-1", type: MediaType.MOVIE, parentId: null })
+      .mockResolvedValueOnce({
+        ...mediaItem("movie-1", "Arrival", { createdByUserId: "user-2" }),
+        externalAliases: [],
+        externalIds: [],
+        logEntries: [{ id: "log-1", userId: "user-2", loggedAt: new Date("2026-09-01T12:00:00Z") }],
+        episodes: [],
+      });
+
+    const result = await service.removeItemForUser("user-2", "movie-1", "arrival");
+
+    expect(result).toEqual({ removed: false });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });

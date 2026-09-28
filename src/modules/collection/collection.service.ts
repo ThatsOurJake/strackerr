@@ -4,9 +4,12 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { MediaItem, MediaType, Prisma } from "@prisma/client";
 import { PrismaService } from "../../infrastructure/database/prisma.service";
+import { Events } from "../../infrastructure/events/event-names";
 import { stripHtmlTags } from "../../infrastructure/security/sanitize-string";
 import { normalizeExternalAlias } from "../media/external-alias.validator";
 
@@ -59,6 +62,11 @@ export interface ItemBulkEditResult {
   stillAccessible: boolean;
 }
 
+export interface ItemRemovalResult {
+  removed: boolean;
+  itemTitle?: string;
+}
+
 const detailInclude = {
   externalIds: {
     orderBy: { provider: "asc" },
@@ -83,7 +91,10 @@ export type MediaDetail = Prisma.MediaItemGetPayload<{ include: typeof detailInc
 
 @Injectable()
 export class CollectionService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly events?: EventEmitter2,
+  ) { }
 
   isCollectionType(type: string): type is CollectionMediaType {
     return COLLECTION_MEDIA_TYPES.includes(type as CollectionMediaType);
@@ -320,6 +331,66 @@ export class CollectionService {
     return {
       itemId: item.id,
       stillAccessible,
+    };
+  }
+
+  async removeItemForUser(
+    userId: string,
+    requestedId: string,
+    confirmTitle?: string,
+  ): Promise<ItemRemovalResult> {
+    let item: MediaDetail;
+
+    try {
+      item = await this.findDetail(userId, requestedId);
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+        return { removed: false };
+      }
+      throw error;
+    }
+
+    if ((confirmTitle ?? "").trim() !== item.title.trim()) {
+      return { removed: false };
+    }
+
+    const removableMediaItemIds = [
+      item.id,
+      ...item.episodes.map((episode) => episode.id),
+    ];
+
+    const result = await this.prisma.$transaction(async (transaction) => {
+      const removedEntries = await transaction.logEntry.deleteMany({
+        where: {
+          userId,
+          mediaItemId: { in: removableMediaItemIds },
+        },
+      });
+
+      if (item.createdByUserId === userId) {
+        await transaction.mediaItem.update({
+          where: { id: item.id },
+          data: { createdByUserId: null },
+        });
+      }
+
+      return {
+        removedEntries: removedEntries.count,
+        removedOwnership: item.createdByUserId === userId,
+      };
+    });
+
+    if (!result.removedOwnership && result.removedEntries === 0) {
+      return { removed: false };
+    }
+
+    if (result.removedEntries > 0) {
+      this.events?.emit(Events.LOG_ENTRY_CHANGED, { userId });
+    }
+
+    return {
+      removed: true,
+      itemTitle: item.title,
     };
   }
 
