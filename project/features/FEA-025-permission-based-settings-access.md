@@ -40,8 +40,8 @@ Every authenticated user can reach Settings to manage their own password, API ke
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-072](../backlog/todo/TICKET-072.md) | Replace controller-wide admin guard with per-route settings authorization |
-| [TICKET-073](../backlog/todo/TICKET-073.md) | Render settings tabs, navigation, and maintenance actions by permission |
+| [TICKET-072](../backlog/done/TICKET-072.md) | Replace controller-wide admin guard with per-route settings authorization |
+| [TICKET-073](../backlog/done/TICKET-073.md) | Render settings tabs, navigation, and maintenance actions by permission |
 
 ## Done Signal
 - A non-administrator can open Settings, change their password, regenerate their API key, and manage their own provider credentials and preferences.

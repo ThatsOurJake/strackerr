@@ -34,10 +34,10 @@ External clients follow an explicit item-first API workflow: resolve an item, cr
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-065](../backlog/todo/TICKET-065.md) | Redesign API v1 item resolve, item read, and item creation contracts around an item-first workflow |
-| [TICKET-066](../backlog/todo/TICKET-066.md) | Replace `/log` with item-id-based `/activity` endpoints and item-scoped activity reads |
-| [TICKET-067](../backlog/todo/TICKET-067.md) | Rework identification sourcing to rely on stored external aliases and the user's configured metadata provider |
-| [TICKET-068](../backlog/todo/TICKET-068.md) | Add the item-scoped manual identification API endpoint and update Swagger coverage for the new workflow |
+| [TICKET-065](../backlog/done/TICKET-065.md) | Redesign API v1 item resolve, item read, and item creation contracts around an item-first workflow |
+| [TICKET-066](../backlog/done/TICKET-066.md) | Replace `/log` with item-id-based `/activity` endpoints and item-scoped activity reads |
+| [TICKET-067](../backlog/done/TICKET-067.md) | Rework identification sourcing to rely on stored external aliases and the user's configured metadata provider |
+| [TICKET-068](../backlog/done/TICKET-068.md) | Add the item-scoped manual identification API endpoint and update Swagger coverage for the new workflow |
 
 ## Done Signal
 - API clients can resolve a media item by exactly one lookup mode, create a minimal item when it does not exist, and receive the existing `id` field suitable for follow-up calls.

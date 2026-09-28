@@ -37,9 +37,9 @@ When a user manually adds a TV episode, they can attach it to an existing TV sho
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-074](../backlog/todo/TICKET-074.md) | Add scoped TV show candidate lookup and server-side parent validation for manual episode add |
-| [TICKET-075](../backlog/todo/TICKET-075.md) | Update manual TV episode add UX to select an existing parent show or create a new one |
-| [TICKET-076](../backlog/todo/TICKET-076.md) | Add duplicate-prevention and manual episode parent-selection coverage across service, web, and API behavior |
+| [TICKET-074](../backlog/done/TICKET-074.md) | Add scoped TV show candidate lookup and server-side parent validation for manual episode add |
+| [TICKET-075](../backlog/done/TICKET-075.md) | Update manual TV episode add UX to select an existing parent show or create a new one |
+| [TICKET-076](../backlog/done/TICKET-076.md) | Add duplicate-prevention and manual episode parent-selection coverage across service, web, and API behavior |
 
 ## Done Signal
 - A user manually adding a TV episode can pick an existing show in their collection and the episode is attached to that show.
