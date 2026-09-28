@@ -150,6 +150,23 @@ describe("CollectionService", () => {
     await expect(service.findDetail("user-2", "movie-1")).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it("allows detail access for identified items owned by the current user even without logs", async () => {
+    prisma.mediaItem.findUnique
+      .mockResolvedValueOnce({ id: "movie-1", type: MediaType.MOVIE, parentId: null })
+      .mockResolvedValueOnce({
+        ...mediaItem("movie-1", "Arrival", {
+          isSkeleton: false,
+          createdByUserId: "user-2",
+        }),
+        logEntries: [],
+        episodes: [],
+      });
+
+    const detail = await service.findDetail("user-2", "movie-1");
+
+    expect(detail.id).toBe("movie-1");
+  });
+
   it("applies metadata updates, selected history removals, and aliases in one transaction", async () => {
     prisma.mediaItem.findUnique
       .mockResolvedValueOnce({ id: "movie-1", type: MediaType.MOVIE, parentId: null })

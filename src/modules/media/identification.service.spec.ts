@@ -69,7 +69,7 @@ describe("IdentificationService", () => {
       imageUrl: null,
       imageSourceUrl: "https://image/poster.jpg",
       isSkeleton: false,
-      createdByUserId: null,
+      createdByUserId: "user-1",
     }));
     expect(addExternalId).toHaveBeenCalledWith("show-1", "tmdb", "tv:95396");
     expect(addAlias).toHaveBeenCalledWith("show-1", "Severence");

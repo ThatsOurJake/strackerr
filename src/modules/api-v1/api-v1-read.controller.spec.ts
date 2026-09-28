@@ -1,4 +1,4 @@
-import { BadRequestException } from "@nestjs/common";
+import { BadRequestException, ConflictException } from "@nestjs/common";
 import { MediaType } from "@prisma/client";
 import type { Request } from "express";
 import type { ActivityService } from "../activity/activity.service";
@@ -74,18 +74,16 @@ describe("API v1 read controllers", () => {
   });
 
   it("creates minimal media and attaches external aliases", async () => {
-    const create = jest.fn().mockResolvedValue({
+    const createSkeletonWithExternalAliases = jest.fn().mockResolvedValue({
       id: "media-8",
       title: "Hades",
       type: MediaType.GAME,
       year: null,
       imageUrl: null,
     });
-    const addExternalAliases = jest.fn().mockResolvedValue([]);
     const controller = new ApiV1MediaController(
       {
-        create,
-        addExternalAliases,
+        createSkeletonWithExternalAliases,
       } as unknown as MediaService,
       {} as IdentificationService,
     );
@@ -99,15 +97,12 @@ describe("API v1 read controllers", () => {
       request,
     );
 
-    expect(create).toHaveBeenCalledWith({
+    expect(createSkeletonWithExternalAliases).toHaveBeenCalledWith({
       title: "Hades",
       type: MediaType.GAME,
-      isSkeleton: true,
-      createdByUserId: "user-1",
+      userId: "user-1",
+      externalAliases: [{ providerNamespace: "steam", externalId: "app:1145360" }],
     });
-    expect(addExternalAliases).toHaveBeenCalledWith("media-8", [
-      { providerNamespace: "steam", externalId: "app:1145360" },
-    ]);
     expect(response).toEqual({
       data: {
         id: "media-8",
@@ -117,6 +112,31 @@ describe("API v1 read controllers", () => {
         imageUrl: undefined,
       },
     });
+  });
+
+  it("returns a clear 409 error when an external alias already exists", async () => {
+    const createSkeletonWithExternalAliases = jest.fn().mockRejectedValue(
+      new ConflictException("Alias is already assigned to another media item"),
+    );
+    const controller = new ApiV1MediaController(
+      {
+        createSkeletonWithExternalAliases,
+      } as unknown as MediaService,
+      {} as IdentificationService,
+    );
+
+    await expect(
+      controller.create(
+        {
+          type: MediaType.GAME,
+          title: "Hades",
+          externalAliases: [{ provider: "steam", id: "app:1145360" }],
+        },
+        request,
+      ),
+    ).rejects.toThrow(
+      "External alias conflict: one or more aliases are already assigned to existing media items. No media item was created.",
+    );
   });
 
   it("identifies a media item through configured provider alias", async () => {

@@ -342,6 +342,87 @@ export class MediaService {
     });
   }
 
+  async createSkeletonWithExternalAliases(input: {
+    title: string;
+    type: MediaType;
+    userId: string;
+    externalAliases?: ExternalAliasInput[];
+  }): Promise<MediaItem> {
+    const title = stripHtmlTags(input.title);
+    const dedupedAliases = new Map<string, NormalizedExternalAlias>();
+
+    for (const alias of input.externalAliases ?? []) {
+      const normalized = normalizeExternalAlias(
+        alias.providerNamespace,
+        alias.externalId,
+      );
+      dedupedAliases.set(
+        `${normalized.providerNamespace}::${normalized.externalId}`,
+        normalized,
+      );
+    }
+
+    return this.prisma.$transaction(async (transaction) => {
+      if (dedupedAliases.size > 0) {
+        const existingAliases = await transaction.mediaExternalAlias.findMany({
+          where: {
+            OR: [...dedupedAliases.values()].map((alias) => ({
+              providerNamespace: alias.providerNamespace,
+              externalId: alias.externalId,
+            })),
+          },
+          select: {
+            providerNamespace: true,
+            externalId: true,
+          },
+          take: 1,
+        });
+
+        if (existingAliases.length > 0) {
+          const existingAlias = existingAliases[0];
+          throw new ConflictException(
+            `External alias conflict: ${existingAlias.providerNamespace}:${existingAlias.externalId} is already assigned to an existing media item. No media item was created.`,
+          );
+        }
+      }
+
+      const mediaItem = await transaction.mediaItem.create({
+        data: {
+          title,
+          type: input.type,
+          isSkeleton: true,
+          createdByUserId: input.userId,
+          sortTitle: MediaService.computeSortTitle(title),
+        },
+      });
+
+      if (dedupedAliases.size > 0) {
+        try {
+          await transaction.mediaExternalAlias.createMany({
+            data: [...dedupedAliases.values()].map((alias) => ({
+              mediaItemId: mediaItem.id,
+              providerNamespace: alias.providerNamespace,
+              externalId: alias.externalId,
+            })),
+          });
+        } catch (error) {
+          if (
+            error instanceof Prisma.PrismaClientKnownRequestError
+            && error.code === "P2002"
+          ) {
+            throw new ConflictException(
+              "External alias conflict: one or more aliases are already assigned to existing media items. No media item was created.",
+            );
+          }
+
+          throw error;
+        }
+      }
+
+      return mediaItem;
+    });
+  }
+
   update(id: string, data: UpdateMediaData): Promise<MediaItem> {
     const updateData: Prisma.MediaItemUpdateInput = { ...data };
 

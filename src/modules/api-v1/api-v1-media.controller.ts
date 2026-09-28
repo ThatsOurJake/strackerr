@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Delete,
   Get,
@@ -287,21 +288,24 @@ export class ApiV1MediaController {
       );
     }
 
-    const mediaItem = await this.mediaService.create({
-      title: dto.title,
-      type: dto.type,
-      isSkeleton: true,
-      createdByUserId: userId,
-    });
-
-    if (dto.externalAliases?.length) {
-      await this.mediaService.addExternalAliases(
-        mediaItem.id,
-        dto.externalAliases.map((alias) => ({
+    let mediaItem: MediaItem;
+    try {
+      mediaItem = await this.mediaService.createSkeletonWithExternalAliases({
+        title: dto.title,
+        type: dto.type,
+        userId,
+        externalAliases: dto.externalAliases?.map((alias) => ({
           providerNamespace: alias.provider,
           externalId: alias.id,
         })),
-      );
+      });
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw new ConflictException(
+          "External alias conflict: one or more aliases are already assigned to existing media items. No media item was created.",
+        );
+      }
+      throw error;
     }
 
     return {

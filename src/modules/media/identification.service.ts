@@ -173,7 +173,6 @@ export class IdentificationService {
       externalId,
       metadata,
       resolvedProvider.apiKey,
-      mediaItem.isSkeleton,
     );
   }
 
@@ -184,7 +183,6 @@ export class IdentificationService {
     externalId: string,
     metadata: MediaItemDetail,
     apiKey: string | undefined,
-    clearSkeletonOwnership = false,
   ): Promise<MediaItem> {
     const mediaItem = await this.mediaService.findById(mediaItemId);
     if (!mediaItem) {
@@ -200,7 +198,9 @@ export class IdentificationService {
       year: metadata.year ?? null,
       duration: metadata.duration ?? null,
       isSkeleton: false,
-      createdByUserId: clearSkeletonOwnership ? null : mediaItem.createdByUserId,
+      // Preserve item ownership so manually created, no-log items remain visible
+      // to the creator after identification.
+      createdByUserId: mediaItem.createdByUserId,
     });
 
     await this.mediaService.addExternalId(
