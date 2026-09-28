@@ -20,6 +20,7 @@ interface MediaPrismaMock {
   };
   mediaItem: {
     create: jest.Mock;
+    findMany: jest.Mock;
     findUnique: jest.Mock;
     findUniqueOrThrow: jest.Mock;
     update: jest.Mock;
@@ -50,6 +51,7 @@ const createPrismaMock = (): MediaPrismaMock => {
     },
     mediaItem: {
       create: jest.fn(),
+      findMany: jest.fn(),
       findUnique: jest.fn(),
       findUniqueOrThrow: jest.fn(),
       update: jest.fn(),
@@ -165,19 +167,19 @@ describe("MediaService", () => {
     ).resolves.toEqual(mediaItem);
   });
 
-  it("resolves titles through normalized aliases with user access checks", async () => {
+  it("resolves titles directly from media item title with user access checks", async () => {
     const prisma = createPrismaMock();
     const service = new MediaService(prisma as unknown as PrismaService);
 
-    prisma.mediaAlias.findUnique.mockResolvedValue({
-      mediaItem: {
+    prisma.mediaItem.findMany.mockResolvedValue([
+      {
         id: "media-1",
         type: MediaType.MOVIE,
         title: "Arrival",
         isSkeleton: true,
         createdByUserId: "user-1",
       },
-    });
+    ]);
     prisma.mediaItem.findUnique.mockResolvedValue({
       id: "media-1",
       type: MediaType.MOVIE,
@@ -189,9 +191,68 @@ describe("MediaService", () => {
     await expect(
       service.resolveByTitleForUser("user-1", " Arrival "),
     ).resolves.toEqual(expect.objectContaining({ id: "media-1" }));
-    expect(prisma.mediaAlias.findUnique).toHaveBeenCalledWith({
-      where: { alias: "arrival" },
-      include: { mediaItem: true },
+    expect(prisma.mediaItem.findMany).toHaveBeenCalledWith({
+      where: {
+        title: {
+          equals: "Arrival",
+        },
+      },
+      orderBy: { id: "asc" },
+      take: 20,
+    });
+  });
+
+  it("returns first accessible match when duplicate titles exist", async () => {
+    const prisma = createPrismaMock();
+    const service = new MediaService(prisma as unknown as PrismaService);
+
+    prisma.mediaItem.findMany.mockResolvedValue([
+      {
+        id: "media-inaccessible",
+        type: MediaType.TV_SHOW,
+        title: "Phoenix Nights",
+        isSkeleton: true,
+        createdByUserId: "other-user",
+      },
+      {
+        id: "media-1",
+        type: MediaType.TV_SHOW,
+        title: "Phoenix Nights",
+        isSkeleton: false,
+        createdByUserId: null,
+      },
+    ]);
+
+    prisma.mediaItem.findUnique
+      .mockResolvedValueOnce({
+        id: "media-inaccessible",
+        type: MediaType.TV_SHOW,
+        title: "Phoenix Nights",
+        isSkeleton: true,
+        createdByUserId: "other-user",
+      })
+      .mockResolvedValueOnce({
+        id: "media-1",
+        type: MediaType.TV_SHOW,
+        title: "Phoenix Nights",
+        isSkeleton: false,
+        createdByUserId: null,
+      });
+
+    prisma.logEntry.findFirst.mockResolvedValueOnce({ id: "log-1" });
+
+    await expect(
+      service.resolveByTitleForUser("user-1", " Phoenix Nights "),
+    ).resolves.toEqual(expect.objectContaining({ id: "media-1" }));
+
+    expect(prisma.mediaItem.findMany).toHaveBeenCalledWith({
+      where: {
+        title: {
+          equals: "Phoenix Nights",
+        },
+      },
+      orderBy: { id: "asc" },
+      take: 20,
     });
   });
 

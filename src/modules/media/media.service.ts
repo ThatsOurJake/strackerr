@@ -241,22 +241,25 @@ export class MediaService {
     userId: string,
     title: string,
   ): Promise<MediaItem | null> {
-    const normalizedAlias = MediaService.normaliseAlias(title);
-    const aliasMatch = await this.prisma.mediaAlias.findUnique({
-      where: { alias: normalizedAlias },
-      include: { mediaItem: true },
+    const trimmedTitle = title.trim();
+    const exactTitleMatches = await this.prisma.mediaItem.findMany({
+      where: {
+        title: {
+          equals: trimmedTitle,
+        },
+      },
+      orderBy: { id: "asc" },
+      take: 20,
     });
 
-    if (!aliasMatch) {
-      return null;
+    for (const match of exactTitleMatches) {
+      const hasAccess = await this.hasUserAccess(match.id, userId);
+      if (hasAccess) {
+        return match;
+      }
     }
 
-    const hasAccess = await this.hasUserAccess(aliasMatch.mediaItem.id, userId);
-    if (!hasAccess) {
-      return null;
-    }
-
-    return aliasMatch.mediaItem;
+    return null;
   }
 
   findById(id: string): Promise<MediaItem | null> {
