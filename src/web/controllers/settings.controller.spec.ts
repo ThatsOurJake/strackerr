@@ -1,7 +1,11 @@
+import { GUARDS_METADATA } from "@nestjs/common/constants";
 import type { Response } from "express";
 import type { AppCacheService } from "../../infrastructure/cache/app-cache.service";
 import type { ImageCleanupService } from "../../infrastructure/jobs/image-cleanup.service";
+import type { OrphanedItemCleanupService } from "../../infrastructure/jobs/orphaned-item-cleanup.service";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
+import { AdminGuard } from "../../modules/auth/guards/admin.guard";
+import { JwtAuthGuard } from "../../modules/auth/guards/jwt-auth.guard";
 import type { MetadataService } from "../../modules/metadata/metadata.service";
 import type { UsersService } from "../../modules/users/users.service";
 import { SettingsWebController } from "./settings.controller";
@@ -14,6 +18,11 @@ const user: AuthenticatedUser = {
   userId: "user-1",
   username: "tester",
   isAdmin: true,
+};
+const nonAdminUser: AuthenticatedUser = {
+  userId: "user-2",
+  username: "member",
+  isAdmin: false,
 };
 const providerKeys = [{ provider: "tmdb", configured: true }];
 
@@ -36,6 +45,7 @@ describe("SettingsWebController", () => {
   };
   let clearForUser: jest.Mock;
   let startCleanup: jest.Mock;
+  let startOrphanedCleanup: jest.Mock;
   let controller: SettingsWebController;
   let response: { render: jest.Mock };
 
@@ -77,6 +87,7 @@ describe("SettingsWebController", () => {
     };
     clearForUser = jest.fn();
     startCleanup = jest.fn().mockReturnValue(true);
+    startOrphanedCleanup = jest.fn().mockReturnValue(true);
     controller = new SettingsWebController(
       usersService as unknown as UsersService,
       { clearForUser } as unknown as AppCacheService,
@@ -85,8 +96,31 @@ describe("SettingsWebController", () => {
         startCleanup,
         getStatus: jest.fn().mockReturnValue({ state: "idle" }),
       } as unknown as ImageCleanupService,
+      {
+        startCleanup: startOrphanedCleanup,
+        getStatus: jest.fn().mockReturnValue({ state: "idle" }),
+      } as unknown as OrphanedItemCleanupService,
     );
     response = { render: jest.fn() };
+  });
+
+  it("applies authentication at the controller level and admin checks on global maintenance routes", () => {
+    expect(Reflect.getMetadata(GUARDS_METADATA, SettingsWebController)).toEqual(
+      [JwtAuthGuard],
+    );
+
+    expect(
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        SettingsWebController.prototype.cleanupImages,
+      ),
+    ).toEqual([AdminGuard]);
+    expect(
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        SettingsWebController.prototype.cleanupOrphanedItems,
+      ),
+    ).toEqual([AdminGuard]);
   });
 
   it("renders the requested tab without exposing credential values", async () => {
@@ -102,6 +136,7 @@ describe("SettingsWebController", () => {
       expect.objectContaining({
         activeTab: "providers",
         username: "tester",
+        isAdmin: true,
         providerCredentials: expect.arrayContaining([
           expect.objectContaining({ provider: "tmdb", configured: true }),
           expect.objectContaining({ provider: "bgg", configured: false }),
@@ -123,6 +158,24 @@ describe("SettingsWebController", () => {
     expect(response.render).toHaveBeenCalledWith(
       "settings",
       expect.objectContaining({ activeTab: "account" }),
+    );
+  });
+
+  it("renders maintenance for non-admin users with admin visibility disabled", async () => {
+    usersService.findById.mockResolvedValue({ username: "member" });
+
+    await controller.getSettings(
+      "maintenance",
+      response as unknown as Response,
+      nonAdminUser,
+    );
+
+    expect(response.render).toHaveBeenCalledWith(
+      "settings",
+      expect.objectContaining({
+        activeTab: "maintenance",
+        isAdmin: false,
+      }),
     );
   });
 
@@ -192,7 +245,10 @@ describe("SettingsWebController", () => {
       user,
     );
 
-    expect(usersService.deleteMetadataKey).toHaveBeenCalledWith("user-1", "tmdb");
+    expect(usersService.deleteMetadataKey).toHaveBeenCalledWith(
+      "user-1",
+      "tmdb",
+    );
   });
 
   it("does not verify or change a mismatched new password", async () => {
@@ -284,6 +340,35 @@ describe("SettingsWebController", () => {
       "settings",
       expect.objectContaining({
         error: "Unused image cleanup is already running",
+      }),
+    );
+  });
+
+  it("starts orphaned item cleanup without awaiting the job", async () => {
+    await controller.cleanupOrphanedItems(
+      response as unknown as Response,
+      user,
+    );
+
+    expect(startOrphanedCleanup).toHaveBeenCalledTimes(1);
+    expect(response.render).toHaveBeenCalledWith(
+      "settings",
+      expect.objectContaining({ success: "Orphaned item cleanup started" }),
+    );
+  });
+
+  it("reports when orphaned item cleanup is already running", async () => {
+    startOrphanedCleanup.mockReturnValue(false);
+
+    await controller.cleanupOrphanedItems(
+      response as unknown as Response,
+      user,
+    );
+
+    expect(response.render).toHaveBeenCalledWith(
+      "settings",
+      expect.objectContaining({
+        error: "Orphaned item cleanup is already running",
       }),
     );
   });

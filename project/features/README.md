@@ -29,6 +29,8 @@ This folder defines the product-level features for STrackerr. Each feature file 
 | [FEA-021: Nostalgia Deep Dive](./FEA-021-nostalgia-deep-dive.md) | A dedicated same-week-across-years nostalgia view launched from the weekly stats tile | TICKET-060, TICKET-061 |
 | [FEA-022: Item Metadata Editing and Alias/History Management](./FEA-022-item-metadata-editing-and-alias-history-management.md) | A secondary item-page edit flow for title/description updates, bulk-selected history-row removals, and external alias add/edit/remove in one confirm action | TICKET-062, TICKET-063, TICKET-064 |
 | [FEA-023: API Item Resolution, Activity Routes, and Manual Identification](./FEA-023-api-item-resolution-activity-routes-and-manual-identification.md) | Replace title-first log flows with explicit resolve/create/activity contracts, rename `/log` to `/activity`, and add item-scoped manual identification | TICKET-065, TICKET-066, TICKET-067, TICKET-068 |
+| [FEA-024: Collection Item Removal](./FEA-024-collection-item-removal.md) | UI-only item removal from the item edit screen, plus an admin Maintenance action that clears orphaned catalog items | TICKET-069, TICKET-070, TICKET-071 |
+| [FEA-025: Permission-Based Settings Access](./FEA-025-permission-based-settings-access.md) | Open Settings to all authenticated users for password, API key, and provider credentials while keeping global maintenance actions administrator-only | TICKET-072, TICKET-073 |
 
 ## Agent Workflow
 

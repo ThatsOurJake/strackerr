@@ -12,6 +12,7 @@ import { Throttle } from "@nestjs/throttler";
 import { Response } from "express";
 import { AppCacheService } from "../../infrastructure/cache/app-cache.service";
 import { ImageCleanupService } from "../../infrastructure/jobs/image-cleanup.service";
+import { OrphanedItemCleanupService } from "../../infrastructure/jobs/orphaned-item-cleanup.service";
 import { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
 import { CurrentUser } from "../../modules/auth/decorators/current-user.decorator";
 import { AdminGuard } from "../../modules/auth/guards/admin.guard";
@@ -37,13 +38,14 @@ import {
 } from "./settings.controller.helpers";
 
 @Controller("settings")
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(JwtAuthGuard)
 export class SettingsWebController {
   constructor(
     private readonly usersService: UsersService,
     private readonly cacheService: AppCacheService,
     private readonly metadataService: MetadataService,
     private readonly imageCleanupService: ImageCleanupService,
+    private readonly orphanedItemCleanupService: OrphanedItemCleanupService,
   ) { }
 
   @Get()
@@ -259,6 +261,7 @@ export class SettingsWebController {
   }
 
   @Post("images/cleanup")
+  @UseGuards(AdminGuard)
   async cleanupImages(
     @Res() res: Response,
     @CurrentUser() user: AuthenticatedUser,
@@ -271,6 +274,23 @@ export class SettingsWebController {
       started
         ? { success: "Unused image cleanup started" }
         : { error: "Unused image cleanup is already running" },
+    );
+  }
+
+  @Post("items/cleanup-orphaned")
+  @UseGuards(AdminGuard)
+  async cleanupOrphanedItems(
+    @Res() res: Response,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const started = this.orphanedItemCleanupService.startCleanup();
+    return this.renderSettings(
+      res,
+      user,
+      "maintenance",
+      started
+        ? { success: "Orphaned item cleanup started" }
+        : { error: "Orphaned item cleanup is already running" },
     );
   }
 
@@ -320,6 +340,7 @@ export class SettingsWebController {
     return res.render("settings", {
       title: "Settings",
       username: userRecord?.username,
+      isAdmin: userRecord?.isAdmin ?? user.isAdmin,
       activeTab,
       providerCredentials: PROVIDER_CREDENTIALS.map((provider) => ({
         ...provider,
@@ -327,6 +348,7 @@ export class SettingsWebController {
       })),
       providerPreferences,
       imageCleanup: this.imageCleanupService.getStatus(),
+      orphanedItemCleanup: this.orphanedItemCleanupService.getStatus(),
       ...feedback,
     });
   }

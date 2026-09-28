@@ -5,6 +5,12 @@ export const initializeItemEditForm = () => {
   const addAliasButton = document.getElementById("add-alias-row");
   const historyRemovalCount = document.getElementById("history-removal-count");
   const aliasRemovalCount = document.getElementById("alias-removal-count");
+  const openDeleteButton = document.getElementById("open-delete-item-confirm");
+  const deleteDialog = document.getElementById("delete-item-dialog");
+  const cancelDeleteButton = document.getElementById("cancel-delete-item");
+  const deleteItemForm = document.getElementById("delete-item-form");
+  const deleteConfirmInput = document.getElementById("delete-item-confirm-input");
+  const deleteConfirmError = document.getElementById("delete-item-confirm-error");
 
   if (
     !form
@@ -52,4 +58,62 @@ export const initializeItemEditForm = () => {
 
   form.addEventListener("change", updateSummary);
   updateSummary();
+
+  if (
+    !openDeleteButton
+    || !deleteDialog
+    || !cancelDeleteButton
+    || !deleteItemForm
+    || !deleteConfirmInput
+    || !deleteConfirmError
+  ) {
+    return;
+  }
+
+  const closeDeleteDialog = () => {
+    deleteDialog.classList.add("hidden");
+    deleteDialog.classList.remove("flex");
+    if (deleteConfirmInput instanceof HTMLInputElement) {
+      deleteConfirmInput.value = "";
+    }
+    deleteConfirmError.classList.add("hidden");
+  };
+
+  openDeleteButton.addEventListener("click", () => {
+    deleteDialog.classList.remove("hidden");
+    deleteDialog.classList.add("flex");
+    if (deleteConfirmInput instanceof HTMLInputElement) {
+      deleteConfirmInput.focus();
+    }
+  });
+
+  cancelDeleteButton.addEventListener("click", closeDeleteDialog);
+
+  deleteDialog.addEventListener("click", (event) => {
+    if (event.target === deleteDialog) {
+      closeDeleteDialog();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && deleteDialog.classList.contains("flex")) {
+      closeDeleteDialog();
+    }
+  });
+
+  deleteItemForm.addEventListener("submit", (event) => {
+    if (!(deleteConfirmInput instanceof HTMLInputElement)) {
+      return;
+    }
+
+    const expectedTitle = deleteConfirmInput.getAttribute("data-confirm-title") ?? "";
+    if (deleteConfirmInput.value.trim() !== expectedTitle.trim()) {
+      event.preventDefault();
+      deleteConfirmError.classList.remove("hidden");
+      deleteConfirmInput.focus();
+      return;
+    }
+
+    deleteConfirmError.classList.add("hidden");
+  });
 };
