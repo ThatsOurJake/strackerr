@@ -21,17 +21,20 @@ enum LogSource {
 }
 
 model User {
-  id           String            @id @default(cuid())
-  username     String            @unique
-  passwordHash String
-  apiKey       String            @unique @default(cuid())
-  isAdmin      Boolean           @default(false)
-  createdAt    DateTime          @default(now())
-  metadataKeys UserMetadataKey[]
-  skeletons    MediaItem[]       @relation("SkeletonOwner")
-  logEntries   LogEntry[]
-  settings     UserSetting[]
-  apiKeys      ApiKey[]
+  id              String               @id @default(cuid())
+  username        String               @unique
+  passwordHash    String
+  apiKey          String               @unique @default(cuid())
+  isAdmin         Boolean              @default(false)
+  createdAt       DateTime             @default(now())
+  metadataKeys    UserMetadataKey[]
+  mediaItems      MediaItem[]          @relation("MediaItemOwner")
+  mediaAliases    MediaAlias[]
+  externalIds     MediaExternalId[]
+  externalAliases MediaExternalAlias[]
+  logEntries      LogEntry[]
+  settings        UserSetting[]
+  apiKeys         ApiKey[]
 }
 
 model UserMetadataKey {
@@ -51,7 +54,7 @@ model MediaItem {
   title           String
   sortTitle       String
   isSkeleton      Boolean              @default(false)
-  createdByUserId String?
+  createdByUserId String
   parentId        String?
   seasonNumber    Int?
   episodeNumber   Int?
@@ -62,7 +65,7 @@ model MediaItem {
   duration        Int?
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
-  createdByUser   User?                @relation("SkeletonOwner", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdByUser   User                 @relation("MediaItemOwner", fields: [createdByUserId], references: [id], onDelete: Cascade)
   parent          MediaItem?           @relation("EpisodeShow", fields: [parentId], references: [id], onDelete: SetNull)
   episodes        MediaItem[]          @relation("EpisodeShow")
   aliases         MediaAlias[]
@@ -72,34 +75,45 @@ model MediaItem {
   cachedImages    CachedImage[]
 
   @@unique([parentId, seasonNumber, episodeNumber])
+  @@index([createdByUserId])
 }
 
 model MediaAlias {
   id          String    @id @default(cuid())
+  userId      String
   mediaItemId String
-  alias       String    @unique
+  alias       String
   mediaItem   MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, alias])
+  @@index([mediaItemId])
 }
 
 model MediaExternalId {
   id          String    @id @default(cuid())
+  userId      String
   mediaItemId String
   provider    String
   externalId  String
   mediaItem   MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, externalId])
+  @@unique([userId, provider, externalId])
+  @@index([mediaItemId])
 }
 
 model MediaExternalAlias {
   id                String    @id @default(cuid())
+  userId            String
   mediaItemId       String
   providerNamespace String
   externalId        String
   createdAt         DateTime  @default(now())
   mediaItem         MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([providerNamespace, externalId])
+  @@unique([userId, providerNamespace, externalId])
   @@index([mediaItemId])
 }
 

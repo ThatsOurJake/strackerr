@@ -49,8 +49,9 @@ describe("AddController", () => {
       type: MediaType.TV_SHOW,
       title: "Severance",
       isSkeleton: false,
-      createdByUserId: null,
+      createdByUserId: "user-1",
     });
+    mediaService.hasUserAccess.mockResolvedValue(true);
     mediaService.findOrCreateEpisodeSkeleton.mockResolvedValue({
       id: "episode-1",
       type: MediaType.TV_EPISODE,

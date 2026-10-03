@@ -9,7 +9,7 @@ const mediaItem = (id: string, title: string, overrides: Partial<MediaItem> = {}
   title,
   sortTitle: title,
   isSkeleton: false,
-  createdByUserId: null,
+  createdByUserId: "user-2",
   parentId: null,
   seasonNumber: null,
   episodeNumber: null,
@@ -26,7 +26,7 @@ const mediaItem = (id: string, title: string, overrides: Partial<MediaItem> = {}
 describe("CollectionService", () => {
   let prisma: {
     $transaction: jest.Mock;
-    mediaItem: { findMany: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
+    mediaItem: { findMany: jest.Mock; findFirst: jest.Mock; update: jest.Mock; deleteMany: jest.Mock };
     mediaExternalAlias: { findMany: jest.Mock; deleteMany: jest.Mock; createMany: jest.Mock };
     mediaExternalId: { findMany: jest.Mock };
     logEntry: { deleteMany: jest.Mock };
@@ -39,8 +39,9 @@ describe("CollectionService", () => {
       $transaction: jest.fn(),
       mediaItem: {
         findMany: jest.fn(),
-        findUnique: jest.fn(),
+        findFirst: jest.fn(),
         update: jest.fn(),
+        deleteMany: jest.fn(),
       },
       mediaExternalAlias: {
         findMany: jest.fn(),
@@ -73,14 +74,7 @@ describe("CollectionService", () => {
       where: {
         type: MediaType.TV_SHOW,
         isSkeleton: undefined,
-        OR: [
-          { createdByUserId: "user-2" },
-          { logEntries: { some: { userId: "user-2" } } },
-          {
-            type: MediaType.TV_SHOW,
-            episodes: { some: { logEntries: { some: { userId: "user-2" } } } },
-          },
-        ],
+        createdByUserId: "user-2",
       },
     });
   });
@@ -113,7 +107,7 @@ describe("CollectionService", () => {
   });
 
   it("resolves an episode detail request to its parent and authorizes through episode logs", async () => {
-    prisma.mediaItem.findUnique
+    prisma.mediaItem.findFirst
       .mockResolvedValueOnce({ id: "episode-1", type: MediaType.TV_EPISODE, parentId: "show-1" })
       .mockResolvedValueOnce({
         ...mediaItem("show-1", "Show", { type: MediaType.TV_SHOW }),
@@ -127,7 +121,7 @@ describe("CollectionService", () => {
     const detail = await service.findDetail("user-2", "episode-1");
 
     expect(detail.id).toBe("show-1");
-    expect(prisma.mediaItem.findUnique.mock.calls[1][0]).toMatchObject({
+    expect(prisma.mediaItem.findFirst.mock.calls[1][0]).toMatchObject({
       where: { id: "show-1" },
       include: {
         logEntries: { where: { userId: "user-2" } },
@@ -136,22 +130,24 @@ describe("CollectionService", () => {
     });
   });
 
-  it("returns not found for a missing item and forbids an unrelated item", async () => {
-    prisma.mediaItem.findUnique.mockResolvedValueOnce(null);
+  it("returns not found for a missing item and returns owned items", async () => {
+    prisma.mediaItem.findFirst.mockResolvedValueOnce(null);
     await expect(service.findDetail("user-2", "missing")).rejects.toBeInstanceOf(NotFoundException);
 
-    prisma.mediaItem.findUnique
+    prisma.mediaItem.findFirst
       .mockResolvedValueOnce({ id: "movie-1", type: MediaType.MOVIE, parentId: null })
       .mockResolvedValueOnce({
         ...mediaItem("movie-1", "Private"),
         logEntries: [],
         episodes: [],
       });
-    await expect(service.findDetail("user-2", "movie-1")).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.findDetail("user-2", "movie-1")).resolves.toEqual(
+      expect.objectContaining({ id: "movie-1" }),
+    );
   });
 
   it("allows detail access for identified items owned by the current user even without logs", async () => {
-    prisma.mediaItem.findUnique
+    prisma.mediaItem.findFirst
       .mockResolvedValueOnce({ id: "movie-1", type: MediaType.MOVIE, parentId: null })
       .mockResolvedValueOnce({
         ...mediaItem("movie-1", "Arrival", {
@@ -168,7 +164,7 @@ describe("CollectionService", () => {
   });
 
   it("applies metadata updates, selected history removals, and aliases in one transaction", async () => {
-    prisma.mediaItem.findUnique
+    prisma.mediaItem.findFirst
       .mockResolvedValueOnce({ id: "movie-1", type: MediaType.MOVIE, parentId: null })
       .mockResolvedValueOnce({
         ...mediaItem("movie-1", "Arrival", { createdByUserId: "user-2" }),
@@ -205,13 +201,13 @@ describe("CollectionService", () => {
     });
     expect(prisma.mediaExternalAlias.deleteMany).toHaveBeenCalledWith({ where: { mediaItemId: "movie-1" } });
     expect(prisma.mediaExternalAlias.createMany).toHaveBeenCalledWith({
-      data: [{ mediaItemId: "movie-1", providerNamespace: "imdb", externalId: "tt2543164" }],
+      data: [{ mediaItemId: "movie-1", userId: "user-2", providerNamespace: "imdb", externalId: "tt2543164" }],
     });
     expect(result).toEqual({ itemId: "movie-1", stillAccessible: true });
   });
 
   it("rejects removal of unauthorized history rows", async () => {
-    prisma.mediaItem.findUnique
+    prisma.mediaItem.findFirst
       .mockResolvedValueOnce({ id: "movie-1", type: MediaType.MOVIE, parentId: null })
       .mockResolvedValueOnce({
         ...mediaItem("movie-1", "Arrival", { createdByUserId: "user-2" }),
@@ -232,7 +228,7 @@ describe("CollectionService", () => {
   });
 
   it("rejects alias conflicts without applying partial writes", async () => {
-    prisma.mediaItem.findUnique
+    prisma.mediaItem.findFirst
       .mockResolvedValueOnce({ id: "movie-1", type: MediaType.MOVIE, parentId: null })
       .mockResolvedValueOnce({
         ...mediaItem("movie-1", "Arrival", { createdByUserId: "user-2" }),
@@ -257,8 +253,8 @@ describe("CollectionService", () => {
     expect(prisma.logEntry.deleteMany).not.toHaveBeenCalled();
   });
 
-  it("removes a user's item activity in one transaction and clears user ownership", async () => {
-    prisma.mediaItem.findUnique
+  it("removes a user's item activity in one transaction and deletes owned items", async () => {
+    prisma.mediaItem.findFirst
       .mockResolvedValueOnce({ id: "show-1", type: MediaType.TV_SHOW, parentId: null })
       .mockResolvedValueOnce({
         ...mediaItem("show-1", "Severance", { type: MediaType.TV_SHOW, createdByUserId: "user-2" }),
@@ -278,6 +274,7 @@ describe("CollectionService", () => {
         ],
       });
     prisma.logEntry.deleteMany.mockResolvedValueOnce({ count: 2 });
+    prisma.mediaItem.deleteMany.mockResolvedValueOnce({ count: 2 });
 
     const result = await service.removeItemForUser("user-2", "show-1", "Severance");
 
@@ -288,16 +285,18 @@ describe("CollectionService", () => {
         mediaItemId: { in: ["show-1", "episode-1"] },
       },
     });
-    expect(prisma.mediaItem.update).toHaveBeenCalledWith({
-      where: { id: "show-1" },
-      data: { createdByUserId: null },
+    expect(prisma.mediaItem.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ["show-1", "episode-1"] },
+        createdByUserId: "user-2",
+      },
     });
     expect(emit).toHaveBeenCalledWith("log.entry.changed", { userId: "user-2" });
     expect(result).toEqual({ removed: true, itemTitle: "Severance" });
   });
 
   it("returns not found style result when the user has no access", async () => {
-    prisma.mediaItem.findUnique.mockResolvedValueOnce(null);
+    prisma.mediaItem.findFirst.mockResolvedValueOnce(null);
 
     const result = await service.removeItemForUser("user-2", "missing", "Missing");
 
@@ -307,16 +306,7 @@ describe("CollectionService", () => {
   });
 
   it("does not report success when another user owns all activity", async () => {
-    prisma.mediaItem.findUnique
-      .mockResolvedValueOnce({ id: "movie-1", type: MediaType.MOVIE, parentId: null })
-      .mockResolvedValueOnce({
-        ...mediaItem("movie-1", "Arrival", { createdByUserId: null }),
-        externalAliases: [],
-        externalIds: [],
-        logEntries: [{ id: "foreign-log", userId: "user-9", loggedAt: new Date("2026-09-01T12:00:00Z") }],
-        episodes: [],
-      });
-    prisma.logEntry.deleteMany.mockResolvedValueOnce({ count: 0 });
+    prisma.mediaItem.findFirst.mockResolvedValueOnce(null);
 
     const result = await service.removeItemForUser("user-2", "movie-1", "Arrival");
 
@@ -325,7 +315,7 @@ describe("CollectionService", () => {
   });
 
   it("requires an exact title confirmation before deleting", async () => {
-    prisma.mediaItem.findUnique
+    prisma.mediaItem.findFirst
       .mockResolvedValueOnce({ id: "movie-1", type: MediaType.MOVIE, parentId: null })
       .mockResolvedValueOnce({
         ...mediaItem("movie-1", "Arrival", { createdByUserId: "user-2" }),

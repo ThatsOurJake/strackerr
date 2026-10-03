@@ -67,7 +67,7 @@ describe("collection view models", () => {
     ]);
   });
 
-  it("exposes identify for skeletons and reidentify for identified items", () => {
+  it("exposes identify for skeletons and refetch for identified items", () => {
     const skeleton = {
       id: "movie-1",
       type: MediaType.MOVIE,
@@ -75,16 +75,20 @@ describe("collection view models", () => {
       isSkeleton: true,
       description: null,
       imageUrl: null,
+      externalIds: [],
       logEntries: [],
       episodes: [],
     } as unknown as MediaDetail;
-    const identified = { ...skeleton, isSkeleton: false } as MediaDetail;
+    const identified = {
+      ...skeleton,
+      isSkeleton: false,
+      externalIds: [{ provider: "tmdb", externalId: "movie:1" }],
+    } as unknown as MediaDetail;
 
     expect(toMediaDetailViewModel(skeleton).identifyUrl)
       .toBe("/collection/movie/movie-1/identify");
-    expect(toMediaDetailViewModel(skeleton).identifyActionLabel).toBe("Identify");
-    expect(toMediaDetailViewModel(identified).identifyUrl).toBe("/collection/movie/movie-1/identify");
-    expect(toMediaDetailViewModel(identified).identifyActionLabel).toBe("Reidentify");
+    expect(toMediaDetailViewModel(identified).identifyUrl).toBeNull();
+    expect(toMediaDetailViewModel(identified).refetchUrl).toBe("/collection/movie/movie-1/identify/refetch");
   });
 
   it("builds edit view rows for history and aliases with selected removals", () => {

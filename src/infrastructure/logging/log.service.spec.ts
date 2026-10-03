@@ -66,7 +66,7 @@ const createEntry = (
     title: id,
     sortTitle: id,
     isSkeleton: false,
-    createdByUserId: null,
+    createdByUserId: "user-1",
     parentId: null,
     seasonNumber: null,
     episodeNumber: null,

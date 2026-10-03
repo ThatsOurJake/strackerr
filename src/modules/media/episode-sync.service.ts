@@ -42,7 +42,18 @@ export class EpisodeSyncService {
     providerName: string,
     externalId: string,
     userApiKey?: string,
+    userId?: string,
   ): Promise<void> {
+    const show = await this.prisma.mediaItem.findUnique({
+      where: { id: mediaItemId },
+      select: { createdByUserId: true },
+    });
+    if (!show) {
+      this.logger.warn(`Episode sync skipped: show ${mediaItemId} no longer exists.`);
+      return;
+    }
+    const ownerUserId = userId ?? show.createdByUserId;
+
     let provider: IMetadataProvider;
     let seasonCount: number;
 
@@ -79,7 +90,11 @@ export class EpisodeSyncService {
 
       for (const episode of episodes) {
         try {
-          const syncedEpisode = await this.upsertEpisode(mediaItemId, episode);
+          const syncedEpisode = await this.upsertEpisode(
+            mediaItemId,
+            ownerUserId,
+            episode,
+          );
           syncedEpisodes.push(syncedEpisode);
         } catch (error) {
           this.logWarning(mediaItemId, error, seasonNumber);
@@ -88,7 +103,7 @@ export class EpisodeSyncService {
     }
 
     try {
-      await this.relinkSkeletonLogs(mediaItemId, syncedEpisodes);
+      await this.relinkSkeletonLogs(mediaItemId, ownerUserId, syncedEpisodes);
       this.logger.log(
         `Episode sync complete for ${mediaItemId}: ${syncedEpisodes.length} episodes synchronized.`,
       );
@@ -99,6 +114,7 @@ export class EpisodeSyncService {
 
   private async upsertEpisode(
     mediaItemId: string,
+    userId: string,
     episode: Episode,
   ): Promise<SyncedEpisode> {
     return this.prisma.mediaItem.upsert({
@@ -120,6 +136,7 @@ export class EpisodeSyncService {
         duration: episode.duration,
         imageSourceUrl: null,
         isSkeleton: false,
+        createdByUserId: userId,
       },
       update: {
         title: episode.title,
@@ -128,7 +145,7 @@ export class EpisodeSyncService {
         duration: episode.duration,
         imageSourceUrl: null,
         isSkeleton: false,
-        createdByUserId: null,
+        createdByUserId: userId,
       },
       select: { id: true, seasonNumber: true, episodeNumber: true },
     }) as Promise<SyncedEpisode>;
@@ -136,6 +153,7 @@ export class EpisodeSyncService {
 
   private async relinkSkeletonLogs(
     mediaItemId: string,
+    userId: string,
     syncedEpisodes: SyncedEpisode[],
   ): Promise<void> {
     const canonicalByPosition = new Map(
@@ -147,8 +165,9 @@ export class EpisodeSyncService {
     const skeletons = await this.prisma.mediaItem.findMany({
       where: {
         parentId: mediaItemId,
+        createdByUserId: userId,
         isSkeleton: true,
-        logEntries: { some: {} },
+        logEntries: { some: { userId } },
       },
       select: { id: true, seasonNumber: true, episodeNumber: true },
     });
@@ -163,7 +182,7 @@ export class EpisodeSyncService {
 
       await this.prisma.$transaction([
         this.prisma.logEntry.updateMany({
-          where: { mediaItemId: skeleton.id },
+          where: { mediaItemId: skeleton.id, userId },
           data: { mediaItemId: canonicalId },
         }),
         this.prisma.mediaItem.delete({ where: { id: skeleton.id } }),

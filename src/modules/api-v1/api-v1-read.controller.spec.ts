@@ -52,7 +52,7 @@ describe("API v1 read controllers", () => {
       request,
     );
 
-    expect(resolveByExternalLookup).toHaveBeenCalledWith("steam", "app:620");
+    expect(resolveByExternalLookup).toHaveBeenCalledWith("user-1", "steam", "app:620");
     expect(response.data).toEqual(expect.objectContaining({ id: "media-7", title: "Portal 2" }));
   });
 
@@ -152,9 +152,9 @@ describe("API v1 read controllers", () => {
       { identifyFromConfiguredAlias } as unknown as IdentificationService,
     );
 
-    const response = await controller.identify("media-8", request);
+    const response = await controller.identify("media-8", {}, request);
 
-    expect(identifyFromConfiguredAlias).toHaveBeenCalledWith("media-8", "user-1");
+    expect(identifyFromConfiguredAlias).toHaveBeenCalledWith("media-8", "user-1", undefined);
     expect(response.data.id).toBe("media-8");
   });
 

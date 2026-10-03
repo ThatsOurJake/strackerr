@@ -1,5 +1,7 @@
 import {
+  BadRequestException,
   Body,
+  ConflictException,
   Controller,
   ForbiddenException,
   Get,
@@ -7,14 +9,17 @@ import {
   Post,
   Query,
   Res,
+  UnprocessableEntityException,
   UseGuards,
 } from "@nestjs/common";
 import type { Response } from "express";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
 import { CurrentUser } from "../../modules/auth/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../../modules/auth/guards/jwt-auth.guard";
-import { CollectionService } from "../../modules/collection/collection.service";
-import { IdentificationService } from "../../modules/media/identification.service";
+import {
+  IDENTIFICATION_FIELDS,
+  IdentificationService,
+} from "../../modules/media/identification.service";
 import {
   buildProviderSearchQuery,
   parseIdentificationQuery,
@@ -31,13 +36,13 @@ import { typeFromSlug } from "../collection-view-model";
 interface IdentifyBody {
   provider?: string;
   externalId?: string;
+  fields?: string | string[];
 }
 
 @Controller("collection/:type/:id/identify")
 @UseGuards(JwtAuthGuard)
 export class IdentifyController {
   constructor(
-    private readonly collectionService: CollectionService,
     private readonly mediaService: MediaService,
     private readonly metadataService: MetadataService,
     private readonly identificationService: IdentificationService,
@@ -63,12 +68,70 @@ export class IdentifyController {
       item,
       typeSlug,
       providerLabel: resolved.provider.name,
-      actionLabel: item.isSkeleton ? "Identify" : "Reidentify",
+      actionLabel: item.isSkeleton ? "Identify" : "Refetch metadata",
       currentIdentity,
       missingKey:
         ["tmdb", "igdb", "bgg"].includes(resolved.provider.name) &&
         !resolved.apiKey,
     });
+  }
+
+  @Get("refetch")
+  async refetchPanel(
+    @Param("type") typeSlug: string,
+    @Param("id") id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Res() response: Response,
+  ) {
+    const item = await this.getAccessibleMediaItem(typeSlug, id, user.userId);
+    if (item.isSkeleton) {
+      return response
+        .status(409)
+        .send("Media item must be identified before refetching");
+    }
+
+    const canonicalIdentity = item.externalIds[0];
+    if (!canonicalIdentity) {
+      return response
+        .status(409)
+        .send("Media item has no provider identity to refetch");
+    }
+
+    try {
+      const providerName = canonicalIdentity.provider as MetadataProviderName;
+      const resolved = await this.metadataService.getProviderForUser(
+        item.type,
+        user.userId,
+        {
+          providerOverride: providerName,
+          anime: providerName === "anilist",
+        },
+      );
+      const proposed = await resolved.provider.getById(
+        canonicalIdentity.externalId,
+        resolved.apiKey,
+      );
+
+      return response.render("partials/identify-confirm", {
+        layout: false,
+        mode: "refetch",
+        item,
+        provider: providerName,
+        externalId: canonicalIdentity.externalId,
+        proposed,
+        selectedFields: [...IDENTIFICATION_FIELDS],
+        fieldRows: this.buildFieldRows(item, proposed),
+        submitUrl: `/collection/${typeSlug}/${id}/identify/refetch`,
+      });
+    } catch (error) {
+      return response
+        .status(422)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to refetch provider metadata",
+        );
+    }
   }
 
   @Get("search")
@@ -197,12 +260,39 @@ export class IdentifyController {
     if (!body.provider || !body.externalId) {
       return response.status(400).send("Select a valid provider result");
     }
-    await this.identificationService.identify(
-      id,
-      body.provider as MetadataProviderName,
-      body.externalId,
-      user.userId,
-    );
+    try {
+      await this.identificationService.identify(
+        id,
+        body.provider as MetadataProviderName,
+        body.externalId,
+        user.userId,
+        this.parseSelectedFields(body.fields),
+      );
+    } catch (error) {
+      return this.redirectWithIdentifyError(error, typeSlug, id, response);
+    }
+    return response.redirect(`/collection/${typeSlug}/${id}`);
+  }
+
+  @Post("refetch")
+  async refetch(
+    @Param("type") typeSlug: string,
+    @Param("id") id: string,
+    @Body() body: IdentifyBody,
+    @CurrentUser() user: AuthenticatedUser,
+    @Res() response: Response,
+  ) {
+    await this.getAccessibleMediaItem(typeSlug, id, user.userId);
+    try {
+      await this.identificationService.refetch(
+        id,
+        user.userId,
+        this.parseSelectedFields(body.fields),
+      );
+    } catch (error) {
+      return this.redirectWithIdentifyError(error, typeSlug, id, response);
+    }
+
     return response.redirect(`/collection/${typeSlug}/${id}`);
   }
 
@@ -235,10 +325,13 @@ export class IdentifyController {
       );
       return response.render("partials/identify-confirm", {
         layout: false,
+        mode: "identify",
         item,
         provider: providerName,
         externalId: body.externalId,
         proposed,
+        selectedFields: [...IDENTIFICATION_FIELDS],
+        fieldRows: this.buildFieldRows(item, proposed),
         submitUrl: `/collection/${typeSlug}/${id}/identify`,
       });
     } catch (error) {
@@ -261,15 +354,111 @@ export class IdentifyController {
       throw new ForbiddenException("You cannot identify this media item");
     }
 
-    if (!item.isSkeleton) {
-      await this.collectionService.findDetail(userId, item.id);
-      return item;
-    }
-
-    if (item.createdByUserId !== userId) {
+    const hasAccess = await this.mediaService.hasUserAccess(item.id, userId);
+    if (!hasAccess) {
       throw new ForbiddenException("You cannot identify this media item");
     }
 
     return item;
+  }
+
+  private parseSelectedFields(fields: string | string[] | undefined): string[] {
+    if (!fields) {
+      return [];
+    }
+
+    const entries = Array.isArray(fields) ? fields : [fields];
+    return entries
+      .map((entry) => entry.trim().toLowerCase())
+      .filter((entry) => entry.length > 0);
+  }
+
+  private buildFieldRows(
+    item: Awaited<ReturnType<MediaService["findByIdWithExternalIds"]>>,
+    proposed: {
+      title: string;
+      description?: string | null;
+      year?: number | null;
+      duration?: number | null;
+      imageUrl?: string | null;
+    },
+  ) {
+    const currentArtwork = item?.imageSourceUrl ?? item?.imageUrl ?? null;
+    const proposedArtwork = proposed.imageUrl ?? null;
+
+    return [
+      {
+        key: "title",
+        label: "Title",
+        currentValue: item?.title ?? "",
+        proposedValue: proposed.title,
+      },
+      {
+        key: "description",
+        label: "Description",
+        currentValue: item?.description ?? "None",
+        proposedValue: proposed.description ?? "None",
+      },
+      {
+        key: "year",
+        label: "Year",
+        currentValue: item?.year ? String(item.year) : "None",
+        proposedValue: proposed.year ? String(proposed.year) : "None",
+      },
+      {
+        key: "duration",
+        label: "Duration",
+        currentValue: item?.duration ? `${item.duration} min` : "None",
+        proposedValue: proposed.duration ? `${proposed.duration} min` : "None",
+      },
+      {
+        key: "artwork",
+        label: "Artwork",
+        currentValue: currentArtwork ? "Has artwork" : "None",
+        proposedValue: proposedArtwork ? "Has artwork" : "None",
+      },
+    ];
+  }
+
+  private redirectWithIdentifyError(
+    error: unknown,
+    typeSlug: string,
+    id: string,
+    response: Response,
+  ) {
+    const message =
+      error instanceof BadRequestException ||
+        error instanceof ConflictException ||
+        error instanceof UnprocessableEntityException
+        ? this.exceptionMessage(error)
+        : "Identification failed";
+
+    return response.redirect(
+      `/collection/${typeSlug}/${id}?error=${encodeURIComponent(message)}`,
+    );
+  }
+
+  private exceptionMessage(
+    error:
+      | BadRequestException
+      | ConflictException
+      | UnprocessableEntityException,
+  ): string {
+    const errorResponse = error.getResponse();
+    if (typeof errorResponse === "string") {
+      return errorResponse;
+    }
+    if (
+      typeof errorResponse === "object" &&
+      errorResponse !== null &&
+      "message" in errorResponse
+    ) {
+      const message = (errorResponse as { message?: string | string[] })
+        .message;
+      return Array.isArray(message)
+        ? message.join(", ")
+        : (message ?? "Identification failed");
+    }
+    return "Identification failed";
   }
 }

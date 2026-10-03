@@ -77,7 +77,7 @@ describe("CollectionController", () => {
       episodes: [],
     });
 
-    await controller.detail("movie-1", user, response as unknown as Response);
+    await controller.detail("movie-1", undefined, undefined, user, response as unknown as Response);
 
     expect(findDetail).toHaveBeenCalledWith("user-2", "movie-1");
     expect(response.render).toHaveBeenCalledWith(

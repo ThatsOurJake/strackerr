@@ -190,7 +190,7 @@ export class AddController {
         duration: metadata.duration,
         provider: providerName,
         externalId: body.externalId,
-      });
+      }, user.userId);
       return response.render("partials/add-entry-form", {
         layout: false,
         ...buildEntryFormModel(type, {

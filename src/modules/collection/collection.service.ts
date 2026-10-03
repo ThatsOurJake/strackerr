@@ -105,14 +105,7 @@ export class CollectionService {
       where: {
         type: filters.type ?? { in: [...COLLECTION_ALL_MEDIA_TYPES] },
         isSkeleton: filters.unidentified ? true : undefined,
-        OR: [
-          { createdByUserId: userId },
-          { logEntries: { some: { userId } } },
-          {
-            type: MediaType.TV_SHOW,
-            episodes: { some: { logEntries: { some: { userId } } } },
-          },
-        ],
+        createdByUserId: userId,
       },
     });
 
@@ -138,19 +131,20 @@ export class CollectionService {
   }
 
   async findDetail(userId: string, requestedId: string): Promise<MediaDetail> {
-    const requestedItem = await this.prisma.mediaItem.findUnique({
-      where: { id: requestedId },
+    const requestedItem = await this.prisma.mediaItem.findFirst({
+      where: { id: requestedId, createdByUserId: userId },
       select: { id: true, type: true, parentId: true },
     });
     if (!requestedItem) {
       throw new NotFoundException("Media item not found");
     }
 
-    const item = await this.prisma.mediaItem.findUnique({
+    const item = await this.prisma.mediaItem.findFirst({
       where: {
         id: requestedItem.type === MediaType.TV_EPISODE
           ? requestedItem.parentId ?? requestedItem.id
           : requestedItem.id,
+        createdByUserId: userId,
       },
       include: {
         externalIds: {
@@ -176,13 +170,6 @@ export class CollectionService {
     });
     if (!item) {
       throw new NotFoundException("Media item not found");
-    }
-
-    const hasConnection = item.createdByUserId === userId
-      || item.logEntries.length > 0
-      || item.episodes.some((episode) => episode.logEntries.length > 0);
-    if (!hasConnection) {
-      throw new ForbiddenException("You do not have access to this media item");
     }
 
     return item;
@@ -211,8 +198,7 @@ export class CollectionService {
       }
     }
 
-    const stillAccessible = item.createdByUserId === userId
-      || allowedLogEntryIds.size - dedupedRemovalIds.length > 0;
+    const stillAccessible = true;
 
     const finalAliases = input.aliases
       .filter((alias) => !alias.remove)
@@ -266,6 +252,7 @@ export class CollectionService {
         const aliasConflicts = await transaction.mediaExternalAlias.findMany({
           where: {
             OR: aliasOrClauses,
+            userId,
             mediaItemId: { not: item.id },
           },
           select: {
@@ -283,6 +270,7 @@ export class CollectionService {
               provider: alias.providerNamespace,
               externalId: alias.externalId,
             })),
+            userId,
             mediaItemId: { not: item.id },
           },
           select: {
@@ -320,6 +308,7 @@ export class CollectionService {
       if (normalizedAliases.length > 0) {
         await transaction.mediaExternalAlias.createMany({
           data: normalizedAliases.map((alias) => ({
+            userId,
             mediaItemId: item.id,
             providerNamespace: alias.providerNamespace,
             externalId: alias.externalId,
@@ -367,16 +356,16 @@ export class CollectionService {
         },
       });
 
-      if (item.createdByUserId === userId) {
-        await transaction.mediaItem.update({
-          where: { id: item.id },
-          data: { createdByUserId: null },
-        });
-      }
+      const deletedItems = await transaction.mediaItem.deleteMany({
+        where: {
+          id: { in: removableMediaItemIds },
+          createdByUserId: userId,
+        },
+      });
 
       return {
         removedEntries: removedEntries.count,
-        removedOwnership: item.createdByUserId === userId,
+        removedOwnership: deletedItems.count > 0,
       };
     });
 

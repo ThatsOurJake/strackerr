@@ -3,8 +3,10 @@ import { MediaType } from "@prisma/client";
 import { Transform, Type } from "class-transformer";
 import {
   ArrayMaxSize,
+  ArrayNotEmpty,
   IsArray,
   IsEnum,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -14,13 +16,23 @@ import {
 } from "class-validator";
 
 const PROVIDER_NAMESPACE_PATTERN = /^[a-z0-9](?:[a-z0-9._:-]{0,62}[a-z0-9])?$/;
+export const IDENTIFY_FIELD_VALUES = [
+  "title",
+  "description",
+  "year",
+  "duration",
+  "artwork",
+] as const;
+export type IdentifyFieldValue = (typeof IDENTIFY_FIELD_VALUES)[number];
 
 export class ExternalAliasDto {
   @ApiProperty({
     example: "steam",
     description: "Alias provider namespace for lookup",
   })
-  @Transform(({ value }) => typeof value === "string" ? value.trim().toLowerCase() : value)
+  @Transform(({ value }) =>
+    typeof value === "string" ? value.trim().toLowerCase() : value,
+  )
   @IsString()
   @IsNotEmpty()
   @Matches(PROVIDER_NAMESPACE_PATTERN)
@@ -31,7 +43,7 @@ export class ExternalAliasDto {
     description: "Alias external ID (opaque, max 128 chars)",
     maxLength: 128,
   })
-  @Transform(({ value }) => typeof value === "string" ? value.trim() : value)
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
   @IsString()
   @IsNotEmpty()
   @MaxLength(128)
@@ -45,23 +57,36 @@ export class MediaItemDto {
   @ApiProperty({ example: "Severance", description: "Media title" })
   title!: string;
 
-  @ApiProperty({ enum: MediaType, example: MediaType.TV_SHOW, description: "Media type" })
+  @ApiProperty({
+    enum: MediaType,
+    example: MediaType.TV_SHOW,
+    description: "Media type",
+  })
   type!: MediaType;
 
   @ApiPropertyOptional({ example: 2022, description: "Release year" })
   year?: number;
 
-  @ApiPropertyOptional({ example: "https://example.com/poster.jpg", description: "Artwork URL" })
+  @ApiPropertyOptional({
+    example: "https://example.com/poster.jpg",
+    description: "Artwork URL",
+  })
   imageUrl?: string;
 }
 
 export class ResolvedMediaResponseDto {
-  @ApiProperty({ type: MediaItemDto, description: "Resolved canonical media item" })
+  @ApiProperty({
+    type: MediaItemDto,
+    description: "Resolved canonical media item",
+  })
   data!: MediaItemDto;
 }
 
 export class MediaExternalAliasesResponseDto {
-  @ApiProperty({ type: [ExternalAliasDto], description: "External aliases on this media item" })
+  @ApiProperty({
+    type: [ExternalAliasDto],
+    description: "External aliases on this media item",
+  })
   data!: ExternalAliasDto[];
 }
 
@@ -81,7 +106,7 @@ export class ResolveMediaQueryDto {
     maxLength: 500,
   })
   @IsOptional()
-  @Transform(({ value }) => typeof value === "string" ? value.trim() : value)
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
   @IsString()
   @IsNotEmpty()
   @MaxLength(500)
@@ -92,7 +117,9 @@ export class ResolveMediaQueryDto {
     description: "Resolve by external alias namespace",
   })
   @IsOptional()
-  @Transform(({ value }) => typeof value === "string" ? value.trim().toLowerCase() : value)
+  @Transform(({ value }) =>
+    typeof value === "string" ? value.trim().toLowerCase() : value,
+  )
   @IsString()
   @IsNotEmpty()
   @Matches(PROVIDER_NAMESPACE_PATTERN)
@@ -104,7 +131,7 @@ export class ResolveMediaQueryDto {
     maxLength: 128,
   })
   @IsOptional()
-  @Transform(({ value }) => typeof value === "string" ? value.trim() : value)
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
   @IsString()
   @IsNotEmpty()
   @MaxLength(128)
@@ -125,7 +152,7 @@ export class CreateMediaItemDto {
     description: "Media title",
     maxLength: 500,
   })
-  @Transform(({ value }) => typeof value === "string" ? value.trim() : value)
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
   @IsString()
   @IsNotEmpty()
   @MaxLength(500)
@@ -149,6 +176,25 @@ export class CreatedMediaResponseDto {
 }
 
 export class IdentifiedMediaResponseDto {
-  @ApiProperty({ type: MediaItemDto, description: "Updated identified media item" })
+  @ApiProperty({
+    type: MediaItemDto,
+    description: "Updated identified media item",
+  })
   data!: MediaItemDto;
+}
+
+export class IdentifyMediaRequestDto {
+  @ApiPropertyOptional({
+    type: [String],
+    enum: IDENTIFY_FIELD_VALUES,
+    description:
+      "Optional list of metadata fields to apply. When omitted, all available provider fields are applied.",
+    example: ["title", "year", "artwork"],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayMaxSize(5)
+  @IsIn(IDENTIFY_FIELD_VALUES, { each: true })
+  fields?: IdentifyFieldValue[];
 }

@@ -65,6 +65,8 @@ export class CollectionController {
   @Get(":type/:id")
   async detail(
     @Param("id") id: string,
+    @Query("success") success: string | undefined,
+    @Query("error") error: string | undefined,
     @CurrentUser() user: AuthenticatedUser,
     @Res() response: Response,
   ) {
@@ -75,6 +77,8 @@ export class CollectionController {
     }
     return response.render(view, {
       ...toMediaDetailViewModel(item),
+      success,
+      error,
     });
   }
 

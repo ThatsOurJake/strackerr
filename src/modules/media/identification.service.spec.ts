@@ -31,8 +31,8 @@ describe("IdentificationService", () => {
       }),
     };
     const service = new IdentificationService(
-      { logEntry: { findFirst: jest.fn() }, $transaction: jest.fn() } as never,
       {
+        hasUserAccess: jest.fn().mockResolvedValue(true),
         findByIdWithExternalIds: jest.fn().mockResolvedValue({
           id: "show-1",
           type: MediaType.TV_SHOW,
@@ -69,15 +69,14 @@ describe("IdentificationService", () => {
       imageUrl: null,
       imageSourceUrl: "https://image/poster.jpg",
       isSkeleton: false,
-      createdByUserId: "user-1",
     }));
-    expect(addExternalId).toHaveBeenCalledWith("show-1", "tmdb", "tv:95396");
-    expect(addAlias).toHaveBeenCalledWith("show-1", "Severence");
+    expect(addExternalId).toHaveBeenCalledWith("show-1", "user-1", "tmdb", "tv:95396");
+    expect(addAlias).toHaveBeenCalledWith("show-1", "user-1", "Severence");
     expect(events.emit).toHaveBeenCalledWith("media.image.cache", {
       mediaItemId: "show-1",
       sourceUrl: "https://image/poster.jpg",
     });
-    expect(syncShow).toHaveBeenCalledWith("show-1", "tmdb", "tv:95396", "key");
+    expect(syncShow).toHaveBeenCalledWith("show-1", "tmdb", "tv:95396", "key", "user-1");
   });
 
   it("does not retain or queue artwork when identifying a TV episode", async () => {
@@ -98,8 +97,8 @@ describe("IdentificationService", () => {
       }),
     };
     const service = new IdentificationService(
-      { logEntry: { findFirst: jest.fn() }, $transaction: jest.fn() } as never,
       {
+        hasUserAccess: jest.fn().mockResolvedValue(true),
         findByIdWithExternalIds: jest.fn().mockResolvedValue({
           id: "episode-1",
           type: MediaType.TV_EPISODE,
@@ -138,8 +137,8 @@ describe("IdentificationService", () => {
 
   it("rejects configured-alias identification when media is already identified", async () => {
     const service = new IdentificationService(
-      { logEntry: { findFirst: jest.fn() }, $transaction: jest.fn() } as never,
       {
+        hasUserAccess: jest.fn().mockResolvedValue(true),
         findById: jest.fn().mockResolvedValue({
           id: "movie-1",
           type: MediaType.MOVIE,
@@ -159,8 +158,8 @@ describe("IdentificationService", () => {
 
   it("fails clearly when configured provider alias is missing", async () => {
     const service = new IdentificationService(
-      { logEntry: { findFirst: jest.fn() }, $transaction: jest.fn() } as never,
       {
+        hasUserAccess: jest.fn().mockResolvedValue(true),
         findById: jest.fn().mockResolvedValue({
           id: "movie-1",
           type: MediaType.MOVIE,
@@ -187,8 +186,8 @@ describe("IdentificationService", () => {
 
   it("uses the configured provider alias to identify a skeleton item", async () => {
     const service = new IdentificationService(
-      { logEntry: { findFirst: jest.fn() }, $transaction: jest.fn() } as never,
       {
+        hasUserAccess: jest.fn().mockResolvedValue(true),
         findById: jest.fn().mockResolvedValue({
           id: "movie-1",
           type: MediaType.MOVIE,
@@ -220,6 +219,7 @@ describe("IdentificationService", () => {
       "tmdb",
       "movie:329865",
       "user-1",
+      undefined,
     );
   });
 });

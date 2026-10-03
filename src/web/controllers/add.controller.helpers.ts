@@ -216,8 +216,9 @@ export const resolveSubmissionMediaItem = async (
     if (!selected) {
       throw new Error("Selected media item no longer exists");
     }
-    if (selected.isSkeleton && selected.createdByUserId !== userId) {
-      throw new ForbiddenException("You cannot log another user's unidentified item");
+    const hasAccess = await mediaService.hasUserAccess(selected.id, userId);
+    if (!hasAccess) {
+      throw new ForbiddenException("You cannot log another user's item");
     }
   }
 

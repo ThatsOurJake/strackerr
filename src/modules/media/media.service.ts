@@ -19,7 +19,7 @@ export interface CreateMediaData {
   type: MediaType;
   title: string;
   isSkeleton?: boolean;
-  createdByUserId?: string | null;
+  createdByUserId: string;
   parentId?: string | null;
   seasonNumber?: number | null;
   episodeNumber?: number | null;
@@ -30,7 +30,8 @@ export interface CreateMediaData {
   duration?: number | null;
 }
 
-export interface CreateIdentifiedMediaData extends CreateMediaData {
+export interface CreateIdentifiedMediaData
+  extends Omit<CreateMediaData, "createdByUserId"> {
   provider: string;
   externalId: string;
 }
@@ -61,7 +62,12 @@ export class MediaService {
 
     return this.prisma.$transaction(async (transaction) => {
       const existing = await transaction.mediaAlias.findUnique({
-        where: { alias },
+        where: {
+          userId_alias: {
+            userId,
+            alias,
+          },
+        },
         include: { mediaItem: true },
       });
 
@@ -80,7 +86,7 @@ export class MediaService {
       });
 
       await transaction.mediaAlias.create({
-        data: { alias, mediaItemId: mediaItem.id },
+        data: { alias, mediaItemId: mediaItem.id, userId },
       });
 
       return mediaItem;
@@ -88,11 +94,18 @@ export class MediaService {
   }
 
   async findByExternalId(
+    userId: string,
     provider: string,
     externalId: string,
   ): Promise<MediaItem | null> {
     const result = await this.prisma.mediaExternalId.findUnique({
-      where: { provider_externalId: { provider, externalId } },
+      where: {
+        userId_provider_externalId: {
+          userId,
+          provider,
+          externalId,
+        },
+      },
       include: { mediaItem: true },
     });
 
@@ -100,13 +113,15 @@ export class MediaService {
   }
 
   async findByExternalAlias(
+    userId: string,
     providerNamespace: string,
     externalId: string,
   ): Promise<MediaItem | null> {
     const normalized = normalizeExternalAlias(providerNamespace, externalId);
     const result = await this.prisma.mediaExternalAlias.findUnique({
       where: {
-        providerNamespace_externalId: {
+        userId_providerNamespace_externalId: {
+          userId,
           providerNamespace: normalized.providerNamespace,
           externalId: normalized.externalId,
         },
@@ -118,11 +133,13 @@ export class MediaService {
   }
 
   async resolveByExternalLookup(
+    userId: string,
     providerNamespace: string,
     externalId: string,
   ): Promise<MediaItem | null> {
     const normalized = normalizeExternalAlias(providerNamespace, externalId);
     const canonical = await this.findByExternalId(
+      userId,
       normalized.providerNamespace,
       normalized.externalId,
     );
@@ -131,6 +148,7 @@ export class MediaService {
     }
 
     return this.findByExternalAlias(
+      userId,
       normalized.providerNamespace,
       normalized.externalId,
     );
@@ -138,8 +156,10 @@ export class MediaService {
 
   async findOrCreateIdentified(
     data: CreateIdentifiedMediaData,
+    userId: string,
   ): Promise<MediaItem> {
     const existing = await this.findByExternalId(
+      userId,
       data.provider,
       data.externalId,
     );
@@ -161,12 +181,12 @@ export class MediaService {
         data: {
           ...sanitizedMediaData,
           isSkeleton: false,
-          createdByUserId: null,
+          createdByUserId: userId,
           sortTitle: MediaService.computeSortTitle(sanitizedMediaData.title),
         },
       });
       await transaction.mediaExternalId.create({
-        data: { mediaItemId: mediaItem.id, provider, externalId },
+        data: { mediaItemId: mediaItem.id, userId, provider, externalId },
       });
       return mediaItem;
     });
@@ -191,6 +211,7 @@ export class MediaService {
     const existing = await this.prisma.mediaItem.findFirst({
       where: {
         parentId,
+        createdByUserId: userId,
         seasonNumber,
         episodeNumber,
         type: MediaType.TV_EPISODE,
@@ -223,14 +244,16 @@ export class MediaService {
         type,
         OR: [
           { title: { contains: query } },
-          { aliases: { some: { alias: { contains: query } } } },
+          {
+            aliases: {
+              some: {
+                userId,
+                alias: { contains: query },
+              },
+            },
+          },
         ],
-        AND: {
-          OR: [
-            { createdByUserId: userId },
-            { logEntries: { some: { userId } } },
-          ],
-        },
+        createdByUserId: userId,
       },
       orderBy: { title: "asc" },
       take: 20,
@@ -248,15 +271,16 @@ export class MediaService {
         type: MediaType.TV_SHOW,
         OR: [
           { title: { contains: trimmedQuery } },
-          { aliases: { some: { alias: { contains: trimmedQuery } } } },
+          {
+            aliases: {
+              some: {
+                userId,
+                alias: { contains: trimmedQuery },
+              },
+            },
+          },
         ],
-        AND: {
-          OR: [
-            { createdByUserId: userId },
-            { logEntries: { some: { userId } } },
-            { episodes: { some: { logEntries: { some: { userId } } } } },
-          ],
-        },
+        createdByUserId: userId,
       },
       orderBy: [{ isSkeleton: "desc" }, { title: "asc" }, { year: "asc" }],
       take: 20,
@@ -268,24 +292,15 @@ export class MediaService {
     title: string,
   ): Promise<MediaItem | null> {
     const trimmedTitle = title.trim();
-    const exactTitleMatches = await this.prisma.mediaItem.findMany({
+    return this.prisma.mediaItem.findFirst({
       where: {
+        createdByUserId: userId,
         title: {
           equals: trimmedTitle,
         },
       },
       orderBy: { id: "asc" },
-      take: 20,
     });
-
-    for (const match of exactTitleMatches) {
-      const hasAccess = await this.hasUserAccess(match.id, userId);
-      if (hasAccess) {
-        return match;
-      }
-    }
-
-    return null;
   }
 
   findById(id: string): Promise<MediaItem | null> {
@@ -298,26 +313,23 @@ export class MediaService {
       return false;
     }
 
-    if (mediaItem.isSkeleton) {
-      return mediaItem.createdByUserId === userId;
-    }
-
     if (mediaItem.createdByUserId === userId) {
       return true;
     }
 
-    const linkedLog = await this.prisma.logEntry.findFirst({
+    if (mediaItem.type !== MediaType.TV_SHOW) {
+      return false;
+    }
+
+    const linkedEpisode = await this.prisma.mediaItem.findFirst({
       where: {
-        userId,
-        mediaItem:
-          mediaItem.type === MediaType.TV_SHOW
-            ? { OR: [{ id: mediaItem.id }, { parentId: mediaItem.id }] }
-            : { id: mediaItem.id },
+        parentId: mediaItem.id,
+        createdByUserId: userId,
       },
       select: { id: true },
     });
 
-    return Boolean(linkedLog);
+    return Boolean(linkedEpisode);
   }
 
   findByIdWithExternalIds(id: string) {
@@ -366,6 +378,7 @@ export class MediaService {
       if (dedupedAliases.size > 0) {
         const existingAliases = await transaction.mediaExternalAlias.findMany({
           where: {
+            userId: input.userId,
             OR: [...dedupedAliases.values()].map((alias) => ({
               providerNamespace: alias.providerNamespace,
               externalId: alias.externalId,
@@ -400,6 +413,7 @@ export class MediaService {
         try {
           await transaction.mediaExternalAlias.createMany({
             data: [...dedupedAliases.values()].map((alias) => ({
+              userId: input.userId,
               mediaItemId: mediaItem.id,
               providerNamespace: alias.providerNamespace,
               externalId: alias.externalId,
@@ -434,10 +448,19 @@ export class MediaService {
     return this.prisma.mediaItem.update({ where: { id }, data: updateData });
   }
 
-  async addAlias(mediaItemId: string, rawAlias: string): Promise<MediaAlias> {
+  async addAlias(
+    mediaItemId: string,
+    userId: string,
+    rawAlias: string,
+  ): Promise<MediaAlias> {
     const alias = MediaService.normaliseAlias(rawAlias);
     const existing = await this.prisma.mediaAlias.findUnique({
-      where: { alias },
+      where: {
+        userId_alias: {
+          userId,
+          alias,
+        },
+      },
     });
 
     if (existing) {
@@ -446,14 +469,21 @@ export class MediaService {
 
     try {
       return await this.prisma.mediaAlias.create({
-        data: { mediaItemId, alias },
+        data: { mediaItemId, userId, alias },
       });
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === "P2002"
       ) {
-        return this.prisma.mediaAlias.findUniqueOrThrow({ where: { alias } });
+        return this.prisma.mediaAlias.findUniqueOrThrow({
+          where: {
+            userId_alias: {
+              userId,
+              alias,
+            },
+          },
+        });
       }
 
       throw error;
@@ -462,13 +492,26 @@ export class MediaService {
 
   async addExternalId(
     mediaItemId: string,
+    userId: string,
     provider: string,
     externalId: string,
   ): Promise<MediaItem> {
-    const result = await this.prisma.mediaExternalId.upsert({
-      where: { provider_externalId: { provider, externalId } },
-      create: { mediaItemId, provider, externalId },
-      update: { mediaItemId },
+    const existing = await this.prisma.mediaExternalId.findUnique({
+      where: {
+        userId_provider_externalId: {
+          userId,
+          provider,
+          externalId,
+        },
+      },
+    });
+
+    if (existing && existing.mediaItemId !== mediaItemId) {
+      throw new ConflictException("Provider identity is already assigned to another media item");
+    }
+
+    const result = existing ?? await this.prisma.mediaExternalId.create({
+      data: { mediaItemId, userId, provider, externalId },
     });
 
     return await this.prisma.mediaItem.findUniqueOrThrow({
@@ -487,13 +530,15 @@ export class MediaService {
 
   async addExternalAlias(
     mediaItemId: string,
+    userId: string,
     providerNamespace: string,
     externalId: string,
   ): Promise<MediaExternalAlias> {
     const normalized = normalizeExternalAlias(providerNamespace, externalId);
     const existing = await this.prisma.mediaExternalAlias.findUnique({
       where: {
-        providerNamespace_externalId: {
+        userId_providerNamespace_externalId: {
+          userId,
           providerNamespace: normalized.providerNamespace,
           externalId: normalized.externalId,
         },
@@ -513,6 +558,7 @@ export class MediaService {
     try {
       return await this.prisma.mediaExternalAlias.create({
         data: {
+          userId,
           mediaItemId,
           providerNamespace: normalized.providerNamespace,
           externalId: normalized.externalId,
@@ -534,6 +580,7 @@ export class MediaService {
 
   async addExternalAliases(
     mediaItemId: string,
+    userId: string,
     aliases: ExternalAliasInput[],
   ): Promise<MediaExternalAlias[]> {
     const deduped = new Map<string, NormalizedExternalAlias>();
@@ -553,6 +600,7 @@ export class MediaService {
       added.push(
         await this.addExternalAlias(
           mediaItemId,
+          userId,
           alias.providerNamespace,
           alias.externalId,
         ),

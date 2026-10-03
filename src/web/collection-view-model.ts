@@ -126,8 +126,10 @@ export const toMediaDetailViewModel = (item: MediaDetail) => {
     title: item.title,
     itemUrl: `/items/${item.id}`,
     editUrl: `/items/${item.id}/edit`,
-    identifyUrl: `/collection/${details.path}/${item.id}/identify`,
-    identifyActionLabel: item.isSkeleton ? "Identify" : "Reidentify",
+    identifyUrl: item.isSkeleton ? `/collection/${details.path}/${item.id}/identify` : null,
+    refetchUrl: !item.isSkeleton && Array.isArray(item.externalIds) && item.externalIds.length > 0
+      ? `/collection/${details.path}/${item.id}/identify/refetch`
+      : null,
     artist: item.type === MediaType.MUSIC_TRACK ? item.description : null,
     description: item.type === MediaType.MUSIC_TRACK ? null : item.description,
     totalCount: item.logEntries.length,
