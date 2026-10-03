@@ -12,6 +12,7 @@ export interface ActivityEntryOverrides {
   title?: string;
   imageUrl?: string | null;
   parentImageUrl?: string | null;
+  parentId?: string;
   seasonNumber?: number | null;
   episodeNumber?: number | null;
   parentTitle?: string;
@@ -25,7 +26,7 @@ export const createActivityEntry = (
   const loggedAt = overrides.loggedAt ?? new Date(2026, 7, 24, 12);
   const mediaItemId = overrides.mediaItemId ?? `media-${id}`;
   const parent = overrides.parentTitle ? {
-    id: `parent-${id}`,
+    id: overrides.parentId ?? `parent-${id}`,
     type: MediaType.TV_SHOW,
     title: overrides.parentTitle,
     sortTitle: overrides.parentTitle.toLowerCase(),

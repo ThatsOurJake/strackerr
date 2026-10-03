@@ -381,17 +381,31 @@ export class StatsService {
     const items = new Map<string, TopItem>();
 
     for (const entry of entries) {
-      const item = items.get(entry.mediaItemId) ?? {
-        mediaItem: entry.mediaItem,
+      const topItemMedia = this.topItemMediaForEntry(entry);
+      const item = items.get(topItemMedia.id) ?? {
+        mediaItem: topItemMedia,
         totalMinutes: 0,
       };
       item.totalMinutes += entry.duration ?? 0;
-      items.set(entry.mediaItemId, item);
+      items.set(topItemMedia.id, item);
     }
 
     return [...items.values()]
       .sort((left, right) => right.totalMinutes - left.totalMinutes)
       .slice(0, limit);
+  }
+
+  private topItemMediaForEntry(
+    entry: ActivityEntryWithMedia,
+  ): ActivityEntryWithMedia["mediaItem"] {
+    if (entry.mediaItem.type === MediaType.TV_EPISODE && entry.mediaItem.parent) {
+      return {
+        ...entry.mediaItem.parent,
+        parent: null,
+      } as ActivityEntryWithMedia["mediaItem"];
+    }
+
+    return entry.mediaItem;
   }
 
   private pickStableThrowbackEntry(

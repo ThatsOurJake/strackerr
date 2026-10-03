@@ -78,6 +78,46 @@ describe("StatsService", () => {
     expect(items[0]).toMatchObject({ totalMinutes: 110, mediaItem: { id: "movie" } });
   });
 
+  it("aggregates tv episodes under their parent show in top items", async () => {
+    findByUser.mockResolvedValue([
+      createActivityEntry("episode-1", MediaType.TV_EPISODE, {
+        loggedAt: new Date(2026, 7, 18),
+        duration: 40,
+        mediaItemId: "episode-1",
+        parentId: "show-severance",
+        parentTitle: "Severance",
+      }),
+      createActivityEntry("episode-2", MediaType.TV_EPISODE, {
+        loggedAt: new Date(2026, 7, 19),
+        duration: 50,
+        mediaItemId: "episode-2",
+        parentId: "show-severance",
+        parentTitle: "Severance",
+      }),
+      createActivityEntry("movie", MediaType.MOVIE, {
+        loggedAt: new Date(2026, 7, 19),
+        duration: 80,
+        mediaItemId: "movie-1",
+      }),
+    ]);
+
+    const items = await service.topItems("user-1", null, 2);
+
+    expect(items).toHaveLength(2);
+    expect(items[0]).toMatchObject({
+      totalMinutes: 90,
+      mediaItem: {
+        id: "show-severance",
+        type: MediaType.TV_SHOW,
+        title: "Severance",
+      },
+    });
+    expect(items[1]).toMatchObject({
+      totalMinutes: 80,
+      mediaItem: { id: "movie-1" },
+    });
+  });
+
   describe("formatRangeLabel", () => {
     it("formats bounded ranges as readable labels", () => {
       const label = service.formatRangeLabel({
