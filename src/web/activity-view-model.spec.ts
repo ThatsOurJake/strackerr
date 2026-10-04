@@ -15,6 +15,8 @@ describe("activity view model", () => {
       [45, "45m"],
       [60, "1h"],
       [125, "2h 5m"],
+      [1440, "1d 0h 0m"],
+      [1505, "1d 1h 5m"],
     ])("formats %i minutes as %s", (minutes, expected) => {
       expect(formatDuration(minutes)).toBe(expected);
     });

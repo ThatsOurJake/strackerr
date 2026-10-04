@@ -11,6 +11,15 @@ const TYPE_DETAILS: Record<MediaType, { label: string; icon: string; accent: str
 };
 
 export const formatDuration = (minutes: number): string => {
+  const minutesPerDay = 24 * 60;
+  if (minutes >= minutesPerDay) {
+    const days = Math.floor(minutes / minutesPerDay);
+    const remainder = minutes % minutesPerDay;
+    const hours = Math.floor(remainder / 60);
+    const remainingMinutes = remainder % 60;
+    return `${days}d ${hours}h ${remainingMinutes}m`;
+  }
+
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   if (hours === 0) {
@@ -54,8 +63,8 @@ export const toEntryViewModel = (entry: ActivityEntryWithMedia) => {
     platform: entry.platform,
     ...details,
     detailUrl: `/collection/${details.path}/${entry.mediaItem.type === MediaType.TV_EPISODE
-        ? entry.mediaItem.parent?.id ?? entry.mediaItem.id
-        : entry.mediaItem.id
+      ? entry.mediaItem.parent?.id ?? entry.mediaItem.id
+      : entry.mediaItem.id
       }`,
   };
 };
