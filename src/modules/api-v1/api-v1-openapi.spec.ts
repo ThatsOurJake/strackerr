@@ -121,6 +121,7 @@ describe("API v1 OpenAPI responses", () => {
     const properties = Object.keys(schema.properties ?? {});
 
     expect(properties.sort()).toEqual([
+      "description",
       "duration",
       "episode",
       "id",

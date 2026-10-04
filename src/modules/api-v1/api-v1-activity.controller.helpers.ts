@@ -3,13 +3,13 @@ import { MediaType } from "@prisma/client";
 import type { Request } from "express";
 import type { ActivityEntryWithMedia } from "../activity/activity.service";
 import {
-  type CreatedBoardGameActivityDto,
+  type ActivityEntryResponseDto,
   type CreatedActivityResponseDto,
+  type CreatedBoardGameActivityDto,
   type CreatedGameActivityDto,
   type CreatedMovieActivityDto,
   type CreatedMusicActivityDto,
   type CreatedTvEpisodeActivityDto,
-  type ActivityEntryResponseDto,
 } from "./dto/response.dto";
 
 export const getApiRequestUserId = (request: Request): string => {
@@ -20,13 +20,16 @@ export const getApiRequestUserId = (request: Request): string => {
   return request.user.userId;
 };
 
-export const toApiActivityResponse = (entry: ActivityEntryWithMedia): ActivityEntryResponseDto => {
+export const toApiActivityResponse = (
+  entry: ActivityEntryWithMedia,
+): ActivityEntryResponseDto => {
   return {
     id: entry.id,
     title: entry.mediaItem.parent?.title ?? entry.mediaItem.title,
     type: entry.mediaItem.type,
     loggedAt: entry.loggedAt,
     duration: entry.duration,
+    description: entry.description,
     platform: entry.platform,
     players: entry.playerCount,
     won: entry.won,
@@ -43,6 +46,7 @@ export const toCreatedApiActivityResponse = (
     title: entry.mediaItem.parent?.title ?? entry.mediaItem.title,
     loggedAt: entry.loggedAt,
     duration: entry.duration,
+    description: entry.description,
     status: "created",
   };
 

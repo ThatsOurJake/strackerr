@@ -19,10 +19,11 @@
           <span>Season {{seasonNumber}}</span><i data-lucide="chevron-down" class="h-4 w-4 group-open:rotate-180"></i>
         </summary>
         <div class="pb-4">{{#each episodes}}<div
-            class="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-3 border-t border-border-subtle px-2 py-3 {{#unless watched}}opacity-45{{/unless}}">
-            <span class="font-heading text-xs font-semibold text-type-tv">E{{episodeNumber}}</span><span
-              class="min-w-0 truncate text-sm">{{title}}</span><span
-              class="text-right text-xs text-text-secondary">{{watchCount}} watched{{#if watched}} ·
+            class="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-start gap-3 border-t border-border-subtle px-2 py-3 {{#unless watched}}opacity-45{{/unless}}">
+            <span class="pt-0.5 font-heading text-xs font-semibold text-type-tv">E{{episodeNumber}}</span><span
+              class="min-w-0"><span class="block truncate text-sm">{{title}}</span>{{#if latestDescription}}<span
+                class="mt-1 line-clamp-2 block text-xs text-text-secondary">{{latestDescription}}</span>{{/if}}</span><span
+              class="pt-0.5 text-right text-xs text-text-secondary">{{watchCount}} watched{{#if watched}} ·
               {{totalDuration}}{{/if}}</span>
           </div>{{/each}}</div>
       </details>{{/each}}

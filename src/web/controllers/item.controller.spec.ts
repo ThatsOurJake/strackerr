@@ -40,7 +40,7 @@ const createDetail = () => ({
       mediaItemId: "item-1",
       loggedAt: new Date("2026-09-01T12:00:00Z"),
       duration: 120,
-      notes: null,
+      description: null,
       platform: null,
       playerCount: null,
       won: null,

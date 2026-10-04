@@ -66,7 +66,7 @@ describe("AddController", () => {
         loggedAt: "2026-08-28",
         seasonNumber: "1",
         episodeNumber: "3",
-        notes: "Great episode",
+        description: "Great episode",
       },
       user,
       response as unknown as Response,
@@ -83,7 +83,7 @@ describe("AddController", () => {
       expect.objectContaining({
         mediaItemId: "episode-1",
         duration: 48,
-        notes: "Great episode",
+        description: "Great episode",
       }),
       "user-1",
       LogSource.MANUAL,

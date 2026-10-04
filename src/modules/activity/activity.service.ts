@@ -14,7 +14,7 @@ export interface CreateActivityData {
   mediaItemId: string;
   loggedAt: Date;
   duration?: number;
-  notes?: string;
+  description?: string;
   platform?: string;
   playerCount?: number;
   won?: boolean;
@@ -66,7 +66,7 @@ export class ActivityService {
       return transaction.logEntry.create({
         data: {
           ...data,
-          notes: data.notes ? stripHtmlTags(data.notes) : undefined,
+          description: data.description ? stripHtmlTags(data.description) : undefined,
           platform: data.platform ? stripHtmlTags(data.platform) : undefined,
           userId,
           source,

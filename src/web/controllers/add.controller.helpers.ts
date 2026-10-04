@@ -16,7 +16,7 @@ export interface SubmitAddBody {
   loggedAt?: string;
   duration?: string;
   defaultDuration?: string;
-  notes?: string;
+  description?: string;
   seasonNumber?: string;
   episodeNumber?: string;
   platform?: string;
@@ -37,7 +37,7 @@ export interface EntryFormModel {
   loggedAt: string;
   defaultDuration?: number;
   duration?: string;
-  notes?: string;
+  description?: string;
   seasonNumber?: string;
   episodeNumber?: string;
   platform?: string;
@@ -188,7 +188,7 @@ export const buildEntryFormModel = (
     loggedAt: values.loggedAt ?? localDate,
     defaultDuration: values.defaultDuration ? Number(values.defaultDuration) : undefined,
     duration: values.duration,
-    notes: values.notes,
+    description: values.description,
     seasonNumber: values.seasonNumber,
     episodeNumber: values.episodeNumber,
     platform: values.platform,

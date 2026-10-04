@@ -67,6 +67,13 @@ export class ActivityEntryResponseDto {
   @ApiPropertyOptional({ example: 116, description: "Duration in minutes", nullable: true })
   duration!: number | null;
 
+  @ApiPropertyOptional({
+    example: "Rewatched with director commentary",
+    description: "Optional log entry description",
+    nullable: true,
+  })
+  description?: string | null;
+
   @ApiPropertyOptional({ example: "PC", description: "Game platform", nullable: true })
   platform?: string | null;
 
@@ -95,6 +102,13 @@ export class CreatedActivityResponseBaseDto {
 
   @ApiPropertyOptional({ example: 116, description: "Duration in minutes", nullable: true })
   duration!: number | null;
+
+  @ApiPropertyOptional({
+    example: "Rewatched with director commentary",
+    description: "Optional log entry description",
+    nullable: true,
+  })
+  description?: string | null;
 
   @ApiProperty({ example: "created", description: "Creation result" })
   status!: "created";

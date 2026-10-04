@@ -413,9 +413,9 @@ export class IdentifyController {
       },
       {
         key: "artwork",
-        label: "Artwork",
-        currentValue: currentArtwork ? "Has artwork" : "None",
-        proposedValue: proposedArtwork ? "Has artwork" : "None",
+        label: "Refetch images",
+        currentValue: currentArtwork ? "Current images kept" : "No current images",
+        proposedValue: proposedArtwork ? "Pull provider images" : "Provider returned no images",
       },
     ];
   }

@@ -107,6 +107,9 @@ export const toMediaDetailViewModel = (item: MediaDetail) => {
     durationLabel: entry.duration === null ? null : formatDuration(entry.duration),
     outcome: entry.won === null ? null : entry.won ? "Won" : "Lost",
   }));
+  const latestSessionDescription = sessions.find(
+    (entry) => Boolean(entry.description?.trim()),
+  )?.description ?? null;
   const seasons = new Map<number, Array<MediaDetail["episodes"][number]>>();
   for (const episode of item.episodes) {
     const seasonNumber = episode.seasonNumber ?? 0;
@@ -130,7 +133,9 @@ export const toMediaDetailViewModel = (item: MediaDetail) => {
     refetchUrl: !item.isSkeleton && Array.isArray(item.externalIds) && item.externalIds.length > 0
       ? `/collection/${details.path}/${item.id}/identify/refetch`
       : null,
-    artist: item.type === MediaType.MUSIC_TRACK ? item.description : null,
+    artist: item.type === MediaType.MUSIC_TRACK
+      ? item.description ?? latestSessionDescription
+      : null,
     description: item.type === MediaType.MUSIC_TRACK ? null : item.description,
     totalCount: item.logEntries.length,
     totalDuration: formatDuration(directDuration),
@@ -145,10 +150,14 @@ export const toMediaDetailViewModel = (item: MediaDetail) => {
           (total, entry) => total + (entry.duration ?? 0),
           0,
         );
+        const latestDescription = episode.logEntries.find(
+          (entry) => Boolean(entry.description?.trim()),
+        )?.description ?? null;
         return {
           ...episode,
           watchCount: episode.logEntries.length,
           watched: episode.logEntries.length > 0,
+          latestDescription,
           totalDuration: formatDuration(totalMinutes),
         };
       }),

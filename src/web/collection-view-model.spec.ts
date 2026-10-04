@@ -91,6 +91,38 @@ describe("collection view models", () => {
     expect(toMediaDetailViewModel(identified).refetchUrl).toBe("/collection/movie/movie-1/identify/refetch");
   });
 
+  it("uses the latest session description as music header artist fallback", () => {
+    const detail = {
+      id: "track-1",
+      type: MediaType.MUSIC_TRACK,
+      title: "The Chain",
+      description: null,
+      isSkeleton: true,
+      imageUrl: null,
+      externalIds: [],
+      logEntries: [
+        {
+          id: "log-2",
+          loggedAt: new Date("2026-09-03T00:00:00Z"),
+          duration: 4,
+          description: "Fleetwood Mac",
+        },
+        {
+          id: "log-1",
+          loggedAt: new Date("2026-09-01T00:00:00Z"),
+          duration: 4,
+          description: "",
+        },
+      ],
+      episodes: [],
+    } as unknown as MediaDetail;
+
+    const model = toMediaDetailViewModel(detail);
+
+    expect(model.artist).toBe("Fleetwood Mac");
+    expect(model.description).toBeNull();
+  });
+
   it("builds edit view rows for history and aliases with selected removals", () => {
     const detail = {
       id: "show-1",

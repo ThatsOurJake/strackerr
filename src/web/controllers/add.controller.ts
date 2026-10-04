@@ -233,7 +233,7 @@ export class AddController {
           mediaItemId: mediaItem.id,
           loggedAt: validated.loggedAt,
           duration: validated.duration ?? mediaItem.duration ?? undefined,
-          notes: body.notes?.trim() || undefined,
+          description: body.description?.trim() || undefined,
           platform: body.platform?.trim() || undefined,
           playerCount: validated.playerCount,
           won:
