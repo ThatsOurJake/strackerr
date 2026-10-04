@@ -63,6 +63,33 @@ describe("metadata providers", () => {
         new TmdbProvider(MediaType.TV_SHOW).search("Severance", "bad"),
       ).rejects.toThrow("Invalid TMDB API key");
     });
+
+    it("includes genres and community keywords as tags for detail lookups", async () => {
+      fetchMock.mockResolvedValue(
+        jsonResponse({
+          id: 157336,
+          title: "Interstellar",
+          release_date: "2014-11-07",
+          overview: "Space exploration.",
+          genres: [{ id: 12, name: "Adventure" }],
+          keywords: {
+            keywords: [
+              { id: 1, name: "Space" },
+              { id: 2, name: "adventure" },
+            ],
+          },
+        }),
+      );
+
+      const result = await new TmdbProvider(MediaType.MOVIE).getById("movie:157336", "key");
+
+      expect(result).toMatchObject({
+        externalId: "movie:157336",
+        title: "Interstellar",
+        tags: ["Adventure", "Space"],
+      });
+      expect(String(fetchMock.mock.calls[0][0])).toContain("append_to_response=keywords");
+    });
   });
 
   describe("AniListProvider", () => {

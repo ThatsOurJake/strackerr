@@ -111,6 +111,7 @@ export class IdentifyController {
         canonicalIdentity.externalId,
         resolved.apiKey,
       );
+      const currentTags = await this.mediaService.listTagsForItem(item.id, user.userId);
 
       return response.render("partials/identify-confirm", {
         layout: false,
@@ -121,6 +122,10 @@ export class IdentifyController {
         proposed,
         selectedFields: [...IDENTIFICATION_FIELDS],
         fieldRows: this.buildFieldRows(item, proposed),
+        tagPreview: this.buildTagPreview(
+          currentTags.map((tag) => tag.label),
+          proposed.tags ?? [],
+        ),
         submitUrl: `/collection/${typeSlug}/${id}/identify/refetch`,
       });
     } catch (error) {
@@ -323,6 +328,7 @@ export class IdentifyController {
         body.externalId,
         resolved.apiKey,
       );
+      const currentTags = await this.mediaService.listTagsForItem(item.id, user.userId);
       return response.render("partials/identify-confirm", {
         layout: false,
         mode: "identify",
@@ -332,6 +338,10 @@ export class IdentifyController {
         proposed,
         selectedFields: [...IDENTIFICATION_FIELDS],
         fieldRows: this.buildFieldRows(item, proposed),
+        tagPreview: this.buildTagPreview(
+          currentTags.map((tag) => tag.label),
+          proposed.tags ?? [],
+        ),
         submitUrl: `/collection/${typeSlug}/${id}/identify`,
       });
     } catch (error) {
@@ -418,6 +428,40 @@ export class IdentifyController {
         proposedValue: proposedArtwork ? "Pull provider images" : "Provider returned no images",
       },
     ];
+  }
+
+  private buildTagPreview(currentTags: string[], proposedTags: string[]) {
+    const uniqueByKey = (tags: string[]) => {
+      const map = new Map<string, string>();
+      for (const tag of tags) {
+        const trimmed = tag.trim();
+        if (!trimmed) {
+          continue;
+        }
+
+        const key = trimmed.toLowerCase();
+        if (!map.has(key)) {
+          map.set(key, trimmed);
+        }
+      }
+
+      return map;
+    };
+
+    const current = uniqueByKey(currentTags);
+    const provider = uniqueByKey(proposedTags);
+    const additions = [...provider.entries()]
+      .filter(([key]) => !current.has(key))
+      .map(([, label]) => label);
+
+    return {
+      current: [...current.values()],
+      provider: [...provider.values()],
+      additions,
+      currentText: [...current.values()].join(", "),
+      providerText: [...provider.values()].join(", "),
+      additionsText: additions.join(", "),
+    };
   }
 
   private redirectWithIdentifyError(

@@ -20,7 +20,14 @@ interface TmdbItem {
   episode_run_time?: number[];
   number_of_seasons?: number;
   genres?: Array<{ id: number; name: string }>;
+  keywords?:
+  | { keywords?: Array<{ id: number; name: string }> }
+  | { results?: Array<{ id: number; name: string }> };
 }
+
+type TmdbKeywordList = Array<{ id: number; name: string }>;
+type TmdbMovieKeywords = { keywords?: TmdbKeywordList };
+type TmdbTvKeywords = { results?: TmdbKeywordList };
 
 interface TmdbEpisode {
   id: number;
@@ -64,6 +71,7 @@ export class TmdbProvider implements IMetadataProvider {
     const item = await this.request<TmdbItem>(
       `/${resource}/${stripExternalIdPrefix(externalId)}`,
       apiKey,
+      { append_to_response: "keywords" },
     );
     return this.mapItem(item, prefixedType);
   }
@@ -121,9 +129,18 @@ export class TmdbProvider implements IMetadataProvider {
   private mapItem(item: TmdbItem, mediaType = this.mediaType): MediaItemDetail {
     const date = item.release_date ?? item.first_air_date;
     const prefix = mediaType === MediaType.MOVIE ? "movie" : "tv";
-    const tags = item.genres
+    const genreTags = item.genres
       ?.map((genre) => genre.name)
-      .filter((genre) => genre.trim().length > 0);
+      .filter((genre) => genre.trim().length > 0) ?? [];
+    const keywordTags = this.extractKeywordTags(item);
+    const tagByKey = new Map<string, string>();
+    for (const tag of [...genreTags, ...keywordTags]) {
+      const normalizedKey = tag.toLowerCase();
+      if (!tagByKey.has(normalizedKey)) {
+        tagByKey.set(normalizedKey, tag);
+      }
+    }
+    const tags = [...tagByKey.values()];
 
     return {
       externalId: `${prefix}:${item.id}`,
@@ -133,10 +150,31 @@ export class TmdbProvider implements IMetadataProvider {
         ? `${this.imageBaseUrl}${item.poster_path}`
         : undefined,
       description: item.overview || undefined,
-      ...(tags && tags.length > 0 ? { tags } : {}),
+      ...(tags.length > 0 ? { tags } : {}),
       duration: item.runtime ?? item.episode_run_time?.[0] ?? undefined,
       seasonCount: item.number_of_seasons,
       type: mediaType,
     };
+  }
+
+  private extractKeywordTags(item: TmdbItem): string[] {
+    const keywordContainer = item.keywords;
+    if (!keywordContainer) {
+      return [];
+    }
+
+    const rawKeywords = this.hasMovieKeywordShape(keywordContainer)
+      ? (keywordContainer.keywords ?? [])
+      : (keywordContainer.results ?? []);
+
+    return rawKeywords
+      .map((keyword) => keyword.name)
+      .filter((keyword) => keyword.trim().length > 0);
+  }
+
+  private hasMovieKeywordShape(
+    keywords: TmdbMovieKeywords | TmdbTvKeywords,
+  ): keywords is TmdbMovieKeywords {
+    return "keywords" in keywords;
   }
 }

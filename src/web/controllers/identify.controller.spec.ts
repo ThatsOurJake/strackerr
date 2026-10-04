@@ -14,6 +14,7 @@ const user: AuthenticatedUser = { userId: "user-1", username: "tester", isAdmin:
 describe("IdentifyController", () => {
   let findByIdWithExternalIds: jest.Mock;
   let hasUserAccess: jest.Mock;
+  let listTagsForItem: jest.Mock;
   let identify: jest.Mock;
   let getProviderForUser: jest.Mock;
   let providerSearch: jest.Mock;
@@ -24,6 +25,10 @@ describe("IdentifyController", () => {
   beforeEach(() => {
     findByIdWithExternalIds = jest.fn();
     hasUserAccess = jest.fn().mockResolvedValue(true);
+    listTagsForItem = jest.fn().mockResolvedValue([
+      { label: "Drama" },
+      { label: "Mystery" },
+    ]);
     identify = jest.fn();
     providerSearch = jest.fn().mockResolvedValue([]);
     providerGetById = jest.fn().mockResolvedValue({
@@ -36,7 +41,7 @@ describe("IdentifyController", () => {
       apiKey: "key",
     });
     controller = new IdentifyController(
-      { findByIdWithExternalIds, hasUserAccess } as unknown as MediaService,
+      { findByIdWithExternalIds, hasUserAccess, listTagsForItem } as unknown as MediaService,
       { getProviderForUser } as unknown as MetadataService,
       { identify } as unknown as IdentificationService,
     );
@@ -190,6 +195,44 @@ describe("IdentifyController", () => {
     expect(response.render).toHaveBeenCalledWith(
       "partials/identify-search-results",
       expect.objectContaining({ hasResults: true }),
+    );
+  });
+
+  it("shows tag preview data on identify confirmation", async () => {
+    hasUserAccess.mockResolvedValue(true);
+    findByIdWithExternalIds.mockResolvedValue({
+      id: "movie-1",
+      type: MediaType.MOVIE,
+      isSkeleton: true,
+      title: "Arrival",
+      createdByUserId: "user-1",
+      externalIds: [],
+    });
+    providerGetById.mockResolvedValue({
+      externalId: "movie:157336",
+      title: "Interstellar",
+      type: MediaType.MOVIE,
+      tags: ["Mystery", "Sci-Fi"],
+    });
+
+    await controller.confirm(
+      "movie",
+      "movie-1",
+      { provider: "tmdb", externalId: "movie:157336" },
+      user,
+      response as unknown as Response,
+    );
+
+    expect(listTagsForItem).toHaveBeenCalledWith("movie-1", "user-1");
+    expect(response.render).toHaveBeenCalledWith(
+      "partials/identify-confirm",
+      expect.objectContaining({
+        tagPreview: expect.objectContaining({
+          current: ["Drama", "Mystery"],
+          provider: ["Mystery", "Sci-Fi"],
+          additions: ["Sci-Fi"],
+        }),
+      }),
     );
   });
 });

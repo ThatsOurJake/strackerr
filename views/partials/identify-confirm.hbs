@@ -36,6 +36,38 @@
       {{/each}}
     </div>
 
+    <div class="rounded-lg border border-border-subtle bg-bg-elevated p-3">
+      <h4 class="font-heading text-sm font-semibold">Tags Preview</h4>
+      <p class="mt-1 text-xs text-text-secondary">Provider tags will sync on apply. Manual tags are preserved.</p>
+
+      <div class="mt-3 grid gap-2 text-xs sm:grid-cols-3">
+        <div>
+          <p class="mb-1 font-heading uppercase tracking-wide text-text-secondary">Current</p>
+          {{#if tagPreview.current.length}}
+          <p class="text-text-primary">{{tagPreview.currentText}}</p>
+          {{else}}
+          <p class="text-text-secondary">None</p>
+          {{/if}}
+        </div>
+        <div>
+          <p class="mb-1 font-heading uppercase tracking-wide text-text-secondary">Provider</p>
+          {{#if tagPreview.provider.length}}
+          <p class="text-text-primary">{{tagPreview.providerText}}</p>
+          {{else}}
+          <p class="text-text-secondary">None</p>
+          {{/if}}
+        </div>
+        <div>
+          <p class="mb-1 font-heading uppercase tracking-wide text-text-secondary">New additions</p>
+          {{#if tagPreview.additions.length}}
+          <p class="text-text-primary">{{tagPreview.additionsText}}</p>
+          {{else}}
+          <p class="text-text-secondary">None</p>
+          {{/if}}
+        </div>
+      </div>
+    </div>
+
     <div class="flex items-center gap-3">
       <button type="submit"
         class="inline-flex items-center gap-2 rounded-lg bg-text-primary px-4 py-2 font-heading text-sm font-semibold text-bg-base active:scale-[0.98]">
