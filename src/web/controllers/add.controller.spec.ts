@@ -177,6 +177,44 @@ describe("AddController", () => {
     expect(response.redirect).toHaveBeenCalledWith("/history");
   });
 
+  it("allows season 0 for special episodes", async () => {
+    mediaService.findById.mockResolvedValue({
+      id: "show-1",
+      type: MediaType.TV_SHOW,
+      title: "Severance",
+      isSkeleton: false,
+      createdByUserId: "user-1",
+    });
+    mediaService.hasUserAccess.mockResolvedValue(true);
+    mediaService.findOrCreateEpisodeSkeleton.mockResolvedValue({
+      id: "episode-special-1",
+      type: MediaType.TV_EPISODE,
+      duration: 45,
+    });
+
+    await controller.submit(
+      {
+        type: MediaType.TV_EPISODE,
+        mediaItemId: "show-1",
+        title: "Severance",
+        loggedAt: "2026-08-28",
+        seasonNumber: "0",
+        episodeNumber: "1",
+      },
+      user,
+      response as unknown as Response,
+    );
+
+    expect(mediaService.findOrCreateEpisodeSkeleton).toHaveBeenCalledWith(
+      "show-1",
+      "Severance",
+      0,
+      1,
+      "user-1",
+    );
+    expect(response.redirect).toHaveBeenCalledWith("/history");
+  });
+
   it("renders an inline error when a game has no duration", async () => {
     await controller.submit(
       {

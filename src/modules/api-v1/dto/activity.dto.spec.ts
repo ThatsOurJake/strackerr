@@ -32,7 +32,7 @@ describe("typed log DTOs", () => {
   });
 
   it("requires mediaItemId, season, and episode for TV episodes", async () => {
-    const dto = plainToInstance(CreateTvEpisodeActivityDto, { });
+    const dto = plainToInstance(CreateTvEpisodeActivityDto, {});
     const errors = await validate(dto);
 
     expect(errors.map(({ property }) => property).sort()).toEqual([
@@ -40,6 +40,16 @@ describe("typed log DTOs", () => {
       "mediaItemId",
       "season",
     ]);
+  });
+
+  it("accepts season 0 for TV specials", async () => {
+    const dto = plainToInstance(CreateTvEpisodeActivityDto, {
+      mediaItemId: "media-1",
+      season: 0,
+      episode: 1,
+    });
+
+    await expect(validate(dto)).resolves.toHaveLength(0);
   });
 
   it("uses players as the board-game-specific field", async () => {

@@ -68,9 +68,9 @@ export class BaseCreateActivityDto {
 export class CreateMovieActivityDto extends BaseCreateActivityDto { }
 
 export class CreateTvEpisodeActivityDto extends BaseCreateActivityDto {
-  @ApiProperty({ example: 1, description: "Season number", minimum: 1 })
+  @ApiProperty({ example: 0, description: "Season number (0 allows specials)", minimum: 0 })
   @IsInt()
-  @Min(1)
+  @Min(0)
   season!: number;
 
   @ApiProperty({ example: 3, description: "Episode number", minimum: 1 })

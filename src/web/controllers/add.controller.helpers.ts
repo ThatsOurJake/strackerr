@@ -118,9 +118,17 @@ export const parseType = (rawType?: string): (typeof ADD_TYPES)[number] => {
   return rawType as (typeof ADD_TYPES)[number];
 };
 
-const parsePositiveInteger = (value: string | undefined, label: string): number => {
+const parseMinimumInteger = (
+  value: string | undefined,
+  label: string,
+  minimum: number,
+): number => {
   const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed < 1) {
+  if (!Number.isInteger(parsed) || parsed < minimum) {
+    if (minimum === 0) {
+      throw new Error(`${label} must be a whole number of 0 or greater`);
+    }
+
     throw new Error(`${label} must be a positive whole number`);
   }
 
@@ -135,7 +143,7 @@ const parseOptionalPositiveInteger = (
     return undefined;
   }
 
-  return parsePositiveInteger(value, label);
+  return parseMinimumInteger(value, label, 1);
 };
 
 export const validateSubmission = (type: MediaType, body: SubmitAddBody) => {
@@ -233,8 +241,8 @@ export const resolveSubmissionMediaItem = async (
     return mediaService.findOrCreateSkeleton(body.title?.trim() ?? "", type, userId);
   }
 
-  const seasonNumber = parsePositiveInteger(body.seasonNumber, "Season number");
-  const episodeNumber = parsePositiveInteger(body.episodeNumber, "Episode number");
+  const seasonNumber = parseMinimumInteger(body.seasonNumber, "Season number", 0);
+  const episodeNumber = parseMinimumInteger(body.episodeNumber, "Episode number", 1);
 
   let explicitSelection: MediaItem | null = null;
   if (!selected && body.existingShowId?.trim()) {
