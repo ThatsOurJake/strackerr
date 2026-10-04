@@ -16,6 +16,7 @@ export interface SearchResult {
   year?: number;
   imageUrl?: string;
   description?: string;
+  tags?: string[];
   type: MediaType;
 }
 

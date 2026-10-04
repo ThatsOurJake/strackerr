@@ -207,6 +207,13 @@ export class MediaSearchItemDto {
   @ApiPropertyOptional({ example: "https://example.com/poster.jpg", description: "Artwork URL" })
   imageUrl?: string;
 
+  @ApiPropertyOptional({
+    type: [String],
+    example: ["Sci-Fi", "Mystery"],
+    description: "Tags assigned to this media item for the authenticated user",
+  })
+  tags?: string[];
+
 }
 
 export class MediaSearchResponseDto {

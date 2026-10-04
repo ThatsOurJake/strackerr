@@ -36,6 +36,8 @@ const DETAIL_VIEWS = {
 interface ItemEditBody {
   title?: string;
   description?: string;
+  addTags?: string;
+  removeTagIds?: string | string[];
   removeLogEntryIds?: string | string[];
   aliasRowKey?: string | string[];
   aliasId?: string | string[];
@@ -117,6 +119,8 @@ export class ItemController {
             title: parsed.title,
             description: parsed.description ?? "",
             removeLogEntryIds: parsed.removeLogEntryIds,
+            removeTagIds: parsed.removeTagIds,
+            addTags: parsed.addTags.join(", "),
             aliases: this.toAliasRows(body),
           }),
           title: `Edit ${item.title}`,
@@ -151,10 +155,13 @@ export class ItemController {
   }
 
   private parseBody(body: ItemEditBody) {
+    const addTags = this.toTagArray(body.addTags);
     const aliases = this.toAliasDrafts(body);
     return {
       title: body.title?.trim() ?? "",
       description: body.description?.trim() ? body.description : null,
+      addTags,
+      removeTagIds: this.toStringArray(body.removeTagIds),
       removeLogEntryIds: this.toStringArray(body.removeLogEntryIds),
       aliases,
     };
@@ -190,6 +197,17 @@ export class ItemController {
       return [];
     }
     return Array.isArray(value) ? value : [value];
+  }
+
+  private toTagArray(value: string | undefined): string[] {
+    if (!value?.trim()) {
+      return [];
+    }
+
+    return value
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0);
   }
 
   private messageFromException(error: HttpException): string {

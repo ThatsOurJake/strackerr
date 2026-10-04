@@ -38,6 +38,7 @@ describe("collection view models", () => {
       title: "The Show",
       description: "Description",
       imageUrl: null,
+      mediaTags: [],
       logEntries: [],
       episodes: [
         {
@@ -76,6 +77,7 @@ describe("collection view models", () => {
       description: null,
       imageUrl: null,
       externalIds: [],
+      mediaTags: [],
       logEntries: [],
       episodes: [],
     } as unknown as MediaDetail;
@@ -100,6 +102,7 @@ describe("collection view models", () => {
       isSkeleton: true,
       imageUrl: null,
       externalIds: [],
+      mediaTags: [],
       logEntries: [
         {
           id: "log-2",
@@ -139,6 +142,7 @@ describe("collection view models", () => {
           createdAt: new Date("2026-09-01T00:00:00Z"),
         },
       ],
+      mediaTags: [],
       logEntries: [
         {
           id: "log-1",

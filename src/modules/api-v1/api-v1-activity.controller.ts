@@ -25,6 +25,7 @@ import {
   type CreateActivityData,
 } from "../activity/activity.service";
 import { MediaService } from "../media/media.service";
+import { API_V1_THROTTLE } from "./api-rate-limit.constants";
 import {
   getApiRequestUserId,
   toApiActivityResponse,
@@ -53,7 +54,7 @@ import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
 @ApiTags("activity")
 @ApiSecurity("ApiKey")
 @UseGuards(ApiKeyGuard, ApiThrottlerGuard)
-@Throttle({ default: { limit: 60, ttl: 60_000 } })
+@Throttle(API_V1_THROTTLE)
 @Controller("api/v1/activity")
 export class ApiV1ActivityController {
   constructor(

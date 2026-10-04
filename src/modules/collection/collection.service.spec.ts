@@ -27,6 +27,8 @@ describe("CollectionService", () => {
   let prisma: {
     $transaction: jest.Mock;
     mediaItem: { findMany: jest.Mock; findFirst: jest.Mock; update: jest.Mock; deleteMany: jest.Mock };
+    mediaItemTag: { findMany: jest.Mock; deleteMany: jest.Mock; createMany: jest.Mock };
+    tag: { findMany: jest.Mock; create: jest.Mock };
     mediaExternalAlias: { findMany: jest.Mock; deleteMany: jest.Mock; createMany: jest.Mock };
     mediaExternalId: { findMany: jest.Mock };
     logEntry: { deleteMany: jest.Mock };
@@ -42,6 +44,22 @@ describe("CollectionService", () => {
         findFirst: jest.fn(),
         update: jest.fn(),
         deleteMany: jest.fn(),
+      },
+      mediaItemTag: {
+        findMany: jest.fn().mockResolvedValue([]),
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+        createMany: jest.fn(),
+      },
+      tag: {
+        findMany: jest.fn().mockResolvedValue([]),
+        create: jest.fn().mockImplementation(({ data }) =>
+          Promise.resolve({
+            id: "tag-created",
+            userId: data.userId,
+            normalizedKey: data.normalizedKey,
+            displayName: data.displayName,
+          })
+        ),
       },
       mediaExternalAlias: {
         findMany: jest.fn(),
@@ -170,6 +188,7 @@ describe("CollectionService", () => {
         ...mediaItem("movie-1", "Arrival", { createdByUserId: "user-2" }),
         externalAliases: [{ id: "alias-1", providerNamespace: "tmdb", externalId: "157336" }],
         logEntries: [{ id: "log-1", userId: "user-2", loggedAt: new Date("2026-09-01T12:00:00Z") }],
+        mediaTags: [{ tagId: "tag-1" }],
         episodes: [],
       });
     prisma.mediaExternalAlias.findMany
@@ -177,10 +196,13 @@ describe("CollectionService", () => {
       .mockResolvedValueOnce([]);
     prisma.mediaExternalId.findMany.mockResolvedValueOnce([]);
     prisma.logEntry.deleteMany.mockResolvedValueOnce({ count: 1 });
+    prisma.mediaItemTag.deleteMany.mockResolvedValueOnce({ count: 1 });
 
     const result = await service.bulkEditItem("user-2", "movie-1", {
       title: "Arrival (2016)",
       description: "Updated",
+      addTags: ["sci-fi"],
+      removeTagIds: ["tag-1"],
       removeLogEntryIds: ["log-1"],
       aliases: [{ providerNamespace: "imdb", externalId: "tt2543164" }],
     });
@@ -203,6 +225,13 @@ describe("CollectionService", () => {
     expect(prisma.mediaExternalAlias.createMany).toHaveBeenCalledWith({
       data: [{ mediaItemId: "movie-1", userId: "user-2", providerNamespace: "imdb", externalId: "tt2543164" }],
     });
+    expect(prisma.mediaItemTag.deleteMany).toHaveBeenCalledWith({
+      where: {
+        userId: "user-2",
+        mediaItemId: "movie-1",
+        tagId: { in: ["tag-1"] },
+      },
+    });
     expect(result).toEqual({ itemId: "movie-1", stillAccessible: true });
   });
 
@@ -213,6 +242,7 @@ describe("CollectionService", () => {
         ...mediaItem("movie-1", "Arrival", { createdByUserId: "user-2" }),
         externalAliases: [],
         logEntries: [{ id: "log-1", userId: "user-2", loggedAt: new Date("2026-09-01T12:00:00Z") }],
+        mediaTags: [],
         episodes: [],
       });
 
@@ -220,6 +250,8 @@ describe("CollectionService", () => {
       service.bulkEditItem("user-2", "movie-1", {
         title: "Arrival",
         description: null,
+        addTags: [],
+        removeTagIds: [],
         removeLogEntryIds: ["log-foreign"],
         aliases: [],
       }),
@@ -234,6 +266,7 @@ describe("CollectionService", () => {
         ...mediaItem("movie-1", "Arrival", { createdByUserId: "user-2" }),
         externalAliases: [],
         logEntries: [],
+        mediaTags: [],
         episodes: [],
       });
     prisma.mediaExternalAlias.findMany
@@ -244,6 +277,8 @@ describe("CollectionService", () => {
       service.bulkEditItem("user-2", "movie-1", {
         title: "Arrival",
         description: null,
+        addTags: [],
+        removeTagIds: [],
         removeLogEntryIds: [],
         aliases: [{ providerNamespace: "imdb", externalId: "tt2543164" }],
       }),

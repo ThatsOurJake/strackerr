@@ -21,10 +21,11 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
-import { type MediaItem, MediaType } from "@prisma/client";
+import { MediaType } from "@prisma/client";
 import type { Request } from "express";
 import { IdentificationService } from "../media/identification.service";
 import { MediaService } from "../media/media.service";
+import { API_V1_THROTTLE } from "./api-rate-limit.constants";
 import { getApiRequestUserId } from "./api-v1-activity.controller.helpers";
 import {
   CreatedMediaResponseDto,
@@ -47,7 +48,7 @@ import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
 @ApiTags("media")
 @ApiSecurity("ApiKey")
 @UseGuards(ApiKeyGuard, ApiThrottlerGuard)
-@Throttle({ default: { limit: 60, ttl: 60_000 } })
+@Throttle(API_V1_THROTTLE)
 @Controller("api/v1/media")
 export class ApiV1MediaController {
   constructor(
@@ -55,25 +56,31 @@ export class ApiV1MediaController {
     private readonly identificationService: IdentificationService,
   ) { }
 
-  private mapMediaItem = ({
-    id,
-    title,
-    type,
-    year,
-    imageUrl,
-  }: {
-    id: string;
-    title: string;
-    type: MediaItemDto["type"];
-    year: number | null;
-    imageUrl: string | null;
-  }): MediaItemDto => ({
-    id,
-    title,
-    type,
-    year: year ?? undefined,
-    imageUrl: imageUrl ?? undefined,
-  });
+  private mapMediaItem = async (
+    userId: string,
+    {
+      id,
+      title,
+      type,
+      year,
+      imageUrl,
+    }: {
+      id: string;
+      title: string;
+      type: MediaItemDto["type"];
+      year: number | null;
+      imageUrl: string | null;
+    }): Promise<MediaItemDto> => {
+    const tags = await this.mediaService.listTagsForItem(id, userId);
+    return {
+      id,
+      title,
+      type,
+      year: year ?? undefined,
+      imageUrl: imageUrl ?? undefined,
+      tags: tags.map((tag) => tag.label),
+    };
+  };
 
   private async assertMediaAccess(
     mediaItemId: string,
@@ -150,7 +157,7 @@ export class ApiV1MediaController {
 
     const results = await this.mediaService.searchForUser(userId, q, type);
     return {
-      data: results.map((item) => this.mapMediaItem(item)),
+      data: await Promise.all(results.map((item) => this.mapMediaItem(userId, item))),
     };
   }
 
@@ -211,7 +218,7 @@ export class ApiV1MediaController {
     const userId = getApiRequestUserId(request);
     this.assertExactlyOneResolveMode(query);
 
-    let mediaItem: MediaItem | null = null;
+    let mediaItem: Awaited<ReturnType<MediaService["findById"]>> | null = null;
     if (query.mediaItemId) {
       mediaItem = await this.mediaService.findById(query.mediaItemId);
     } else if (query.title) {
@@ -245,7 +252,7 @@ export class ApiV1MediaController {
     }
 
     return {
-      data: this.mapMediaItem(mediaItem),
+      data: await this.mapMediaItem(userId, mediaItem),
     };
   }
 
@@ -279,7 +286,7 @@ export class ApiV1MediaController {
     }
 
     return {
-      data: this.mapMediaItem(mediaItem),
+      data: await this.mapMediaItem(userId, mediaItem),
     };
   }
 
@@ -319,7 +326,7 @@ export class ApiV1MediaController {
       );
     }
 
-    let mediaItem: MediaItem;
+    let mediaItem: Awaited<ReturnType<MediaService["createSkeletonWithExternalAliases"]>>;
     try {
       mediaItem = await this.mediaService.createSkeletonWithExternalAliases({
         title: dto.title,
@@ -341,7 +348,7 @@ export class ApiV1MediaController {
     }
 
     return {
-      data: this.mapMediaItem(mediaItem),
+      data: await this.mapMediaItem(userId, mediaItem),
     };
   }
 
@@ -393,7 +400,7 @@ export class ApiV1MediaController {
       );
 
     return {
-      data: this.mapMediaItem(identified),
+      data: await this.mapMediaItem(userId, identified),
     };
   }
 
@@ -438,7 +445,7 @@ export class ApiV1MediaController {
     );
 
     return {
-      data: this.mapMediaItem(identified),
+      data: await this.mapMediaItem(userId, identified),
     };
   }
 

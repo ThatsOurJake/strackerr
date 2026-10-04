@@ -171,6 +171,8 @@ export const toItemEditViewModel = (
     title?: string;
     description?: string;
     removeLogEntryIds?: string[];
+    removeTagIds?: string[];
+    addTags?: string;
     aliases?: Array<{ rowKey: string; id?: string; providerNamespace: string; externalId: string; remove: boolean }>;
   },
 ) => {
@@ -196,6 +198,7 @@ export const toItemEditViewModel = (
   ].sort((left, right) => right.loggedAt.getTime() - left.loggedAt.getTime());
 
   const selectedRemovals = new Set(values?.removeLogEntryIds ?? []);
+  const selectedTagRemovals = new Set(values?.removeTagIds ?? []);
   const aliases = values?.aliases ?? item.externalAliases.map((alias) => ({
     rowKey: alias.id,
     id: alias.id,
@@ -225,7 +228,18 @@ export const toItemEditViewModel = (
     hasHistoryRows: historyRows.length > 0,
     aliases,
     hasAliases: aliases.length > 0,
+    addTagsValue: values?.addTags ?? "",
+    tags: (item.mediaTags ?? []).map((mediaTag) => ({
+      id: mediaTag.tagId,
+      label: mediaTag.tag.displayName,
+      source: mediaTag.source,
+      sourceLabel: mediaTag.source === "MANUAL" ? "Manual" : `Provider (${mediaTag.providerNamespace})`,
+      providerNamespace: mediaTag.providerNamespace || null,
+      selected: selectedTagRemovals.has(mediaTag.tagId),
+    })),
+    hasTags: (item.mediaTags ?? []).length > 0,
     selectedHistoryCount: [...selectedRemovals].length,
+    selectedTagRemovalCount: [...selectedTagRemovals].length,
     selectedAliasRemovalCount: aliases.filter((alias) => alias.remove).length,
   };
 };

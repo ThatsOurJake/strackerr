@@ -4,6 +4,7 @@ import { ActivityModule } from "../activity/activity.module";
 import { MediaModule } from "../media/media.module";
 import { StatsModule } from "../stats/stats.module";
 import { UsersModule } from "../users/users.module";
+import { API_V1_THROTTLE_LIMIT, API_V1_THROTTLE_TTL_MS } from "./api-rate-limit.constants";
 import { ApiV1ActivityController } from "./api-v1-activity.controller";
 import { ApiV1MediaController } from "./api-v1-media.controller";
 import { ApiV1ProfileController } from "./api-v1-profile.controller";
@@ -14,7 +15,7 @@ import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
+    ThrottlerModule.forRoot([{ ttl: API_V1_THROTTLE_TTL_MS, limit: API_V1_THROTTLE_LIMIT }]),
     ActivityModule,
     MediaModule,
     StatsModule,

@@ -72,6 +72,39 @@
     </section>
 
     <section class="rounded-lg border border-border-subtle bg-bg-surface p-4">
+      <h2 class="font-heading text-xl font-bold">Tags</h2>
+      <p class="mt-1 text-sm text-text-secondary">Add manual tags as a comma-separated list, and optionally remove
+        existing tags.</p>
+      <div class="mt-4 grid gap-4">
+        <label class="block">
+          <span class="mb-1 block font-heading text-sm font-semibold text-text-secondary">Add tags</span>
+          <input type="text" name="addTags" value="{{addTagsValue}}" placeholder="sci-fi, cozy, local co-op"
+            class="w-full rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-type-{{accent}}" />
+        </label>
+      </div>
+      {{#if hasTags}}
+      <div class="mt-4 divide-y divide-border-subtle border-y border-border-subtle">
+        {{#each tags}}
+        <label class="flex cursor-pointer items-center justify-between gap-4 py-3">
+          <span class="min-w-0">
+            <span class="block text-sm text-text-primary">{{label}}</span>
+            <span class="block truncate text-xs text-text-secondary">{{sourceLabel}}</span>
+          </span>
+          <span class="flex items-center gap-3">
+            <span class="text-xs text-text-secondary">Remove</span>
+            <input type="checkbox" name="removeTagIds" value="{{id}}" {{#if selected}}checked{{/if}}
+              class="h-4 w-4 rounded border-border-subtle bg-bg-elevated text-red-500 focus:ring-red-500"
+              data-tag-remove-checkbox />
+          </span>
+        </label>
+        {{/each}}
+      </div>
+      {{else}}
+      <p class="mt-4 text-sm text-text-secondary">No tags assigned yet.</p>
+      {{/if}}
+    </section>
+
+    <section class="rounded-lg border border-border-subtle bg-bg-surface p-4">
       <h2 class="font-heading text-xl font-bold">History Rows</h2>
       <p class="mt-1 text-sm text-text-secondary">Select exact rows you want to permanently remove on save.</p>
       {{#if hasHistoryRows}}
@@ -164,6 +197,7 @@
         restored.</p>
       <p class="mt-3 text-sm text-red-200/90">Selected removals: <span
           id="history-removal-count">{{selectedHistoryCount}}</span> history row(s), <span
+          id="tag-removal-count">{{selectedTagRemovalCount}}</span> tag(s), <span
           id="alias-removal-count">{{selectedAliasRemovalCount}}</span> alias row(s).</p>
       <div class="mt-4 flex flex-wrap items-center gap-3">
         <button type="submit"

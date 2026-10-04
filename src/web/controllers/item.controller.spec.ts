@@ -33,6 +33,21 @@ const createDetail = () => ({
       createdAt: new Date("2026-08-01T00:00:00Z"),
     },
   ],
+  mediaTags: [
+    {
+      tagId: "tag-1",
+      source: "MANUAL",
+      providerNamespace: "",
+      tag: {
+        id: "tag-1",
+        userId: "user-7",
+        normalizedKey: "sci-fi",
+        displayName: "Sci-Fi",
+        createdAt: new Date("2026-08-01T00:00:00Z"),
+        updatedAt: new Date("2026-08-01T00:00:00Z"),
+      },
+    },
+  ],
   logEntries: [
     {
       id: "log-1",
@@ -115,6 +130,8 @@ describe("ItemController", () => {
       {
         title: "Arrival (2016)",
         description: "Updated",
+        addTags: "sci-fi, first contact",
+        removeTagIds: ["tag-1"],
         removeLogEntryIds: ["log-1", "log-2"],
         aliasRowKey: ["alias-1", "new-0"],
         aliasId: ["alias-1", ""],
@@ -128,6 +145,8 @@ describe("ItemController", () => {
     expect(bulkEditItem).toHaveBeenCalledWith("user-7", "item-1", {
       title: "Arrival (2016)",
       description: "Updated",
+      addTags: ["sci-fi", "first contact"],
+      removeTagIds: ["tag-1"],
       removeLogEntryIds: ["log-1", "log-2"],
       aliases: [
         {
@@ -187,6 +206,7 @@ describe("ItemController", () => {
       {
         title: "Arrival",
         description: "",
+        addTags: "",
       },
       response as unknown as Response,
     );

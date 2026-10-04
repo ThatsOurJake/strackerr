@@ -3,6 +3,7 @@ import type { Response } from "express";
 import type { AppCacheService } from "../../infrastructure/cache/app-cache.service";
 import type { ImageCleanupService } from "../../infrastructure/jobs/image-cleanup.service";
 import type { OrphanedItemCleanupService } from "../../infrastructure/jobs/orphaned-item-cleanup.service";
+import type { OrphanedTagCleanupService } from "../../infrastructure/jobs/orphaned-tag-cleanup.service";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
 import { AdminGuard } from "../../modules/auth/guards/admin.guard";
 import { JwtAuthGuard } from "../../modules/auth/guards/jwt-auth.guard";
@@ -46,6 +47,7 @@ describe("SettingsWebController", () => {
   let clearForUser: jest.Mock;
   let startCleanup: jest.Mock;
   let startOrphanedCleanup: jest.Mock;
+  let startOrphanedTagCleanup: jest.Mock;
   let controller: SettingsWebController;
   let response: { render: jest.Mock };
 
@@ -88,6 +90,7 @@ describe("SettingsWebController", () => {
     clearForUser = jest.fn();
     startCleanup = jest.fn().mockReturnValue(true);
     startOrphanedCleanup = jest.fn().mockReturnValue(true);
+    startOrphanedTagCleanup = jest.fn().mockReturnValue(true);
     controller = new SettingsWebController(
       usersService as unknown as UsersService,
       { clearForUser } as unknown as AppCacheService,
@@ -100,6 +103,10 @@ describe("SettingsWebController", () => {
         startCleanup: startOrphanedCleanup,
         getStatus: jest.fn().mockReturnValue({ state: "idle" }),
       } as unknown as OrphanedItemCleanupService,
+      {
+        startCleanup: startOrphanedTagCleanup,
+        getStatus: jest.fn().mockReturnValue({ state: "idle" }),
+      } as unknown as OrphanedTagCleanupService,
     );
     response = { render: jest.fn() };
   });
@@ -119,6 +126,12 @@ describe("SettingsWebController", () => {
       Reflect.getMetadata(
         GUARDS_METADATA,
         SettingsWebController.prototype.cleanupOrphanedItems,
+      ),
+    ).toEqual([AdminGuard]);
+    expect(
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        SettingsWebController.prototype.cleanupOrphanedTags,
       ),
     ).toEqual([AdminGuard]);
   });
@@ -369,6 +382,35 @@ describe("SettingsWebController", () => {
       "settings",
       expect.objectContaining({
         error: "Orphaned item cleanup is already running",
+      }),
+    );
+  });
+
+  it("starts orphaned tag cleanup without awaiting the job", async () => {
+    await controller.cleanupOrphanedTags(
+      response as unknown as Response,
+      user,
+    );
+
+    expect(startOrphanedTagCleanup).toHaveBeenCalledTimes(1);
+    expect(response.render).toHaveBeenCalledWith(
+      "settings",
+      expect.objectContaining({ success: "Orphaned tag cleanup started" }),
+    );
+  });
+
+  it("reports when orphaned tag cleanup is already running", async () => {
+    startOrphanedTagCleanup.mockReturnValue(false);
+
+    await controller.cleanupOrphanedTags(
+      response as unknown as Response,
+      user,
+    );
+
+    expect(response.render).toHaveBeenCalledWith(
+      "settings",
+      expect.objectContaining({
+        error: "Orphaned tag cleanup is already running",
       }),
     );
   });

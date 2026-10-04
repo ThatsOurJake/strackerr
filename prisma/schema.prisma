@@ -20,6 +20,11 @@ enum LogSource {
   API
 }
 
+enum TagLinkSource {
+  MANUAL
+  PROVIDER
+}
+
 model User {
   id              String               @id @default(cuid())
   username        String               @unique
@@ -32,6 +37,8 @@ model User {
   mediaAliases    MediaAlias[]
   externalIds     MediaExternalId[]
   externalAliases MediaExternalAlias[]
+  tags            Tag[]
+  mediaItemTags   MediaItemTag[]
   logEntries      LogEntry[]
   settings        UserSetting[]
   apiKeys         ApiKey[]
@@ -71,11 +78,44 @@ model MediaItem {
   aliases         MediaAlias[]
   externalIds     MediaExternalId[]
   externalAliases MediaExternalAlias[]
+  mediaTags       MediaItemTag[]
   logEntries      LogEntry[]
   cachedImages    CachedImage[]
 
   @@unique([parentId, seasonNumber, episodeNumber])
   @@index([createdByUserId])
+}
+
+model Tag {
+  id            String         @id @default(cuid())
+  userId        String
+  normalizedKey String
+  displayName   String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaItemTags MediaItemTag[]
+
+  @@unique([userId, normalizedKey])
+  @@index([userId, displayName])
+}
+
+model MediaItemTag {
+  id                String        @id @default(cuid())
+  userId            String
+  mediaItemId       String
+  tagId             String
+  source            TagLinkSource
+  providerNamespace String        @default("")
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaItem         MediaItem     @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  tag               Tag           @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mediaItemId, tagId, source, providerNamespace])
+  @@index([userId, mediaItemId])
+  @@index([userId, tagId])
 }
 
 model MediaAlias {

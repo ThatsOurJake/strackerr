@@ -16,6 +16,8 @@ interface AniListMedia {
   description?: string | null;
   episodes?: number | null;
   averageEpisodeDuration?: number | null;
+  genres?: string[];
+  tags?: Array<{ name?: string | null }>;
 }
 
 const MEDIA_FIELDS = `
@@ -26,6 +28,8 @@ const MEDIA_FIELDS = `
   description(asHtml: false)
   episodes
   averageEpisodeDuration
+  genres
+  tags { name }
 `;
 
 @Injectable()
@@ -98,6 +102,11 @@ export class AniListProvider implements IMetadataProvider {
   }
 
   private mapItem(item: AniListMedia): MediaItemDetail {
+    const tags = [
+      ...(item.genres ?? []),
+      ...(item.tags?.map((tag) => tag.name ?? "") ?? []),
+    ].filter((tag) => tag.trim().length > 0);
+
     return {
       externalId: `anilist:${item.id}`,
       title:
@@ -105,6 +114,7 @@ export class AniListProvider implements IMetadataProvider {
       year: item.startDate?.year ?? undefined,
       imageUrl: item.coverImage?.large ?? undefined,
       description: stripHtml(item.description),
+      ...(tags.length > 0 ? { tags } : {}),
       duration: item.averageEpisodeDuration
         ? Math.round(item.averageEpisodeDuration / 60)
         : undefined,

@@ -19,6 +19,7 @@ interface TmdbItem {
   runtime?: number | null;
   episode_run_time?: number[];
   number_of_seasons?: number;
+  genres?: Array<{ id: number; name: string }>;
 }
 
 interface TmdbEpisode {
@@ -120,6 +121,10 @@ export class TmdbProvider implements IMetadataProvider {
   private mapItem(item: TmdbItem, mediaType = this.mediaType): MediaItemDetail {
     const date = item.release_date ?? item.first_air_date;
     const prefix = mediaType === MediaType.MOVIE ? "movie" : "tv";
+    const tags = item.genres
+      ?.map((genre) => genre.name)
+      .filter((genre) => genre.trim().length > 0);
+
     return {
       externalId: `${prefix}:${item.id}`,
       title: item.title ?? item.name ?? "Untitled",
@@ -128,6 +133,7 @@ export class TmdbProvider implements IMetadataProvider {
         ? `${this.imageBaseUrl}${item.poster_path}`
         : undefined,
       description: item.overview || undefined,
+      ...(tags && tags.length > 0 ? { tags } : {}),
       duration: item.runtime ?? item.episode_run_time?.[0] ?? undefined,
       seasonCount: item.number_of_seasons,
       type: mediaType,

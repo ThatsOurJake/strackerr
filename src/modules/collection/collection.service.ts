@@ -7,7 +7,7 @@ import {
   Optional,
 } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { MediaItem, MediaType, Prisma } from "@prisma/client";
+import { MediaItem, MediaType, Prisma, TagLinkSource } from "@prisma/client";
 import { PrismaService } from "../../infrastructure/database/prisma.service";
 import { Events } from "../../infrastructure/events/event-names";
 import { stripHtmlTags } from "../../infrastructure/security/sanitize-string";
@@ -55,6 +55,8 @@ export interface ItemBulkEditInput {
   description: string | null;
   removeLogEntryIds: string[];
   aliases: ExternalAliasDraft[];
+  addTags: string[];
+  removeTagIds: string[];
 }
 
 export interface ItemBulkEditResult {
@@ -73,6 +75,16 @@ const detailInclude = {
   },
   externalAliases: {
     orderBy: [{ providerNamespace: "asc" }, { externalId: "asc" }],
+  },
+  mediaTags: {
+    include: {
+      tag: true,
+    },
+    orderBy: [
+      { source: "asc" },
+      { providerNamespace: "asc" },
+      { tag: { displayName: "asc" } },
+    ],
   },
   logEntries: {
     orderBy: { loggedAt: "desc" },
@@ -153,6 +165,17 @@ export class CollectionService {
         externalAliases: {
           orderBy: [{ providerNamespace: "asc" }, { externalId: "asc" }],
         },
+        mediaTags: {
+          where: { userId },
+          include: {
+            tag: true,
+          },
+          orderBy: [
+            { source: "asc" },
+            { providerNamespace: "asc" },
+            { tag: { displayName: "asc" } },
+          ],
+        },
         logEntries: {
           where: { userId },
           orderBy: { loggedAt: "desc" },
@@ -199,6 +222,15 @@ export class CollectionService {
     }
 
     const stillAccessible = true;
+    const dedupedTagRemovals = [...new Set(input.removeTagIds)];
+    const allowedTagIds = new Set(item.mediaTags.map((mediaTag) => mediaTag.tagId));
+    for (const tagId of dedupedTagRemovals) {
+      if (!allowedTagIds.has(tagId)) {
+        throw new ForbiddenException("You cannot remove one or more selected tags");
+      }
+    }
+
+    const normalizedNewTags = this.normalizeTagInputs(input.addTags);
 
     const finalAliases = input.aliases
       .filter((alias) => !alias.remove)
@@ -315,6 +347,83 @@ export class CollectionService {
           })),
         });
       }
+
+      if (dedupedTagRemovals.length > 0) {
+        const removedLinks = await transaction.mediaItemTag.deleteMany({
+          where: {
+            userId,
+            mediaItemId: item.id,
+            tagId: { in: dedupedTagRemovals },
+          },
+        });
+        if (removedLinks.count !== dedupedTagRemovals.length) {
+          throw new ForbiddenException("You cannot remove one or more selected tags");
+        }
+      }
+
+      if (normalizedNewTags.length > 0) {
+        const existingTags = await transaction.tag.findMany({
+          where: {
+            userId,
+            normalizedKey: {
+              in: normalizedNewTags.map((tag) => tag.normalizedKey),
+            },
+          },
+        });
+        const existingTagsByKey = new Map(
+          existingTags.map((tag) => [tag.normalizedKey, tag]),
+        );
+
+        for (const newTag of normalizedNewTags) {
+          if (existingTagsByKey.has(newTag.normalizedKey)) {
+            continue;
+          }
+
+          const created = await transaction.tag.create({
+            data: {
+              userId,
+              normalizedKey: newTag.normalizedKey,
+              displayName: newTag.label,
+            },
+          });
+          existingTagsByKey.set(newTag.normalizedKey, created);
+        }
+
+        const existingLinks = await transaction.mediaItemTag.findMany({
+          where: {
+            userId,
+            mediaItemId: item.id,
+            source: TagLinkSource.MANUAL,
+          },
+          include: {
+            tag: true,
+          },
+        });
+        const existingManualKeys = new Set(
+          existingLinks.map((link) => link.tag.normalizedKey),
+        );
+
+        const linksToCreate = normalizedNewTags
+          .filter((tag) => !existingManualKeys.has(tag.normalizedKey))
+          .map((tag) => {
+            const resolvedTag = existingTagsByKey.get(tag.normalizedKey);
+            if (!resolvedTag) {
+              throw new Error("Tag resolution failed");
+            }
+
+            return {
+              userId,
+              mediaItemId: item.id,
+              tagId: resolvedTag.id,
+              source: TagLinkSource.MANUAL,
+              providerNamespace: "",
+            };
+          });
+
+        if (linksToCreate.length > 0) {
+          await transaction.mediaItemTag.createMany({ data: linksToCreate });
+        }
+      }
     });
 
     return {
@@ -393,5 +502,26 @@ export class CollectionService {
     return /^[^\p{Script=Latin}]|^\d/u.test(withoutArticle)
       ? `#${withoutArticle.toLowerCase()}`
       : withoutArticle.toLowerCase();
+  }
+
+  private normalizeTagInputs(tags: string[]): Array<{ normalizedKey: string; label: string }> {
+    const unique = new Map<string, { normalizedKey: string; label: string }>();
+
+    for (const rawTag of tags) {
+      const stripped = stripHtmlTags(rawTag).trim().replace(/\s+/g, " ");
+      if (!stripped) {
+        continue;
+      }
+
+      const normalizedKey = stripped.toLowerCase();
+      if (!unique.has(normalizedKey)) {
+        unique.set(normalizedKey, {
+          normalizedKey,
+          label: stripped,
+        });
+      }
+    }
+
+    return [...unique.values()];
   }
 }

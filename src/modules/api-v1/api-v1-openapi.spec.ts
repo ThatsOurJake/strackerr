@@ -120,7 +120,24 @@ describe("API v1 OpenAPI responses", () => {
     }
     const properties = Object.keys(schema.properties ?? {});
 
-    expect(properties.sort()).toEqual([
+    expect(properties).toEqual(
+      expect.arrayContaining([
+        "duration",
+        "episode",
+        "id",
+        "loggedAt",
+        "season",
+        "status",
+        "title",
+        "type",
+      ]),
+    );
+    expect(properties).not.toEqual(
+      expect.arrayContaining(["platform", "players", "won"]),
+    );
+
+    const allowedProperties = new Set([
+      "description",
       "duration",
       "episode",
       "id",
@@ -130,9 +147,7 @@ describe("API v1 OpenAPI responses", () => {
       "title",
       "type",
     ]);
-    expect(properties).not.toEqual(
-      expect.arrayContaining(["platform", "players", "won"]),
-    );
+    expect(properties.every((property) => allowedProperties.has(property))).toBe(true);
   });
 
   it("documents only /api/ paths and excludes internal routes", () => {

@@ -288,6 +288,29 @@
             up orphaned items</button>
         </form>
       </div>
+      <div class="rounded border border-border bg-bg-surface p-4">
+        <h2 class="mb-2 text-heading font-heading">Orphaned Tag Cleanup</h2>
+        <p class="mb-4 text-body text-text-secondary">Remove user tag records that are no longer linked to any media
+          item.</p>
+        {{#if (eq orphanedTagCleanup.state 'running')}}
+        <p class="mb-4 text-body text-type-tv" role="status">Cleanup is running in the background.</p>
+        {{/if}}
+        {{#if (eq orphanedTagCleanup.state 'completed')}}
+        <p class="mb-4 text-body text-text-secondary" role="status">Last cleanup removed
+          {{orphanedTagCleanup.removedTags}}
+          tag(s) with {{orphanedTagCleanup.failedTags}} failure(s).</p>
+        {{/if}}
+        {{#if (eq orphanedTagCleanup.state 'failed')}}
+        <p class="mb-4 text-body text-red-400" role="alert">The last cleanup failed. Check the application logs.</p>
+        {{/if}}
+        <form method="POST" action="/settings/tags/cleanup-orphaned" hx-post="/settings/tags/cleanup-orphaned"
+          hx-target="body">
+          <input type="hidden" name="_csrf" value="{{csrfToken}}" />
+          <button type="submit" {{#if (eq orphanedTagCleanup.state 'running' )}}disabled{{/if}}
+            class="rounded bg-type-boardgame px-4 py-2 font-heading text-body font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Clean
+            up orphaned tags</button>
+        </form>
+      </div>
     </div>
     {{/if}}
   </section>

@@ -274,6 +274,13 @@ export class IdentificationService {
       ...updatePayload,
     });
 
+    await this.mediaService.replaceProviderTagsForItem(
+      mediaItem.id,
+      userId,
+      providerName,
+      metadata.tags ?? [],
+    );
+
     if (shouldPersistIdentity) {
       await this.mediaService.addExternalId(
         mediaItem.id,

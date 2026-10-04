@@ -72,6 +72,13 @@ export class MediaItemDto {
     description: "Artwork URL",
   })
   imageUrl?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ["Sci-Fi", "Mystery"],
+    description: "Tags assigned to this media item for the authenticated user",
+  })
+  tags?: string[];
 }
 
 export class ResolvedMediaResponseDto {

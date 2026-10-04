@@ -12,5 +12,7 @@ services:
       PORT: 3000
       NODE_ENV: production
       DATA_DIR: ./data
+      API_V1_THROTTLE_LIMIT: ${API_V1_THROTTLE_LIMIT:-300}
+      API_V1_THROTTLE_TTL_MS: ${API_V1_THROTTLE_TTL_MS:-60000}
     volumes:
       - ./data:/app/data

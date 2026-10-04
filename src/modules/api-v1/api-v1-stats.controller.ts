@@ -4,6 +4,7 @@ import { Throttle } from "@nestjs/throttler";
 import type { Request } from "express";
 import { ActivityService } from "../activity/activity.service";
 import { STATS_PERIODS, type StatsPeriodSlug, StatsService } from "../stats/stats.service";
+import { API_V1_THROTTLE } from "./api-rate-limit.constants";
 import { getApiRequestUserId } from "./api-v1-activity.controller.helpers";
 import { ApiErrorResponseDto, StatsResponseDto } from "./dto/response.dto";
 import { ApiKeyGuard } from "./guards/api-key.guard";
@@ -12,7 +13,7 @@ import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
 @ApiTags("stats")
 @ApiSecurity("ApiKey")
 @UseGuards(ApiKeyGuard, ApiThrottlerGuard)
-@Throttle({ default: { limit: 60, ttl: 60_000 } })
+@Throttle(API_V1_THROTTLE)
 @Controller("api/v1/stats")
 export class ApiV1StatsController {
   constructor(

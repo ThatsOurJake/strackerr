@@ -23,7 +23,7 @@ describe("API v1 read controllers", () => {
       isSkeleton: false,
     }]);
     const controller = new ApiV1MediaController(
-      { searchForUser } as unknown as MediaService,
+      { searchForUser, listTagsForItem: jest.fn().mockResolvedValue([]) } as unknown as MediaService,
       {} as IdentificationService,
     );
 
@@ -45,6 +45,10 @@ describe("API v1 read controllers", () => {
     const controller = new ApiV1MediaController({
       resolveByExternalLookup,
       hasUserAccess: jest.fn().mockResolvedValue(true),
+      listTagsForItem: jest.fn().mockResolvedValue([{
+        id: "tag-1",
+        label: "Puzzle",
+      }]),
     } as unknown as MediaService, {} as IdentificationService);
 
     const response = await controller.resolve(
@@ -53,7 +57,7 @@ describe("API v1 read controllers", () => {
     );
 
     expect(resolveByExternalLookup).toHaveBeenCalledWith("user-1", "steam", "app:620");
-    expect(response.data).toEqual(expect.objectContaining({ id: "media-7", title: "Portal 2" }));
+    expect(response.data).toEqual(expect.objectContaining({ id: "media-7", title: "Portal 2", tags: ["Puzzle"] }));
   });
 
   it("rejects mixed resolve lookup modes", async () => {
@@ -84,6 +88,7 @@ describe("API v1 read controllers", () => {
     const controller = new ApiV1MediaController(
       {
         createSkeletonWithExternalAliases,
+        listTagsForItem: jest.fn().mockResolvedValue([]),
       } as unknown as MediaService,
       {} as IdentificationService,
     );
@@ -112,6 +117,7 @@ describe("API v1 read controllers", () => {
         type: MediaType.GAME,
         year: undefined,
         imageUrl: undefined,
+        tags: [],
       },
     });
   });
@@ -123,6 +129,7 @@ describe("API v1 read controllers", () => {
     const controller = new ApiV1MediaController(
       {
         createSkeletonWithExternalAliases,
+        listTagsForItem: jest.fn().mockResolvedValue([]),
       } as unknown as MediaService,
       {} as IdentificationService,
     );
@@ -150,7 +157,7 @@ describe("API v1 read controllers", () => {
       imageUrl: null,
     });
     const controller = new ApiV1MediaController(
-      {} as MediaService,
+      { listTagsForItem: jest.fn().mockResolvedValue([]) } as unknown as MediaService,
       { identifyFromConfiguredAlias } as unknown as IdentificationService,
     );
 
