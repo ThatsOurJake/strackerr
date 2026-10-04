@@ -467,7 +467,7 @@ export class ApiV1ActivityController {
 
   private async createActivityEntry(
     mediaItemId: string,
-    dto: Pick<CreateMovieActivityDto, "loggedAt" | "duration" | "description">,
+    dto: Pick<CreateMovieActivityDto, "loggedAt" | "duration">,
     userId: string,
     extras?: Pick<CreateActivityData, "platform" | "playerCount" | "won">,
   ): Promise<CreatedActivityResponseDto> {
@@ -476,7 +476,6 @@ export class ApiV1ActivityController {
         mediaItemId,
         loggedAt: dto.loggedAt ? new Date(dto.loggedAt) : new Date(),
         duration: dto.duration,
-        description: dto.description,
         platform: extras?.platform,
         playerCount: extras?.playerCount,
         won: extras?.won,

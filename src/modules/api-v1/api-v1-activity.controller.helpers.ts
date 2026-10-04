@@ -29,7 +29,6 @@ export const toApiActivityResponse = (
     type: entry.mediaItem.type,
     loggedAt: entry.loggedAt,
     duration: entry.duration,
-    description: entry.description,
     platform: entry.platform,
     players: entry.playerCount,
     won: entry.won,
@@ -46,7 +45,6 @@ export const toCreatedApiActivityResponse = (
     title: entry.mediaItem.parent?.title ?? entry.mediaItem.title,
     loggedAt: entry.loggedAt,
     duration: entry.duration,
-    description: entry.description,
     status: "created",
   };
 

@@ -63,16 +63,6 @@ export class BaseCreateActivityDto {
   @Min(1)
   @Max(1440)
   duration?: number;
-
-  @ApiPropertyOptional({
-    example: "Rewatched with director commentary",
-    description: "Optional log entry description",
-    maxLength: 1000,
-  })
-  @IsOptional()
-  @IsString()
-  @MaxLength(1000)
-  description?: string;
 }
 
 export class CreateMovieActivityDto extends BaseCreateActivityDto { }

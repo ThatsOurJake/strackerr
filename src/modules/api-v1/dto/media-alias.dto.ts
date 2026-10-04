@@ -159,6 +159,17 @@ export class CreateMediaItemDto {
   title!: string;
 
   @ApiPropertyOptional({
+    example: "Favorite live version",
+    description: "Optional media description",
+    maxLength: 1000,
+  })
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  description?: string;
+
+  @ApiPropertyOptional({
     type: [ExternalAliasDto],
     description: "Optional external aliases attached at creation time",
   })

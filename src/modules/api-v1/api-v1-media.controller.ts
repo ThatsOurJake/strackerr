@@ -323,6 +323,7 @@ export class ApiV1MediaController {
     try {
       mediaItem = await this.mediaService.createSkeletonWithExternalAliases({
         title: dto.title,
+        description: dto.description,
         type: dto.type,
         userId,
         externalAliases: dto.externalAliases?.map((alias) => ({

@@ -92,6 +92,7 @@ describe("API v1 read controllers", () => {
       {
         type: MediaType.GAME,
         title: "Hades",
+        description: "Roguelike action",
         externalAliases: [{ provider: "steam", id: "app:1145360" }],
       },
       request,
@@ -99,6 +100,7 @@ describe("API v1 read controllers", () => {
 
     expect(createSkeletonWithExternalAliases).toHaveBeenCalledWith({
       title: "Hades",
+      description: "Roguelike action",
       type: MediaType.GAME,
       userId: "user-1",
       externalAliases: [{ providerNamespace: "steam", externalId: "app:1145360" }],

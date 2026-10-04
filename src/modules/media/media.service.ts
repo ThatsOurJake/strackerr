@@ -356,11 +356,15 @@ export class MediaService {
 
   async createSkeletonWithExternalAliases(input: {
     title: string;
+    description?: string;
     type: MediaType;
     userId: string;
     externalAliases?: ExternalAliasInput[];
   }): Promise<MediaItem> {
     const title = stripHtmlTags(input.title);
+    const description = input.description
+      ? stripHtmlTags(input.description).trim() || null
+      : null;
     const dedupedAliases = new Map<string, NormalizedExternalAlias>();
 
     for (const alias of input.externalAliases ?? []) {
@@ -402,6 +406,7 @@ export class MediaService {
       const mediaItem = await transaction.mediaItem.create({
         data: {
           title,
+          description,
           type: input.type,
           isSkeleton: true,
           createdByUserId: input.userId,
