@@ -1,7 +1,7 @@
-const DEFAULT_API_V1_THROTTLE_LIMIT = 300;
-const DEFAULT_API_V1_THROTTLE_TTL_MS = 60_000;
+export const DEFAULT_API_V1_THROTTLE_LIMIT = 300;
+export const DEFAULT_API_V1_THROTTLE_TTL_MS = 60_000;
 
-const parsePositiveInteger = (
+export const parsePositiveInteger = (
   rawValue: string | undefined,
   fallback: number,
 ): number => {
@@ -16,20 +16,3 @@ const parsePositiveInteger = (
 
   return parsed;
 };
-
-export const API_V1_THROTTLE_LIMIT = parsePositiveInteger(
-  process.env.API_V1_THROTTLE_LIMIT,
-  DEFAULT_API_V1_THROTTLE_LIMIT,
-);
-
-export const API_V1_THROTTLE_TTL_MS = parsePositiveInteger(
-  process.env.API_V1_THROTTLE_TTL_MS,
-  DEFAULT_API_V1_THROTTLE_TTL_MS,
-);
-
-export const API_V1_THROTTLE = {
-  default: {
-    limit: API_V1_THROTTLE_LIMIT,
-    ttl: API_V1_THROTTLE_TTL_MS,
-  },
-} as const;

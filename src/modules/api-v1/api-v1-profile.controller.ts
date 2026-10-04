@@ -1,9 +1,7 @@
 import { Controller, Get, NotFoundException, Req, UseGuards } from "@nestjs/common";
 import { ApiOperation, ApiResponse, ApiSecurity, ApiTags } from "@nestjs/swagger";
-import { Throttle } from "@nestjs/throttler";
 import type { Request } from "express";
 import { UsersService } from "../users/users.service";
-import { API_V1_THROTTLE } from "./api-rate-limit.constants";
 import { ApiErrorResponseDto, ApiProfileResponseDto } from "./dto/response.dto";
 import { ApiKeyNotFoundGuard } from "./guards/api-key-not-found.guard";
 import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
@@ -11,7 +9,6 @@ import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
 @ApiTags("profile")
 @ApiSecurity("ApiKey")
 @UseGuards(ApiKeyNotFoundGuard, ApiThrottlerGuard)
-@Throttle(API_V1_THROTTLE)
 @Controller("api/v1/profile")
 export class ApiV1ProfileController {
   constructor(private readonly usersService: UsersService) { }

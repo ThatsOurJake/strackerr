@@ -1,10 +1,15 @@
 import { Module } from "@nestjs/common";
+import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { ActivityModule } from "../activity/activity.module";
 import { MediaModule } from "../media/media.module";
 import { StatsModule } from "../stats/stats.module";
 import { UsersModule } from "../users/users.module";
-import { API_V1_THROTTLE_LIMIT, API_V1_THROTTLE_TTL_MS } from "./api-rate-limit.constants";
+import {
+  DEFAULT_API_V1_THROTTLE_LIMIT,
+  DEFAULT_API_V1_THROTTLE_TTL_MS,
+  parsePositiveInteger,
+} from "./api-rate-limit.constants";
 import { ApiV1ActivityController } from "./api-v1-activity.controller";
 import { ApiV1MediaController } from "./api-v1-media.controller";
 import { ApiV1ProfileController } from "./api-v1-profile.controller";
@@ -15,7 +20,22 @@ import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{ ttl: API_V1_THROTTLE_TTL_MS, limit: API_V1_THROTTLE_LIMIT }]),
+    ConfigModule,
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const limit = parsePositiveInteger(
+          configService.get<string>("API_V1_THROTTLE_LIMIT"),
+          DEFAULT_API_V1_THROTTLE_LIMIT,
+        );
+        const ttl = parsePositiveInteger(
+          configService.get<string>("API_V1_THROTTLE_TTL_MS"),
+          DEFAULT_API_V1_THROTTLE_TTL_MS,
+        );
+
+        return [{ ttl, limit }];
+      },
+    }),
     ActivityModule,
     MediaModule,
     StatsModule,

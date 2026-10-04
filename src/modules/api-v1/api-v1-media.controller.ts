@@ -20,12 +20,10 @@ import {
   ApiSecurity,
   ApiTags,
 } from "@nestjs/swagger";
-import { Throttle } from "@nestjs/throttler";
 import { MediaType } from "@prisma/client";
 import type { Request } from "express";
 import { IdentificationService } from "../media/identification.service";
 import { MediaService } from "../media/media.service";
-import { API_V1_THROTTLE } from "./api-rate-limit.constants";
 import { getApiRequestUserId } from "./api-v1-activity.controller.helpers";
 import {
   CreatedMediaResponseDto,
@@ -48,7 +46,6 @@ import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
 @ApiTags("media")
 @ApiSecurity("ApiKey")
 @UseGuards(ApiKeyGuard, ApiThrottlerGuard)
-@Throttle(API_V1_THROTTLE)
 @Controller("api/v1/media")
 export class ApiV1MediaController {
   constructor(
