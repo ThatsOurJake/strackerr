@@ -3,6 +3,7 @@ import type { MediaDetail } from "../modules/collection/collection.service";
 import {
   toCollectionViewModel,
   toItemEditViewModel,
+  toItemMergeViewModel,
   toMediaDetailViewModel,
 } from "./collection-view-model";
 
@@ -181,5 +182,60 @@ describe("collection view models", () => {
     expect(model.historyRows[0]).toMatchObject({ id: "log-2", selected: true });
     expect(model.selectedHistoryCount).toBe(1);
     expect(model.selectedAliasRemovalCount).toBe(1);
+  });
+
+  it("defaults merge metadata to the selected survivor and preserves source selections", () => {
+    const source = {
+      id: "source-1",
+      type: MediaType.MOVIE,
+      title: "Moonquest [yogscast]",
+      isSkeleton: true,
+      description: "Source description",
+      year: 2014,
+      duration: 50,
+      imageUrl: null,
+      imageSourceUrl: "https://example.test/source.jpg",
+      logEntries: [{ id: "log-1" }],
+      episodes: [],
+    } as unknown as MediaDetail;
+    const target = {
+      ...source,
+      id: "target-1",
+      title: "Moonquest",
+      isSkeleton: false,
+      logEntries: [],
+    } as unknown as MediaDetail;
+
+    const model = toItemMergeViewModel(source, [{ id: target.id, title: target.title, year: 2014 }], {
+      target,
+      sourceFields: ["title", "artwork"],
+    });
+
+    expect(model.mergeUrl).toBe("/items/source-1/merge");
+    expect(model.fieldRows.find((field) => field.key === "title")).toMatchObject({
+      sourceSelected: true,
+      targetSelected: false,
+    });
+    expect(model.fieldRows.find((field) => field.key === "description")).toMatchObject({
+      sourceSelected: false,
+      targetSelected: true,
+    });
+  });
+
+  it("counts TV episode activity in the merge preview", () => {
+    const source = {
+      id: "source-show",
+      type: MediaType.TV_SHOW,
+      title: "Source show",
+      logEntries: [],
+      episodes: [
+        { logEntries: [{ id: "log-1" }] },
+        { logEntries: [{ id: "log-2" }] },
+      ],
+    } as unknown as MediaDetail;
+
+    const model = toItemMergeViewModel(source, []);
+
+    expect(model.sourceLogCount).toBe(2);
   });
 });

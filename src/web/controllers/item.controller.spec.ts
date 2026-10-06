@@ -68,6 +68,9 @@ const createDetail = () => ({
 
 describe("ItemController", () => {
   let findDetail: jest.Mock;
+  let resolveItemId: jest.Mock;
+  let findMergeCandidates: jest.Mock;
+  let mergeItemsForUser: jest.Mock;
   let bulkEditItem: jest.Mock;
   let removeItemForUser: jest.Mock;
   let controller: ItemController;
@@ -75,10 +78,16 @@ describe("ItemController", () => {
 
   beforeEach(() => {
     findDetail = jest.fn().mockResolvedValue(createDetail());
+    resolveItemId = jest.fn().mockResolvedValue("item-1");
+    findMergeCandidates = jest.fn().mockResolvedValue([]);
+    mergeItemsForUser = jest.fn().mockResolvedValue({ targetItemId: "item-2" });
     bulkEditItem = jest.fn().mockResolvedValue({ itemId: "item-1", stillAccessible: true });
     removeItemForUser = jest.fn().mockResolvedValue({ removed: true, itemTitle: "Arrival" });
     controller = new ItemController({
       findDetail,
+      resolveItemId,
+      findMergeCandidates,
+      mergeItemsForUser,
       bulkEditItem,
       removeItemForUser,
     } as unknown as CollectionService);
@@ -121,6 +130,50 @@ describe("ItemController", () => {
         hasHistoryRows: true,
       }),
     );
+  });
+
+  it("redirects a retired item URL to its surviving item", async () => {
+    resolveItemId.mockResolvedValueOnce("item-2");
+
+    await controller.detail(
+      "retired-item",
+      undefined,
+      undefined,
+      user,
+      response as unknown as Response,
+    );
+
+    expect(response.redirect).toHaveBeenCalledWith("/items/item-2");
+    expect(findDetail).not.toHaveBeenCalled();
+  });
+
+  it("confirms a merge using only source-selected metadata fields", async () => {
+    const target = { ...createDetail(), id: "item-2", title: "Moonquest" };
+    findDetail.mockResolvedValueOnce(target);
+    resolveItemId.mockResolvedValueOnce("item-1");
+
+    await controller.confirmMerge(
+      "item-1",
+      user,
+      {
+        targetId: "item-2",
+        confirmTitle: "Moonquest",
+        fieldSelection_title: "source:title",
+        fieldSelection_description: "target:description",
+        fieldSelection_year: "target:year",
+        fieldSelection_duration: "target:duration",
+        fieldSelection_artwork: "source:artwork",
+        fieldSelection_isSkeleton: "target:isSkeleton",
+      },
+      response as unknown as Response,
+    );
+
+    expect(mergeItemsForUser).toHaveBeenCalledWith("user-7", {
+      sourceId: "item-1",
+      targetId: "item-2",
+      sourceFields: ["title", "artwork"],
+    });
+    expect(response.redirect).toHaveBeenCalledWith("/items/item-2?success=Items%20merged");
   });
 
   it("saves metadata, selected removals, and aliases in one bulk call", async () => {

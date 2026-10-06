@@ -1,0 +1,99 @@
+<div class="mx-auto max-w-4xl">
+  <a href="{{cancelUrl}}" class="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary">
+    <i data-lucide="arrow-left" class="h-4 w-4"></i>Back to edit item
+  </a>
+
+  <header class="mt-5 border-b border-border-subtle pb-6">
+    <h1 class="font-heading text-3xl font-extrabold tracking-tight">Merge {{sourceTitle}}</h1>
+    <p class="mt-2 max-w-3xl text-sm text-text-secondary">Select the item that should remain. Activity, identities,
+      aliases, and nonduplicate tags move into that item.</p>
+    {{#if error}}<p class="mt-4 rounded-lg border border-red-500/40 bg-red-500/15 px-3 py-2 text-sm text-red-300">
+      {{error}}</p>{{/if}}
+  </header>
+
+  {{#unless hasTarget}}
+  <section class="mt-6 border-b border-border-subtle pb-6">
+    <form action="{{searchUrl}}" method="get" class="flex flex-wrap gap-3">
+      <label class="min-w-0 flex-1">
+        <span class="sr-only">Search same-type items</span>
+        <input type="search" name="query" value="{{query}}" autocomplete="off" placeholder="Search your collection"
+          class="w-full rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-red-500" />
+      </label>
+      <button type="submit"
+        class="inline-flex items-center gap-2 rounded-lg bg-text-primary px-4 py-2 font-heading text-sm font-semibold text-bg-base">
+        <i data-lucide="search" class="h-4 w-4"></i>Search
+      </button>
+    </form>
+    {{#if hasCandidates}}
+    <div class="mt-4 divide-y divide-border-subtle border-y border-border-subtle">
+      {{#each candidates}}
+      <a href="{{selectUrl}}" class="flex items-center justify-between gap-4 py-3 hover:bg-bg-elevated/50">
+        <span class="min-w-0 truncate text-sm text-text-primary">{{title}}</span>
+        {{#if yearLabel}}<span class="text-xs text-text-secondary">{{yearLabel}}</span>{{/if}}
+      </a>
+      {{/each}}
+    </div>
+    {{else if query}}
+    <p class="mt-4 text-sm text-text-secondary">No compatible items match that search.</p>
+    {{/if}}
+  </section>
+  {{/unless}}
+
+  {{#if hasTarget}}
+  <form action="{{mergeUrl}}" method="post" class="mt-6 grid gap-6">
+    <input type="hidden" name="_csrf" value="{{csrfToken}}" />
+    <input type="hidden" name="targetId" value="{{targetItemId}}" />
+
+    <section class="rounded-lg border border-border-subtle bg-bg-surface p-4">
+      <h2 class="font-heading text-xl font-bold">Keep {{targetTitle}}</h2>
+      <p class="mt-1 text-sm text-text-secondary">{{sourceLogCount}} activity row(s) move from {{sourceTitle}} to
+        {{targetTitle}}. TV show merges also reconcile their episodes.</p>
+    </section>
+
+    <section class="rounded-lg border border-border-subtle bg-bg-surface p-4">
+      <h2 class="font-heading text-xl font-bold">Choose metadata</h2>
+      <div class="mt-4 divide-y divide-border-subtle border-y border-border-subtle">
+        {{#each fieldRows}}
+        <fieldset class="py-4">
+          <legend class="font-heading text-sm font-semibold text-text-secondary">{{label}}</legend>
+          <div class="mt-3 grid gap-3 sm:grid-cols-2">
+            <label class="block rounded-lg border border-border-subtle bg-bg-elevated p-3">
+              <input type="radio" name="fieldSelection_{{key}}" value="source:{{key}}" {{#if
+                sourceSelected}}checked{{/if}} class="mr-2 h-4 w-4" />
+              <span class="font-heading text-xs font-semibold text-text-secondary">Use {{../sourceTitle}}</span>
+              <span class="mt-2 block break-words text-sm text-text-primary">{{sourceValue}}</span>
+            </label>
+            <label class="block rounded-lg border border-border-subtle bg-bg-elevated p-3">
+              <input type="radio" name="fieldSelection_{{key}}" value="target:{{key}}" {{#if
+                targetSelected}}checked{{/if}} class="mr-2 h-4 w-4" />
+              <span class="font-heading text-xs font-semibold text-text-secondary">Keep {{../targetTitle}}</span>
+              <span class="mt-2 block break-words text-sm text-text-primary">{{targetValue}}</span>
+            </label>
+          </div>
+        </fieldset>
+        {{/each}}
+      </div>
+    </section>
+
+    <section class="rounded-lg border border-border-subtle bg-bg-surface p-4">
+      <h2 class="font-heading text-lg font-bold text-text-primary">Confirm merge</h2>
+      <p class="mt-1 text-sm text-text-secondary">Type the surviving item title to permanently merge {{sourceTitle}}
+        into
+        {{targetTitle}}.</p>
+      <label class="mt-4 block">
+        <span class="mb-1 block font-heading text-sm font-semibold text-text-secondary">Surviving item title</span>
+        <input type="text" name="confirmTitle" autocomplete="off" required
+          class="w-full rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-text-primary" />
+      </label>
+      <div class="mt-4 flex flex-wrap gap-3">
+        <button type="submit"
+          class="inline-flex items-center gap-2 rounded-lg bg-text-primary px-4 py-2 font-heading text-sm font-semibold text-bg-base">
+          <i data-lucide="git-merge" class="h-4 w-4"></i>Merge permanently
+        </button>
+        <a href="{{cancelUrl}}"
+          class="inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-elevated px-4 py-2 font-heading text-sm font-semibold text-text-primary">Cancel</a>
+      </div>
+    </section>
+  </form>
+  {{/if}}
+</div>

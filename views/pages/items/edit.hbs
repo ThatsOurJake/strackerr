@@ -191,21 +191,33 @@
       </template>
     </section>
 
-    <section class="rounded-lg border border-red-500/30 bg-red-500/10 p-4">
-      <h2 class="font-heading text-lg font-bold text-red-200">Confirm changes</h2>
-      <p class="mt-1 text-sm text-red-200/90">Saving is irreversible. Deleted history rows and removed aliases cannot be
-        restored.</p>
-      <p class="mt-3 text-sm text-red-200/90">Selected removals: <span
+    <section class="rounded-lg border border-border-subtle bg-bg-surface p-4">
+      <h2 class="font-heading text-lg font-bold text-text-primary">Save changes</h2>
+      <p class="mt-1 text-sm text-text-secondary">Updates are applied together. Selected removals cannot be restored.
+      </p>
+      <p class="mt-3 text-sm text-text-secondary">Selected removals: <span
           id="history-removal-count">{{selectedHistoryCount}}</span> history row(s), <span
           id="tag-removal-count">{{selectedTagRemovalCount}}</span> tag(s), <span
           id="alias-removal-count">{{selectedAliasRemovalCount}}</span> alias row(s).</p>
       <div class="mt-4 flex flex-wrap items-center gap-3">
         <button type="submit"
-          class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 font-heading text-sm font-semibold text-white active:scale-[0.98]">
+          class="inline-flex items-center gap-2 rounded-lg bg-text-primary px-4 py-2 font-heading text-sm font-semibold text-bg-base active:scale-[0.98]">
           <i data-lucide="save" class="h-4 w-4"></i>Save all changes
         </button>
         <a href="{{cancelUrl}}"
           class="inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-elevated px-4 py-2 font-heading text-sm font-semibold text-text-primary hover:bg-bg-surface">Cancel</a>
+      </div>
+    </section>
+
+    <section class="rounded-lg border border-border-subtle bg-bg-surface p-4" aria-labelledby="merge-item-heading">
+      <h2 id="merge-item-heading" class="font-heading text-lg font-bold text-text-primary">Merge duplicate item</h2>
+      <p class="mt-1 text-sm text-text-secondary">Consolidate this item's activity and identities into another item.
+        You will choose which metadata to keep before confirming.</p>
+      <div class="mt-4">
+        <a href="{{mergeUrl}}"
+          class="inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-elevated px-4 py-2 font-heading text-sm font-semibold text-text-primary hover:bg-bg-surface active:scale-[0.98]">
+          <i data-lucide="git-merge" class="h-4 w-4"></i>Merge item
+        </a>
       </div>
     </section>
 

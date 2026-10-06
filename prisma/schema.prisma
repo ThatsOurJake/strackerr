@@ -25,20 +25,26 @@ enum TagLinkSource {
   PROVIDER
 }
 
+enum MergeRedirectIdentityKind {
+  CANONICAL
+  EXTERNAL_ALIAS
+}
+
 model User {
-  id              String               @id @default(cuid())
-  username        String               @unique
+  id              String                   @id @default(cuid())
+  username        String                   @unique
   passwordHash    String
-  apiKey          String               @unique @default(cuid())
-  isAdmin         Boolean              @default(false)
-  createdAt       DateTime             @default(now())
+  apiKey          String                   @unique @default(cuid())
+  isAdmin         Boolean                  @default(false)
+  createdAt       DateTime                 @default(now())
   metadataKeys    UserMetadataKey[]
-  mediaItems      MediaItem[]          @relation("MediaItemOwner")
+  mediaItems      MediaItem[]              @relation("MediaItemOwner")
   mediaAliases    MediaAlias[]
   externalIds     MediaExternalId[]
   externalAliases MediaExternalAlias[]
   tags            Tag[]
   mediaItemTags   MediaItemTag[]
+  mergeRedirects  MediaItemMergeRedirect[]
   logEntries      LogEntry[]
   settings        UserSetting[]
   apiKeys         ApiKey[]
@@ -56,11 +62,11 @@ model UserMetadataKey {
 }
 
 model MediaItem {
-  id              String               @id @default(cuid())
+  id              String                   @id @default(cuid())
   type            MediaType
   title           String
   sortTitle       String
-  isSkeleton      Boolean              @default(false)
+  isSkeleton      Boolean                  @default(false)
   createdByUserId String
   parentId        String?
   seasonNumber    Int?
@@ -70,20 +76,46 @@ model MediaItem {
   imageSourceUrl  String?
   year            Int?
   duration        Int?
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  createdByUser   User                 @relation("MediaItemOwner", fields: [createdByUserId], references: [id], onDelete: Cascade)
-  parent          MediaItem?           @relation("EpisodeShow", fields: [parentId], references: [id], onDelete: SetNull)
-  episodes        MediaItem[]          @relation("EpisodeShow")
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  createdByUser   User                     @relation("MediaItemOwner", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  parent          MediaItem?               @relation("EpisodeShow", fields: [parentId], references: [id], onDelete: SetNull)
+  episodes        MediaItem[]              @relation("EpisodeShow")
   aliases         MediaAlias[]
   externalIds     MediaExternalId[]
   externalAliases MediaExternalAlias[]
   mediaTags       MediaItemTag[]
   logEntries      LogEntry[]
   cachedImages    CachedImage[]
+  mergeRedirects  MediaItemMergeRedirect[] @relation("MergeRedirectTarget")
 
   @@unique([parentId, seasonNumber, episodeNumber])
   @@index([createdByUserId])
+}
+
+model MediaItemMergeRedirect {
+  id                String                           @id @default(cuid())
+  userId            String
+  sourceMediaItemId String                           @unique
+  sourceTitle       String
+  targetMediaItemId String
+  createdAt         DateTime                         @default(now())
+  user              User                             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetMediaItem   MediaItem                        @relation("MergeRedirectTarget", fields: [targetMediaItemId], references: [id], onDelete: Cascade)
+  identities        MediaItemMergeRedirectIdentity[]
+
+  @@index([userId, targetMediaItemId])
+}
+
+model MediaItemMergeRedirectIdentity {
+  id         String                    @id @default(cuid())
+  redirectId String
+  kind       MergeRedirectIdentityKind
+  namespace  String
+  externalId String
+  redirect   MediaItemMergeRedirect    @relation(fields: [redirectId], references: [id], onDelete: Cascade)
+
+  @@unique([redirectId, kind, namespace, externalId])
 }
 
 model Tag {

@@ -212,6 +212,7 @@ export const toItemEditViewModel = (
     ...details,
     itemUrl: `/items/${item.id}`,
     saveUrl: `/items/${item.id}/edit`,
+    mergeUrl: `/items/${item.id}/merge`,
     deleteUrl: `/items/${item.id}/delete`,
     cancelUrl: `/items/${item.id}`,
     itemId: item.id,
@@ -241,5 +242,62 @@ export const toItemEditViewModel = (
     selectedHistoryCount: [...selectedRemovals].length,
     selectedTagRemovalCount: [...selectedTagRemovals].length,
     selectedAliasRemovalCount: aliases.filter((alias) => alias.remove).length,
+  };
+};
+
+export const toItemMergeViewModel = (
+  source: MediaDetail,
+  candidates: Array<{ id: string; title: string; year: number | null }>,
+  options: {
+    query?: string;
+    target?: MediaDetail;
+    sourceFields?: string[];
+    error?: string;
+  } = {},
+) => {
+  const sourceFields = new Set(options.sourceFields ?? []);
+  const target = options.target;
+  const activityCount = (item: MediaDetail): number =>
+    item.logEntries.length + item.episodes.reduce(
+      (total, episode) => total + episode.logEntries.length,
+      0,
+    );
+  const fieldRows = target ? [
+    { key: "title", label: "Title", sourceValue: source.title, targetValue: target.title },
+    { key: "description", label: "Description", sourceValue: source.description || "None", targetValue: target.description || "None" },
+    { key: "year", label: "Year", sourceValue: source.year ? String(source.year) : "None", targetValue: target.year ? String(target.year) : "None" },
+    { key: "duration", label: "Duration", sourceValue: source.duration ? formatDuration(source.duration) : "None", targetValue: target.duration ? formatDuration(target.duration) : "None" },
+    { key: "artwork", label: "Artwork", sourceValue: source.imageSourceUrl || source.imageUrl || "None", targetValue: target.imageSourceUrl || target.imageUrl || "None" },
+    { key: "isSkeleton", label: "Identification state", sourceValue: source.isSkeleton ? "Unidentified" : "Identified", targetValue: target.isSkeleton ? "Unidentified" : "Identified" },
+  ].map((field) => ({
+    ...field,
+    sourceSelected: sourceFields.has(field.key),
+    targetSelected: !sourceFields.has(field.key),
+  })) : [];
+
+  return {
+    source,
+    sourceTitle: source.title,
+    sourceItemId: source.id,
+    searchUrl: `/items/${source.id}/merge`,
+    mergeUrl: `/items/${source.id}/merge`,
+    cancelUrl: `/items/${source.id}/edit`,
+    query: options.query ?? "",
+    candidates: candidates.map((candidate) => ({
+      ...candidate,
+      selectUrl: `/items/${source.id}/merge?targetId=${encodeURIComponent(candidate.id)}`,
+      yearLabel: candidate.year ? String(candidate.year) : null,
+    })),
+    hasCandidates: candidates.length > 0,
+    target,
+    hasTarget: Boolean(target),
+    targetTitle: target?.title ?? "",
+    targetItemId: target?.id ?? "",
+    targetLogCount: target ? activityCount(target) : 0,
+    sourceLogCount: activityCount(source),
+    sourceEpisodeCount: source.episodes.length,
+    targetEpisodeCount: target?.episodes.length ?? 0,
+    fieldRows,
+    error: options.error,
   };
 };

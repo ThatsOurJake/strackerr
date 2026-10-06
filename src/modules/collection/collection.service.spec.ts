@@ -26,12 +26,21 @@ const mediaItem = (id: string, title: string, overrides: Partial<MediaItem> = {}
 describe("CollectionService", () => {
   let prisma: {
     $transaction: jest.Mock;
-    mediaItem: { findMany: jest.Mock; findFirst: jest.Mock; update: jest.Mock; deleteMany: jest.Mock };
+    mediaItem: {
+      findMany: jest.Mock;
+      findFirst: jest.Mock;
+      update: jest.Mock;
+      updateMany: jest.Mock;
+      delete: jest.Mock;
+      deleteMany: jest.Mock;
+    };
+    mediaAlias: { deleteMany: jest.Mock; updateMany: jest.Mock; create: jest.Mock };
     mediaItemTag: { findMany: jest.Mock; deleteMany: jest.Mock; createMany: jest.Mock };
     tag: { findMany: jest.Mock; create: jest.Mock };
-    mediaExternalAlias: { findMany: jest.Mock; deleteMany: jest.Mock; createMany: jest.Mock };
-    mediaExternalId: { findMany: jest.Mock };
-    logEntry: { deleteMany: jest.Mock };
+    mediaExternalAlias: { findMany: jest.Mock; deleteMany: jest.Mock; createMany: jest.Mock; updateMany: jest.Mock };
+    mediaExternalId: { findMany: jest.Mock; updateMany: jest.Mock };
+    mediaItemMergeRedirect: { findFirst: jest.Mock; updateMany: jest.Mock; create: jest.Mock };
+    logEntry: { deleteMany: jest.Mock; updateMany: jest.Mock };
   };
   let service: CollectionService;
   let emit: jest.Mock;
@@ -43,7 +52,14 @@ describe("CollectionService", () => {
         findMany: jest.fn(),
         findFirst: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn(),
+        delete: jest.fn(),
         deleteMany: jest.fn(),
+      },
+      mediaAlias: {
+        deleteMany: jest.fn(),
+        updateMany: jest.fn(),
+        create: jest.fn(),
       },
       mediaItemTag: {
         findMany: jest.fn().mockResolvedValue([]),
@@ -65,12 +81,20 @@ describe("CollectionService", () => {
         findMany: jest.fn(),
         deleteMany: jest.fn(),
         createMany: jest.fn(),
+        updateMany: jest.fn(),
       },
       mediaExternalId: {
         findMany: jest.fn(),
+        updateMany: jest.fn(),
+      },
+      mediaItemMergeRedirect: {
+        findFirst: jest.fn(),
+        updateMany: jest.fn(),
+        create: jest.fn(),
       },
       logEntry: {
         deleteMany: jest.fn(),
+        updateMany: jest.fn(),
       },
     };
     prisma.$transaction.mockImplementation(
@@ -364,5 +388,132 @@ describe("CollectionService", () => {
 
     expect(result).toEqual({ removed: false });
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("moves a source item's active relations and records a redirect", async () => {
+    const source = {
+      ...mediaItem("source-1", "Moonquest [yogscast]", { createdByUserId: "user-2" }),
+      aliases: [],
+      externalIds: [{ provider: "steam", externalId: "620" }],
+      externalAliases: [{ providerNamespace: "playnite", externalId: "moonquest-yogscast" }],
+      mediaTags: [],
+      logEntries: [{ id: "log-1" }],
+      episodes: [],
+    };
+    const target = {
+      ...mediaItem("target-1", "Moonquest", { createdByUserId: "user-2" }),
+      aliases: [],
+      externalIds: [],
+      externalAliases: [],
+      mediaTags: [],
+      logEntries: [],
+      episodes: [],
+    };
+    prisma.mediaItem.findMany.mockResolvedValue([source, target]);
+
+    const result = await service.mergeItemsForUser("user-2", {
+      sourceId: "source-1",
+      targetId: "target-1",
+      sourceFields: ["title", "artwork"],
+    });
+
+    expect(prisma.mediaExternalId.updateMany).toHaveBeenCalledWith({
+      where: { mediaItemId: "source-1", userId: "user-2" },
+      data: { mediaItemId: "target-1" },
+    });
+    expect(prisma.mediaExternalAlias.updateMany).toHaveBeenCalledWith({
+      where: { mediaItemId: "source-1", userId: "user-2" },
+      data: { mediaItemId: "target-1" },
+    });
+    expect(prisma.logEntry.updateMany).toHaveBeenCalledWith({
+      where: { mediaItemId: "source-1", userId: "user-2" },
+      data: { mediaItemId: "target-1" },
+    });
+    expect(prisma.mediaAlias.create).toHaveBeenCalledWith({
+      data: {
+        userId: "user-2",
+        mediaItemId: "target-1",
+        alias: "moonquest yogscast",
+      },
+    });
+    expect(prisma.mediaItemMergeRedirect.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: "user-2",
+        sourceMediaItemId: "source-1",
+        sourceTitle: "Moonquest [yogscast]",
+        targetMediaItemId: "target-1",
+      }),
+    });
+    expect(prisma.mediaItem.delete).toHaveBeenCalledWith({ where: { id: "source-1" } });
+    expect(emit).toHaveBeenCalledWith("media.item.changed", { userId: "user-2" });
+    expect(emit).toHaveBeenCalledWith("log.entry.changed", { userId: "user-2" });
+    expect(result).toEqual({
+      sourceItemId: "source-1",
+      targetItemId: "target-1",
+      deletedMediaItemIds: ["source-1"],
+    });
+  });
+
+  it("resolves a retired item id to its surviving item", async () => {
+    prisma.mediaItem.findFirst.mockResolvedValueOnce(null);
+    prisma.mediaItemMergeRedirect.findFirst.mockResolvedValueOnce({
+      targetMediaItemId: "target-1",
+    });
+
+    await expect(service.resolveItemId("user-2", "retired-1")).resolves.toBe("target-1");
+    expect(prisma.mediaItemMergeRedirect.findFirst).toHaveBeenCalledWith({
+      where: { sourceMediaItemId: "retired-1", userId: "user-2" },
+      select: { targetMediaItemId: true },
+    });
+  });
+
+  it("consolidates matching TV episodes without discarding their activity rows", async () => {
+    const episode = (id: string, title: string) => ({
+      ...mediaItem(id, title, {
+        type: MediaType.TV_EPISODE,
+        createdByUserId: "user-2",
+        parentId: id === "source-episode" ? "source-show" : "target-show",
+        seasonNumber: 1,
+        episodeNumber: 1,
+      }),
+      aliases: [],
+      externalIds: [],
+      externalAliases: [],
+      mediaTags: [],
+      logEntries: [{ id: `${id}-log` }],
+    });
+    const source = {
+      ...mediaItem("source-show", "Show A", { type: MediaType.TV_SHOW, createdByUserId: "user-2" }),
+      aliases: [],
+      externalIds: [],
+      externalAliases: [],
+      mediaTags: [],
+      logEntries: [],
+      episodes: [episode("source-episode", "Source pilot")],
+    };
+    const target = {
+      ...mediaItem("target-show", "Show B", { type: MediaType.TV_SHOW, createdByUserId: "user-2" }),
+      aliases: [],
+      externalIds: [],
+      externalAliases: [],
+      mediaTags: [],
+      logEntries: [],
+      episodes: [episode("target-episode", "Target pilot")],
+    };
+    prisma.mediaItem.findMany.mockResolvedValue([source, target]);
+
+    const result = await service.mergeItemsForUser("user-2", {
+      sourceId: "source-show",
+      targetId: "target-show",
+      sourceFields: [],
+    });
+
+    expect(prisma.logEntry.updateMany).toHaveBeenCalledWith({
+      where: { mediaItemId: "source-episode", userId: "user-2" },
+      data: { mediaItemId: "target-episode" },
+    });
+    expect(prisma.mediaItem.delete).toHaveBeenCalledWith({ where: { id: "source-episode" } });
+    expect(result.deletedMediaItemIds).toEqual(["source-show", "source-episode"]);
+    expect(emit).toHaveBeenCalledWith("media.item.deleted", { mediaItemId: "source-episode" });
   });
 });
