@@ -2,7 +2,6 @@ import { ForbiddenException } from "@nestjs/common";
 import { MediaType } from "@prisma/client";
 import type { Response } from "express";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
-import type { CollectionService } from "../../modules/collection/collection.service";
 import type { IdentificationService } from "../../modules/media/identification.service";
 import type { MediaService } from "../../modules/media/media.service";
 import type { MetadataService } from "../../modules/metadata/metadata.service";
@@ -14,7 +13,8 @@ const user: AuthenticatedUser = { userId: "user-1", username: "tester", isAdmin:
 
 describe("IdentifyController", () => {
   let findByIdWithExternalIds: jest.Mock;
-  let findDetail: jest.Mock;
+  let hasUserAccess: jest.Mock;
+  let listTagsForItem: jest.Mock;
   let identify: jest.Mock;
   let getProviderForUser: jest.Mock;
   let providerSearch: jest.Mock;
@@ -24,7 +24,11 @@ describe("IdentifyController", () => {
 
   beforeEach(() => {
     findByIdWithExternalIds = jest.fn();
-    findDetail = jest.fn().mockResolvedValue({ id: "movie-1" });
+    hasUserAccess = jest.fn().mockResolvedValue(true);
+    listTagsForItem = jest.fn().mockResolvedValue([
+      { label: "Drama" },
+      { label: "Mystery" },
+    ]);
     identify = jest.fn();
     providerSearch = jest.fn().mockResolvedValue([]);
     providerGetById = jest.fn().mockResolvedValue({
@@ -37,8 +41,7 @@ describe("IdentifyController", () => {
       apiKey: "key",
     });
     controller = new IdentifyController(
-      { findDetail } as unknown as CollectionService,
-      { findByIdWithExternalIds } as unknown as MediaService,
+      { findByIdWithExternalIds, hasUserAccess, listTagsForItem } as unknown as MediaService,
       { getProviderForUser } as unknown as MetadataService,
       { identify } as unknown as IdentificationService,
     );
@@ -51,6 +54,7 @@ describe("IdentifyController", () => {
   });
 
   it("rejects identify actions for a skeleton owned by another user", async () => {
+    hasUserAccess.mockResolvedValue(false);
     findByIdWithExternalIds.mockResolvedValue({
       id: "movie-1",
       type: MediaType.MOVIE,
@@ -66,6 +70,7 @@ describe("IdentifyController", () => {
   });
 
   it("identifies an owned skeleton and redirects to its detail page", async () => {
+    hasUserAccess.mockResolvedValue(true);
     findByIdWithExternalIds.mockResolvedValue({
       id: "movie-1",
       type: MediaType.MOVIE,
@@ -82,30 +87,30 @@ describe("IdentifyController", () => {
       response as unknown as Response,
     );
 
-    expect(identify).toHaveBeenCalledWith("movie-1", "tmdb", "123", "user-1");
+    expect(identify).toHaveBeenCalledWith("movie-1", "tmdb", "123", "user-1", []);
     expect(response.redirect).toHaveBeenCalledWith("/collection/movie/movie-1");
-    expect(findDetail).not.toHaveBeenCalled();
   });
 
-  it("allows reidentify for an accessible identified item", async () => {
+  it("shows refetch metadata action for an accessible identified item", async () => {
+    hasUserAccess.mockResolvedValue(true);
     findByIdWithExternalIds.mockResolvedValue({
       id: "movie-1",
       type: MediaType.MOVIE,
       isSkeleton: false,
-      createdByUserId: null,
+      createdByUserId: "user-1",
       externalIds: [{ provider: "tmdb", externalId: "movie:1" }],
     });
 
     await controller.panel("movie", "movie-1", user, response as unknown as Response);
 
-    expect(findDetail).toHaveBeenCalledWith("user-1", "movie-1");
     expect(response.render).toHaveBeenCalledWith(
       "partials/identify-panel",
-      expect.objectContaining({ actionLabel: "Reidentify" }),
+      expect.objectContaining({ actionLabel: "Refetch metadata" }),
     );
   });
 
   it("returns actionable validation feedback for malformed syntax", async () => {
+    hasUserAccess.mockResolvedValue(true);
     findByIdWithExternalIds.mockResolvedValue({
       id: "movie-1",
       type: MediaType.MOVIE,
@@ -131,6 +136,7 @@ describe("IdentifyController", () => {
   });
 
   it("returns a clear error when structured fields are mixed with free text", async () => {
+    hasUserAccess.mockResolvedValue(true);
     findByIdWithExternalIds.mockResolvedValue({
       id: "track-1",
       type: MediaType.MUSIC_TRACK,
@@ -156,6 +162,7 @@ describe("IdentifyController", () => {
   });
 
   it("resolves shorthand id lookups using the active provider", async () => {
+    hasUserAccess.mockResolvedValue(true);
     findByIdWithExternalIds.mockResolvedValue({
       id: "track-1",
       type: MediaType.MUSIC_TRACK,
@@ -188,6 +195,44 @@ describe("IdentifyController", () => {
     expect(response.render).toHaveBeenCalledWith(
       "partials/identify-search-results",
       expect.objectContaining({ hasResults: true }),
+    );
+  });
+
+  it("shows tag preview data on identify confirmation", async () => {
+    hasUserAccess.mockResolvedValue(true);
+    findByIdWithExternalIds.mockResolvedValue({
+      id: "movie-1",
+      type: MediaType.MOVIE,
+      isSkeleton: true,
+      title: "Arrival",
+      createdByUserId: "user-1",
+      externalIds: [],
+    });
+    providerGetById.mockResolvedValue({
+      externalId: "movie:157336",
+      title: "Interstellar",
+      type: MediaType.MOVIE,
+      tags: ["Mystery", "Sci-Fi"],
+    });
+
+    await controller.confirm(
+      "movie",
+      "movie-1",
+      { provider: "tmdb", externalId: "movie:157336" },
+      user,
+      response as unknown as Response,
+    );
+
+    expect(listTagsForItem).toHaveBeenCalledWith("movie-1", "user-1");
+    expect(response.render).toHaveBeenCalledWith(
+      "partials/identify-confirm",
+      expect.objectContaining({
+        tagPreview: expect.objectContaining({
+          current: ["Drama", "Mystery"],
+          provider: ["Mystery", "Sci-Fi"],
+          additions: ["Sci-Fi"],
+        }),
+      }),
     );
   });
 });

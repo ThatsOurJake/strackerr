@@ -30,7 +30,10 @@
       {{#if identifyUrl}}<a href="{{identifyUrl}}" hx-get="{{identifyUrl}}" hx-target="#identify-panel"
         hx-swap="innerHTML"
         class="inline-flex items-center gap-2 rounded-lg bg-type-{{accent}} px-4 py-2 font-heading text-sm font-semibold text-black active:scale-[0.98]"><i
-          data-lucide="search" class="h-4 w-4"></i>{{identifyActionLabel}}</a>{{/if}}
+          data-lucide="search" class="h-4 w-4"></i>Identify</a>{{/if}}
+      {{#if refetchUrl}}<a href="{{refetchUrl}}" hx-get="{{refetchUrl}}" hx-target="#identify-panel" hx-swap="innerHTML"
+        class="inline-flex items-center gap-2 rounded-lg bg-type-{{accent}} px-4 py-2 font-heading text-sm font-semibold text-black active:scale-[0.98]"><i
+          data-lucide="refresh-cw" class="h-4 w-4"></i>Refetch metadata</a>{{/if}}
       {{#if editUrl}}<a href="{{editUrl}}"
         class="inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-elevated px-4 py-2 font-heading text-sm font-semibold text-text-primary hover:bg-bg-surface active:scale-[0.98]"><i
           data-lucide="pencil" class="h-4 w-4"></i>Edit</a>{{/if}}

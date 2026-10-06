@@ -20,6 +20,8 @@ interface MediaPrismaMock {
   };
   mediaItem: {
     create: jest.Mock;
+    findFirst: jest.Mock;
+    findMany: jest.Mock;
     findUnique: jest.Mock;
     findUniqueOrThrow: jest.Mock;
     update: jest.Mock;
@@ -27,7 +29,6 @@ interface MediaPrismaMock {
   mediaExternalId: {
     findUnique: jest.Mock;
     create: jest.Mock;
-    upsert: jest.Mock;
   };
   mediaExternalAlias: {
     findUnique: jest.Mock;
@@ -50,6 +51,8 @@ const createPrismaMock = (): MediaPrismaMock => {
     },
     mediaItem: {
       create: jest.fn(),
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
       findUnique: jest.fn(),
       findUniqueOrThrow: jest.fn(),
       update: jest.fn(),
@@ -57,7 +60,6 @@ const createPrismaMock = (): MediaPrismaMock => {
     mediaExternalId: {
       findUnique: jest.fn(),
       create: jest.fn(),
-      upsert: jest.fn(),
     },
     mediaExternalAlias: {
       findUnique: jest.fn(),
@@ -112,7 +114,7 @@ describe("MediaService", () => {
     expect(existing).toEqual(mediaItem);
     expect(prisma.mediaItem.create).toHaveBeenCalledTimes(1);
     expect(prisma.mediaAlias.create).toHaveBeenCalledWith({
-      data: { alias: "the office", mediaItemId: "media-1" },
+      data: { alias: "the office", mediaItemId: "media-1", userId: "user-1" },
     });
   });
 
@@ -122,7 +124,7 @@ describe("MediaService", () => {
     prisma.mediaAlias.findUnique.mockResolvedValue(alias);
     const service = new MediaService(prisma as unknown as PrismaService);
 
-    const result = await service.addAlias("media-1", "Office");
+    const result = await service.addAlias("media-1", "user-1", "Office");
 
     expect(result).toBe(alias);
     expect(prisma.mediaAlias.create).not.toHaveBeenCalled();
@@ -130,21 +132,26 @@ describe("MediaService", () => {
 
   it("looks up and upserts external IDs", async () => {
     const prisma = createPrismaMock();
-    prisma.mediaExternalId.findUnique.mockResolvedValue({ mediaItem });
-    prisma.mediaExternalId.upsert.mockResolvedValue({ mediaItemId: "media-1" });
+    prisma.mediaExternalId.findUnique
+      .mockResolvedValueOnce({ mediaItem })
+      .mockResolvedValueOnce(null);
+    prisma.mediaExternalId.create.mockResolvedValue({ mediaItemId: "media-1" });
     prisma.mediaItem.findUniqueOrThrow.mockResolvedValue(mediaItem);
     const service = new MediaService(prisma as unknown as PrismaService);
 
-    await expect(service.findByExternalId("tmdb", "123")).resolves.toEqual(
+    await expect(service.findByExternalId("user-1", "tmdb", "123")).resolves.toEqual(
       mediaItem,
     );
     await expect(
-      service.addExternalId("media-1", "tmdb", "123"),
+      service.addExternalId("media-1", "user-1", "tmdb", "123"),
     ).resolves.toEqual(mediaItem);
-    expect(prisma.mediaExternalId.upsert).toHaveBeenCalledWith({
-      where: { provider_externalId: { provider: "tmdb", externalId: "123" } },
-      create: { mediaItemId: "media-1", provider: "tmdb", externalId: "123" },
-      update: { mediaItemId: "media-1" },
+    expect(prisma.mediaExternalId.create).toHaveBeenCalledWith({
+      data: {
+        mediaItemId: "media-1",
+        userId: "user-1",
+        provider: "tmdb",
+        externalId: "123",
+      },
     });
   });
 
@@ -154,15 +161,96 @@ describe("MediaService", () => {
 
     prisma.mediaExternalId.findUnique.mockResolvedValueOnce({ mediaItem });
     await expect(
-      service.resolveByExternalLookup("tmdb", "movie:123"),
+      service.resolveByExternalLookup("user-1", "tmdb", "movie:123"),
     ).resolves.toEqual(mediaItem);
     expect(prisma.mediaExternalAlias.findUnique).not.toHaveBeenCalled();
 
     prisma.mediaExternalId.findUnique.mockResolvedValueOnce(null);
     prisma.mediaExternalAlias.findUnique.mockResolvedValueOnce({ mediaItem });
     await expect(
-      service.resolveByExternalLookup("steam", "app:620"),
+      service.resolveByExternalLookup("user-1", "steam", "app:620"),
     ).resolves.toEqual(mediaItem);
+  });
+
+  it("resolves titles directly from user-owned media item title", async () => {
+    const prisma = createPrismaMock();
+    const service = new MediaService(prisma as unknown as PrismaService);
+
+    prisma.mediaItem.findFirst = jest.fn().mockResolvedValue({
+      id: "media-1",
+      type: MediaType.MOVIE,
+      title: "Arrival",
+      isSkeleton: true,
+      createdByUserId: "user-1",
+    });
+
+    await expect(
+      service.resolveByTitleForUser("user-1", " Arrival "),
+    ).resolves.toEqual(expect.objectContaining({ id: "media-1" }));
+    expect(prisma.mediaItem.findFirst).toHaveBeenCalledWith({
+      where: {
+        createdByUserId: "user-1",
+        title: {
+          equals: "Arrival",
+        },
+      },
+      orderBy: { id: "asc" },
+    });
+  });
+
+  it("searches TV show candidates scoped to the user", async () => {
+    const prisma = createPrismaMock();
+    const service = new MediaService(prisma as unknown as PrismaService);
+    prisma.mediaItem.findMany.mockResolvedValue([
+      {
+        id: "show-1",
+        type: MediaType.TV_SHOW,
+        title: "Severance",
+        year: 2022,
+        isSkeleton: true,
+        createdByUserId: "user-1",
+      },
+    ]);
+
+    await expect(
+      service.searchTvShowCandidatesForUser("user-1", "Severance"),
+    ).resolves.toEqual([
+      expect.objectContaining({ id: "show-1", title: "Severance" }),
+    ]);
+
+    expect(prisma.mediaItem.findMany).toHaveBeenCalledWith({
+      where: {
+        type: MediaType.TV_SHOW,
+        OR: [
+          { title: { contains: "Severance" } },
+          { aliases: { some: { userId: "user-1", alias: { contains: "Severance" } } } },
+        ],
+        createdByUserId: "user-1",
+      },
+      orderBy: [{ isSkeleton: "desc" }, { title: "asc" }, { year: "asc" }],
+      take: 20,
+    });
+  });
+
+  it("does not return duplicate titles owned by other users", async () => {
+    const prisma = createPrismaMock();
+    const service = new MediaService(prisma as unknown as PrismaService);
+
+    prisma.mediaItem.findFirst = jest.fn().mockResolvedValue(null);
+
+    await expect(
+      service.resolveByTitleForUser("user-1", " Phoenix Nights "),
+    ).resolves.toBeNull();
+
+    expect(prisma.mediaItem.findFirst).toHaveBeenCalledWith({
+      where: {
+        createdByUserId: "user-1",
+        title: {
+          equals: "Phoenix Nights",
+        },
+      },
+      orderBy: { id: "asc" },
+    });
   });
 
   it("rejects alias reassignment conflicts and supports list/remove", async () => {
@@ -176,7 +264,7 @@ describe("MediaService", () => {
     });
 
     await expect(
-      service.addExternalAlias("media-1", " Steam ", "620"),
+      service.addExternalAlias("media-1", "user-1", " Steam ", "620"),
     ).rejects.toThrow("Alias is already assigned to another media item");
 
     prisma.mediaExternalAlias.findMany.mockResolvedValueOnce([
@@ -208,7 +296,7 @@ describe("MediaService", () => {
       provider: "igdb",
       externalId: "123",
       imageUrl: "https://images.igdb.com/cover.jpg",
-    });
+    }, "user-1");
 
     expect(prisma.mediaItem.create).toHaveBeenCalledWith({
       data: expect.objectContaining({

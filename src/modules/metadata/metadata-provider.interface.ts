@@ -16,12 +16,14 @@ export interface SearchResult {
   year?: number;
   imageUrl?: string;
   description?: string;
+  tags?: string[];
   type: MediaType;
 }
 
 export interface MediaItemDetail extends SearchResult {
   duration?: number;
   seasonCount?: number;
+  seasonNumbers?: number[];
 }
 
 export interface Episode {

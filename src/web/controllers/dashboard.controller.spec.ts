@@ -2,10 +2,10 @@ import { MediaType } from "@prisma/client";
 import type { Response } from "express";
 import type { AppCacheService } from "../../infrastructure/cache/app-cache.service";
 import type {
-  LogService,
-} from "../../modules/activity/log.service";
+  ActivityService,
+} from "../../modules/activity/activity.service";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
-import { createLogEntry } from "../../test-utils/log-entry.factory";
+import { createActivityEntry } from "../../test-utils/activity-entry.factory";
 import { DashboardController } from "./dashboard.controller";
 
 const user: AuthenticatedUser = {
@@ -29,7 +29,7 @@ describe("DashboardController", () => {
     cacheGet = jest.fn();
     cacheSet = jest.fn();
     controller = new DashboardController(
-      { findByUser, groupByDay } as unknown as LogService,
+      { findByUser, groupByDay } as unknown as ActivityService,
       { get: cacheGet, set: cacheSet } as unknown as AppCacheService,
     );
     response = { render: jest.fn() };
@@ -39,9 +39,9 @@ describe("DashboardController", () => {
 
   it("queries the authenticated user's last seven local calendar days and totals each type", async () => {
     const entries = [
-      createLogEntry("movie-1", MediaType.MOVIE, { duration: 90, userId: user.userId }),
-      createLogEntry("movie-2", MediaType.MOVIE, { duration: 30, userId: user.userId }),
-      createLogEntry("game", MediaType.GAME, { duration: 75, userId: user.userId }),
+      createActivityEntry("movie-1", MediaType.MOVIE, { duration: 90, userId: user.userId }),
+      createActivityEntry("movie-2", MediaType.MOVIE, { duration: 30, userId: user.userId }),
+      createActivityEntry("game", MediaType.GAME, { duration: 75, userId: user.userId }),
     ];
     cacheGet.mockResolvedValue(null);
     findByUser.mockResolvedValue(entries);

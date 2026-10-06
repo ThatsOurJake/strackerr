@@ -3,53 +3,53 @@ import { LogSource, MediaType, Prisma } from "@prisma/client";
 import { PrismaService } from "../../infrastructure/database/prisma.service";
 import { stripHtmlTags } from "../../infrastructure/security/sanitize-string";
 
-export interface FindLogsFilters {
+export interface FindActivityFilters {
   dateFrom?: Date;
   dateTo?: Date;
   dateBefore?: Date;
   type?: MediaType;
 }
 
-export interface CreateLogData {
+export interface CreateActivityData {
   mediaItemId: string;
   loggedAt: Date;
   duration?: number;
-  notes?: string;
+  description?: string;
   platform?: string;
   playerCount?: number;
   won?: boolean;
 }
 
-export interface PaginatedLogs {
-  data: LogEntryWithMedia[];
+export interface PaginatedActivities {
+  data: ActivityEntryWithMedia[];
   total: number;
 }
 
-export type LogEntryWithMedia = Prisma.LogEntryGetPayload<{
+export type ActivityEntryWithMedia = Prisma.LogEntryGetPayload<{
   include: { mediaItem: { include: { parent: true } } };
 }>;
 
-export interface MusicLogGroup {
+export interface MusicActivityGroup {
   trackCount: number;
   totalDuration: number;
-  entries: LogEntryWithMedia[];
+  entries: ActivityEntryWithMedia[];
 }
 
-export interface LogDayGroup {
+export interface ActivityDayGroup {
   date: string;
-  entries: LogEntryWithMedia[];
-  musicGroup?: MusicLogGroup;
+  entries: ActivityEntryWithMedia[];
+  musicGroup?: MusicActivityGroup;
 }
 
 @Injectable()
-export class LogService {
+export class ActivityService {
   constructor(private readonly prisma: PrismaService) { }
 
   async create(
-    data: CreateLogData,
+    data: CreateActivityData,
     userId: string,
     source: LogSource,
-  ): Promise<LogEntryWithMedia> {
+  ): Promise<ActivityEntryWithMedia> {
     return this.prisma.$transaction(async (transaction) => {
       const duplicate = await transaction.logEntry.findFirst({
         where: {
@@ -60,13 +60,13 @@ export class LogService {
       });
 
       if (duplicate) {
-        throw new ConflictException("A log entry already exists at this time");
+        throw new ConflictException("An activity entry already exists at this time");
       }
 
       return transaction.logEntry.create({
         data: {
           ...data,
-          notes: data.notes ? stripHtmlTags(data.notes) : undefined,
+          description: data.description ? stripHtmlTags(data.description) : undefined,
           platform: data.platform ? stripHtmlTags(data.platform) : undefined,
           userId,
           source,
@@ -78,8 +78,8 @@ export class LogService {
 
   findByUser(
     userId: string,
-    filters: FindLogsFilters = {},
-  ): Promise<LogEntryWithMedia[]> {
+    filters: FindActivityFilters = {},
+  ): Promise<ActivityEntryWithMedia[]> {
     return this.prisma.logEntry.findMany({
       where: {
         userId,
@@ -97,10 +97,10 @@ export class LogService {
 
   async findByUserPaginated(
     userId: string,
-    filters: FindLogsFilters,
+    filters: FindActivityFilters,
     page: number,
     limit: number,
-  ): Promise<PaginatedLogs> {
+  ): Promise<PaginatedActivities> {
     const where: Prisma.LogEntryWhereInput = {
       userId,
       loggedAt: {
@@ -123,11 +123,44 @@ export class LogService {
     return { data, total };
   }
 
-  groupByDay(entries: LogEntryWithMedia[]): LogDayGroup[] {
-    const groups = new Map<string, LogDayGroup>();
+  async findByUserAndMediaItemPaginated(
+    userId: string,
+    mediaItemId: string,
+    includeChildEpisodes: boolean,
+    filters: Omit<FindActivityFilters, "type">,
+    page: number,
+    limit: number,
+  ): Promise<PaginatedActivities> {
+    const where: Prisma.LogEntryWhereInput = {
+      userId,
+      loggedAt: {
+        gte: filters.dateFrom,
+        lte: filters.dateTo,
+      },
+      mediaItem: includeChildEpisodes
+        ? { OR: [{ id: mediaItemId }, { parentId: mediaItemId }] }
+        : { id: mediaItemId },
+    };
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.logEntry.findMany({
+        where,
+        include: { mediaItem: { include: { parent: true } } },
+        orderBy: { loggedAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.logEntry.count({ where }),
+    ]);
+
+    return { data, total };
+  }
+
+  groupByDay(entries: ActivityEntryWithMedia[]): ActivityDayGroup[] {
+    const groups = new Map<string, ActivityDayGroup>();
 
     for (const entry of entries) {
-      const date = LogService.toLocalDateKey(entry.loggedAt);
+      const date = ActivityService.toLocalDateKey(entry.loggedAt);
       const group = groups.get(date) ?? { date, entries: [] };
 
       if (entry.mediaItem.type === MediaType.MUSIC_TRACK) {

@@ -4,6 +4,7 @@ export const initializeItemEditForm = () => {
   const aliasTemplate = document.getElementById("alias-row-template");
   const addAliasButton = document.getElementById("add-alias-row");
   const historyRemovalCount = document.getElementById("history-removal-count");
+  const tagRemovalCount = document.getElementById("tag-removal-count");
   const aliasRemovalCount = document.getElementById("alias-removal-count");
   const openDeleteButton = document.getElementById("open-delete-item-confirm");
   const deleteDialog = document.getElementById("delete-item-dialog");
@@ -18,6 +19,7 @@ export const initializeItemEditForm = () => {
     || !aliasTemplate
     || !addAliasButton
     || !historyRemovalCount
+    || !tagRemovalCount
     || !aliasRemovalCount
   ) {
     return;
@@ -27,8 +29,10 @@ export const initializeItemEditForm = () => {
 
   const updateSummary = () => {
     const historyChecked = form.querySelectorAll("[data-history-checkbox]:checked").length;
+    const tagChecked = form.querySelectorAll("[data-tag-remove-checkbox]:checked").length;
     const aliasChecked = form.querySelectorAll("[data-alias-remove-checkbox]:checked").length;
     historyRemovalCount.textContent = String(historyChecked);
+    tagRemovalCount.textContent = String(tagChecked);
     aliasRemovalCount.textContent = String(aliasChecked);
   };
 

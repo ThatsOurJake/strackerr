@@ -18,6 +18,10 @@ interface BggName extends BggValue {
   sortindex?: string | number;
 }
 
+interface BggLink extends BggValue {
+  type?: string;
+}
+
 interface BggItem {
   id: string | number;
   name?: BggName | BggName[];
@@ -26,6 +30,7 @@ interface BggItem {
   image?: string;
   description?: string;
   playingtime?: BggValue;
+  link?: BggLink | BggLink[];
 }
 
 interface BggResponse {
@@ -124,12 +129,19 @@ export class BggProvider implements IMetadataProvider {
     const names = this.asArray(item.name);
     const primaryName =
       names.find((name) => String(name.sortindex) === "1") ?? names[0];
+    const links = this.asArray(item.link);
+    const tags = links
+      .filter((link) => link.type === "boardgamecategory" || link.type === "boardgamemechanic")
+      .map((link) => String(link.value ?? "").trim())
+      .filter((value) => value.length > 0);
+
     return {
       externalId: `bgg:${item.id}`,
       title: String(primaryName?.value ?? "Untitled"),
       year: this.numberValue(item.yearpublished),
       imageUrl: item.image || item.thumbnail || fallbackImageUrl,
       description: item.description ? decode(item.description) : undefined,
+      ...(tags.length > 0 ? { tags } : {}),
       duration: this.numberValue(item.playingtime),
       type: MediaType.BOARD_GAME,
     };

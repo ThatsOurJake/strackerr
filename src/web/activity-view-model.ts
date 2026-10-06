@@ -1,5 +1,5 @@
 import { MediaType } from "@prisma/client";
-import { LogDayGroup, LogEntryWithMedia } from "../modules/activity/log.service";
+import { ActivityDayGroup, ActivityEntryWithMedia } from "../modules/activity/activity.service";
 
 const TYPE_DETAILS: Record<MediaType, { label: string; icon: string; accent: string; path: string }> = {
   MOVIE: { label: "Movie", icon: "film", accent: "movie", path: "movie" },
@@ -11,6 +11,15 @@ const TYPE_DETAILS: Record<MediaType, { label: string; icon: string; accent: str
 };
 
 export const formatDuration = (minutes: number): string => {
+  const minutesPerDay = 24 * 60;
+  if (minutes >= minutesPerDay) {
+    const days = Math.floor(minutes / minutesPerDay);
+    const remainder = minutes % minutesPerDay;
+    const hours = Math.floor(remainder / 60);
+    const remainingMinutes = remainder % 60;
+    return `${days}d ${hours}h ${remainingMinutes}m`;
+  }
+
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   if (hours === 0) {
@@ -22,7 +31,7 @@ export const formatDuration = (minutes: number): string => {
   return `${hours}h ${remainingMinutes}m`;
 };
 
-const entrySubtitle = (entry: LogEntryWithMedia): string | null => {
+const entrySubtitle = (entry: ActivityEntryWithMedia): string | null => {
   if (entry.mediaItem.type === MediaType.TV_EPISODE) {
     const season = String(entry.mediaItem.seasonNumber ?? 0).padStart(2, "0");
     const episode = String(entry.mediaItem.episodeNumber ?? 0).padStart(2, "0");
@@ -34,7 +43,7 @@ const entrySubtitle = (entry: LogEntryWithMedia): string | null => {
   return null;
 };
 
-export const toEntryViewModel = (entry: LogEntryWithMedia) => {
+export const toEntryViewModel = (entry: ActivityEntryWithMedia) => {
   const details = TYPE_DETAILS[entry.mediaItem.type];
   const title = entry.mediaItem.type === MediaType.TV_EPISODE
     ? entry.mediaItem.parent?.title ?? entry.mediaItem.title
@@ -54,13 +63,13 @@ export const toEntryViewModel = (entry: LogEntryWithMedia) => {
     platform: entry.platform,
     ...details,
     detailUrl: `/collection/${details.path}/${entry.mediaItem.type === MediaType.TV_EPISODE
-        ? entry.mediaItem.parent?.id ?? entry.mediaItem.id
-        : entry.mediaItem.id
+      ? entry.mediaItem.parent?.id ?? entry.mediaItem.id
+      : entry.mediaItem.id
       }`,
   };
 };
 
-export const toDayViewModels = (groups: LogDayGroup[]) => groups.map((group) => {
+export const toDayViewModels = (groups: ActivityDayGroup[]) => groups.map((group) => {
   const totalMinutes = [
     ...group.entries.map((entry) => entry.duration ?? 0),
     group.musicGroup?.totalDuration ?? 0,

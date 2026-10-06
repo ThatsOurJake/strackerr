@@ -35,7 +35,12 @@ describe("WebExceptionFilter", () => {
 
     new WebExceptionFilter().catch(new ForbiddenException("Denied"), host);
 
-    expect(response.json).toHaveBeenCalledWith({ statusCode: 403, message: "Denied" });
+    expect(response.json).toHaveBeenCalledWith({
+      error: {
+        statusCode: 403,
+        message: "Denied",
+      },
+    });
     expect(response.render).not.toHaveBeenCalled();
   });
 

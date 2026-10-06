@@ -5,12 +5,21 @@ import {
   SwaggerModule,
 } from "@nestjs/swagger";
 import { Test } from "@nestjs/testing";
-import { LogService } from "../activity/log.service";
+import { ActivityService } from "../activity/activity.service";
+import { IdentificationService } from "../media/identification.service";
 import { MediaService } from "../media/media.service";
-import { ApiV1LogController } from "./api-v1-log.controller";
+import { MetadataService } from "../metadata/metadata.service";
+import { UsersService } from "../users/users.service";
+import { ApiV1ActivityController } from "./api-v1-activity.controller";
 import { ApiV1MediaController } from "./api-v1-media.controller";
+import { ApiV1ProfileController } from "./api-v1-profile.controller";
+import { ApiV1ProviderSearchController } from "./api-v1-provider-search.controller";
 import { ApiKeyGuard } from "./guards/api-key.guard";
+import { ApiKeyNotFoundGuard } from "./guards/api-key-not-found.guard";
 import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
+import { ProviderSearchService } from "./provider-search.service";
+
+jest.mock("@paralleldrive/cuid2", () => ({ createId: jest.fn() }));
 
 @Controller("internal")
 class InternalController {
@@ -21,19 +30,28 @@ class InternalController {
 }
 
 @Module({
-  controllers: [ApiV1LogController, ApiV1MediaController],
+  controllers: [
+    ApiV1ActivityController,
+    ApiV1MediaController,
+    ApiV1ProfileController,
+    ApiV1ProviderSearchController,
+  ],
   providers: [
     { provide: MediaService, useValue: {} },
-    { provide: LogService, useValue: {} },
+    { provide: ActivityService, useValue: {} },
+    { provide: IdentificationService, useValue: {} },
+    { provide: UsersService, useValue: {} },
+    { provide: MetadataService, useValue: {} },
+    { provide: ProviderSearchService, useValue: {} },
   ],
 })
-class ApiDocsPublicModule { }
+class ApiDocsPublicModule {}
 
 @Module({
   imports: [ApiDocsPublicModule],
   controllers: [InternalController],
 })
-class ApiDocsRootModule { }
+class ApiDocsRootModule {}
 
 describe("API v1 OpenAPI responses", () => {
   let app: INestApplication | undefined;
@@ -47,6 +65,8 @@ describe("API v1 OpenAPI responses", () => {
       .useValue({ canActivate: () => true })
       .overrideGuard(ApiThrottlerGuard)
       .useValue({ canActivate: () => true })
+      .overrideGuard(ApiKeyNotFoundGuard)
+      .useValue({ canActivate: () => true })
       .compile();
 
     app = module.createNestApplication();
@@ -56,7 +76,10 @@ describe("API v1 OpenAPI responses", () => {
       new DocumentBuilder()
         .setTitle("STrackerr API")
         .setVersion("1.0")
-        .addApiKey({ type: "apiKey", in: "header", name: "X-API-Key" }, "ApiKey")
+        .addApiKey(
+          { type: "apiKey", in: "header", name: "X-API-Key" },
+          "ApiKey",
+        )
         .build(),
       { include: [ApiDocsPublicModule] },
     );
@@ -67,14 +90,14 @@ describe("API v1 OpenAPI responses", () => {
   });
 
   it.each([
-    ["movie", "CreatedMovieLogResponseDto"],
-    ["tv-episode", "CreatedTvEpisodeLogResponseDto"],
-    ["game", "CreatedGameLogResponseDto"],
-    ["board-game", "CreatedBoardGameLogResponseDto"],
-    ["music", "CreatedMusicLogResponseDto"],
-  ])("documents /log/%s with %s", (route, schemaName) => {
+    ["movie", "CreatedMovieActivityResponseDto"],
+    ["tv-episode", "CreatedTvEpisodeActivityResponseDto"],
+    ["game", "CreatedGameActivityResponseDto"],
+    ["board-game", "CreatedBoardGameActivityResponseDto"],
+    ["music", "CreatedMusicActivityResponseDto"],
+  ])("documents /activity/%s with %s", (route, schemaName) => {
     const response =
-      document.paths[`/api/v1/log/${route}`]?.post?.responses?.["201"];
+      document.paths[`/api/v1/activity/${route}`]?.post?.responses?.["201"];
     if (!response || "$ref" in response) {
       throw new Error(`Missing inline 201 response for ${route}`);
     }
@@ -86,13 +109,41 @@ describe("API v1 OpenAPI responses", () => {
   });
 
   it("only includes TV episode fields in the TV creation schema", () => {
-    const schema = document.components?.schemas?.CreatedTvEpisodeLogResponseDto;
+    const wrapperSchema =
+      document.components?.schemas?.CreatedTvEpisodeActivityResponseDto;
+    if (!wrapperSchema || "$ref" in wrapperSchema) {
+      throw new Error("Missing inline TV episode wrapper response schema");
+    }
+
+    expect(wrapperSchema.properties?.data).toEqual({
+      allOf: [{ $ref: "#/components/schemas/CreatedTvEpisodeActivityDto" }],
+      description: "Created activity entry",
+    });
+
+    const schema = document.components?.schemas?.CreatedTvEpisodeActivityDto;
     if (!schema || "$ref" in schema) {
       throw new Error("Missing inline TV episode response schema");
     }
     const properties = Object.keys(schema.properties ?? {});
 
-    expect(properties.sort()).toEqual([
+    expect(properties).toEqual(
+      expect.arrayContaining([
+        "duration",
+        "episode",
+        "id",
+        "loggedAt",
+        "season",
+        "status",
+        "title",
+        "type",
+      ]),
+    );
+    expect(properties).not.toEqual(
+      expect.arrayContaining(["platform", "players", "won"]),
+    );
+
+    const allowedProperties = new Set([
+      "description",
       "duration",
       "episode",
       "id",
@@ -102,15 +153,25 @@ describe("API v1 OpenAPI responses", () => {
       "title",
       "type",
     ]);
-    expect(properties).not.toEqual(
-      expect.arrayContaining(["platform", "players", "won"]),
-    );
+    expect(
+      properties.every((property) => allowedProperties.has(property)),
+    ).toBe(true);
   });
 
   it("documents only /api/ paths and excludes internal routes", () => {
     const documentedPaths = Object.keys(document.paths);
 
-    expect(documentedPaths).toEqual(expect.arrayContaining(["/api/v1/log/movie", "/api/v1/media/search"]));
+    expect(documentedPaths).toEqual(
+      expect.arrayContaining([
+        "/api/v1/activity/movie",
+        "/api/v1/media/search",
+        "/api/v1/profile",
+        "/api/v1/providers/tmdb/movies/search",
+        "/api/v1/providers/tmdb/tv/search",
+        "/api/v1/providers/igdb/search",
+        "/api/v1/providers/bgg/search",
+      ]),
+    );
     expect(documentedPaths.length).toBeGreaterThan(0);
     for (const path of documentedPaths) {
       expect(path.startsWith("/api/")).toBe(true);
@@ -122,7 +183,11 @@ describe("API v1 OpenAPI responses", () => {
   it("does not emit JSON object-style parameters", () => {
     for (const pathItem of Object.values(document.paths)) {
       for (const operation of Object.values(pathItem ?? {})) {
-        if (!operation || typeof operation !== "object" || !("parameters" in operation)) {
+        if (
+          !operation ||
+          typeof operation !== "object" ||
+          !("parameters" in operation)
+        ) {
           continue;
         }
 

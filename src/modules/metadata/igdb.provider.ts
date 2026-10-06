@@ -23,6 +23,9 @@ interface IgdbGame {
   cover?: { url?: string };
   first_release_date?: number;
   summary?: string;
+  genres?: Array<{ name?: string }>;
+  themes?: Array<{ name?: string }>;
+  keywords?: Array<{ name?: string }>;
 }
 
 @Injectable()
@@ -35,7 +38,7 @@ export class IgdbProvider implements IMetadataProvider {
   async search(query: string, apiKey?: string): Promise<SearchResult[]> {
     const escapedQuery = query.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
     const games = await this.requestGames(
-      `fields id, name, cover.url, first_release_date, summary; search "${escapedQuery}"; where game_type != 1; limit 10;`,
+      `fields id, name, cover.url, first_release_date, summary, genres.name, themes.name, keywords.name; search "${escapedQuery}"; where game_type != 1; limit 10;`,
       apiKey,
     );
     return games.map((game) => this.mapGame(game));
@@ -44,7 +47,7 @@ export class IgdbProvider implements IMetadataProvider {
   async getById(externalId: string, apiKey?: string): Promise<MediaItemDetail> {
     const id = stripExternalIdPrefix(externalId);
     const games = await this.requestGames(
-      `fields id, name, cover.url, first_release_date, summary; where id = ${id}; limit 1;`,
+      `fields id, name, cover.url, first_release_date, summary, genres.name, themes.name, keywords.name; where id = ${id}; limit 1;`,
       apiKey,
     );
     if (!games[0]) {
@@ -130,6 +133,12 @@ export class IgdbProvider implements IMetadataProvider {
   }
 
   private mapGame(game: IgdbGame): MediaItemDetail {
+    const tags = [
+      ...(game.genres?.map((genre) => genre.name ?? "") ?? []),
+      ...(game.themes?.map((theme) => theme.name ?? "") ?? []),
+      ...(game.keywords?.map((keyword) => keyword.name ?? "") ?? []),
+    ].filter((tag) => tag.trim().length > 0);
+
     return {
       externalId: `igdb:${game.id}`,
       title: game.name,
@@ -138,6 +147,7 @@ export class IgdbProvider implements IMetadataProvider {
         : undefined,
       imageUrl: this.coverUrl(game.cover?.url),
       description: game.summary || undefined,
+      ...(tags.length > 0 ? { tags } : {}),
       type: MediaType.GAME,
     };
   }

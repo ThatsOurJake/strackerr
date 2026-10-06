@@ -1,6 +1,6 @@
 import { LogSource, MediaType } from "@prisma/client";
 import type { Response } from "express";
-import type { LogService } from "../../modules/activity/log.service";
+import type { ActivityService } from "../../modules/activity/activity.service";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
 import type { MediaService } from "../../modules/media/media.service";
 import type { MetadataService } from "../../modules/metadata/metadata.service";
@@ -13,6 +13,8 @@ const user: AuthenticatedUser = { userId: "user-1", username: "tester", isAdmin:
 describe("AddController", () => {
   let mediaService: {
     findById: jest.Mock;
+    hasUserAccess: jest.Mock;
+    searchTvShowCandidatesForUser: jest.Mock;
     findOrCreateSkeleton: jest.Mock;
     findOrCreateEpisodeSkeleton: jest.Mock;
   };
@@ -23,6 +25,8 @@ describe("AddController", () => {
   beforeEach(() => {
     mediaService = {
       findById: jest.fn(),
+      hasUserAccess: jest.fn(),
+      searchTvShowCandidatesForUser: jest.fn(),
       findOrCreateSkeleton: jest.fn(),
       findOrCreateEpisodeSkeleton: jest.fn(),
     };
@@ -30,7 +34,7 @@ describe("AddController", () => {
     controller = new AddController(
       {} as MetadataService,
       mediaService as unknown as MediaService,
-      { create: createLog } as unknown as LogService,
+      { create: createLog } as unknown as ActivityService,
     );
     response = {
       redirect: jest.fn(),
@@ -45,8 +49,9 @@ describe("AddController", () => {
       type: MediaType.TV_SHOW,
       title: "Severance",
       isSkeleton: false,
-      createdByUserId: null,
+      createdByUserId: "user-1",
     });
+    mediaService.hasUserAccess.mockResolvedValue(true);
     mediaService.findOrCreateEpisodeSkeleton.mockResolvedValue({
       id: "episode-1",
       type: MediaType.TV_EPISODE,
@@ -61,7 +66,7 @@ describe("AddController", () => {
         loggedAt: "2026-08-28",
         seasonNumber: "1",
         episodeNumber: "3",
-        notes: "Great episode",
+        description: "Great episode",
       },
       user,
       response as unknown as Response,
@@ -78,10 +83,134 @@ describe("AddController", () => {
       expect.objectContaining({
         mediaItemId: "episode-1",
         duration: 48,
-        notes: "Great episode",
+        description: "Great episode",
       }),
       "user-1",
       LogSource.MANUAL,
+    );
+    expect(response.redirect).toHaveBeenCalledWith("/history");
+  });
+
+  it("creates a new show when no existing show is selected", async () => {
+    mediaService.findOrCreateSkeleton.mockResolvedValue({
+      id: "show-new",
+      type: MediaType.TV_SHOW,
+      title: "Severance",
+      isSkeleton: true,
+      createdByUserId: "user-1",
+    });
+    mediaService.findOrCreateEpisodeSkeleton.mockResolvedValue({
+      id: "episode-1",
+      type: MediaType.TV_EPISODE,
+      duration: 50,
+    });
+
+    await controller.submit(
+      {
+        type: MediaType.TV_EPISODE,
+        title: "Severance",
+        loggedAt: "2026-08-28",
+        seasonNumber: "1",
+        episodeNumber: "1",
+      },
+      user,
+      response as unknown as Response,
+    );
+
+    expect(mediaService.findOrCreateSkeleton).toHaveBeenCalledWith(
+      "Severance",
+      MediaType.TV_SHOW,
+      "user-1",
+    );
+    expect(mediaService.findOrCreateEpisodeSkeleton).toHaveBeenCalledWith(
+      "show-new",
+      "Severance",
+      1,
+      1,
+      "user-1",
+    );
+    expect(createLog).toHaveBeenCalled();
+    expect(response.redirect).toHaveBeenCalledWith("/history");
+  });
+
+  it("attaches an episode to a selected existing show", async () => {
+    mediaService.findById.mockResolvedValue({
+      id: "show-1",
+      type: MediaType.TV_SHOW,
+      title: "Severance",
+      isSkeleton: true,
+      createdByUserId: "user-1",
+    });
+    mediaService.hasUserAccess.mockResolvedValue(true);
+    mediaService.findOrCreateEpisodeSkeleton.mockResolvedValue({
+      id: "episode-1",
+      type: MediaType.TV_EPISODE,
+      duration: 50,
+    });
+
+    await controller.submit(
+      {
+        type: MediaType.TV_EPISODE,
+        title: "Severance",
+        existingShowId: "show-1",
+        loggedAt: "2026-08-28",
+        seasonNumber: "2",
+        episodeNumber: "1",
+      },
+      user,
+      response as unknown as Response,
+    );
+
+    expect(mediaService.findOrCreateSkeleton).not.toHaveBeenCalled();
+    expect(mediaService.findOrCreateEpisodeSkeleton).toHaveBeenCalledWith(
+      "show-1",
+      "Severance",
+      2,
+      1,
+      "user-1",
+    );
+    expect(createLog).toHaveBeenCalledWith(
+      expect.objectContaining({ mediaItemId: "episode-1" }),
+      "user-1",
+      LogSource.MANUAL,
+    );
+    expect(response.redirect).toHaveBeenCalledWith("/history");
+  });
+
+  it("allows season 0 for special episodes", async () => {
+    mediaService.findById.mockResolvedValue({
+      id: "show-1",
+      type: MediaType.TV_SHOW,
+      title: "Severance",
+      isSkeleton: false,
+      createdByUserId: "user-1",
+    });
+    mediaService.hasUserAccess.mockResolvedValue(true);
+    mediaService.findOrCreateEpisodeSkeleton.mockResolvedValue({
+      id: "episode-special-1",
+      type: MediaType.TV_EPISODE,
+      duration: 45,
+    });
+
+    await controller.submit(
+      {
+        type: MediaType.TV_EPISODE,
+        mediaItemId: "show-1",
+        title: "Severance",
+        loggedAt: "2026-08-28",
+        seasonNumber: "0",
+        episodeNumber: "1",
+      },
+      user,
+      response as unknown as Response,
+    );
+
+    expect(mediaService.findOrCreateEpisodeSkeleton).toHaveBeenCalledWith(
+      "show-1",
+      "Severance",
+      0,
+      1,
+      "user-1",
     );
     expect(response.redirect).toHaveBeenCalledWith("/history");
   });

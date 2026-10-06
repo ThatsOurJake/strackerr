@@ -13,8 +13,11 @@
   <section class="py-8">
     <h2 class="font-heading text-xl font-bold">Watch history</h2>
     {{#if hasSessions}}<div class="mt-4 divide-y divide-border-subtle border-y border-border-subtle">{{#each sessions}}
-      <div class="flex items-center justify-between gap-4 py-3"><span class="flex items-center gap-2 text-sm"><i
-            data-lucide="calendar" class="h-4 w-4 text-type-movie"></i>{{date}}</span><span
+      <div class="flex items-start justify-between gap-4 py-3"><span class="min-w-0 flex-1 text-sm"><span
+            class="flex items-center gap-2"><i data-lucide="calendar"
+              class="h-4 w-4 text-type-movie"></i>{{date}}</span>{{#if
+          description}}<span
+            class="ml-6 mt-1 line-clamp-2 block text-xs text-text-secondary">{{description}}</span>{{/if}}</span><span
           class="text-sm text-text-secondary">{{durationLabel}}</span></div>{{/each}}
     </div>{{else}}<p class="mt-4 text-sm text-text-secondary">No watch sessions recorded.</p>{{/if}}
   </section>

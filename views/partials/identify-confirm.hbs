@@ -1,23 +1,109 @@
 <section class="rounded-lg border border-border-subtle bg-bg-base p-4">
-  <h3 class="font-heading text-base font-bold">Confirm replacement</h3>
-  <div class="mt-3 grid gap-3 sm:grid-cols-2">
-    <div class="rounded-lg border border-border-subtle bg-bg-elevated p-3">
-      <div class="text-xs uppercase tracking-wide text-text-secondary">Current</div>
-      <div class="mt-1 font-heading text-sm font-semibold">{{item.title}}</div>
-    </div>
-    <div class="rounded-lg border border-border-subtle bg-bg-elevated p-3">
-      <div class="text-xs uppercase tracking-wide text-text-secondary">Replacement</div>
-      <div class="mt-1 font-heading text-sm font-semibold">{{proposed.title}}</div>
-      {{#if proposed.year}}<div class="text-xs text-text-secondary">{{proposed.year}}</div>{{/if}}
-    </div>
-  </div>
-  <form method="POST" action="{{submitUrl}}" class="mt-4 flex items-center gap-3">
+  <h3 class="font-heading text-base font-bold">Review metadata changes</h3>
+  <p class="mt-1 text-xs text-text-secondary">Select which fields to apply. Unticked fields keep current values.</p>
+  <form method="POST" action="{{submitUrl}}" class="mt-4 space-y-3">
     <input type="hidden" name="_csrf" value="{{@root.csrfToken}}" />
     <input type="hidden" name="provider" value="{{provider}}" />
     <input type="hidden" name="externalId" value="{{externalId}}" />
-    <button type="submit"
-      class="inline-flex items-center gap-2 rounded-lg bg-text-primary px-4 py-2 font-heading text-sm font-semibold text-bg-base active:scale-[0.98]">
-      Apply replacement
-    </button>
+
+    <div class="overflow-hidden rounded-lg border border-border-subtle bg-bg-elevated">
+      <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] border-b border-border-subtle">
+        <div class="px-3 py-2 font-heading text-xs uppercase tracking-wide text-text-secondary">Current</div>
+        <div class="px-3 py-2 font-heading text-xs uppercase tracking-wide text-text-secondary">Provider</div>
+      </div>
+
+      {{#each fieldRows}}
+      <div class="border-b border-border-subtle last:border-b-0" data-field-row>
+        <label class="flex items-start justify-between gap-3 px-3 py-2">
+          <span class="min-w-0 flex-1">
+            <span class="flex items-center gap-2">
+              <span class="font-heading text-sm font-semibold">{{label}}</span>
+              <span
+                class="inline-flex rounded-full border border-border-subtle px-2 py-0.5 text-[10px] uppercase tracking-wide text-text-secondary"
+                data-keep-current-label>Apply change</span>
+            </span>
+          </span>
+          <input type="checkbox" name="fields" value="{{key}}" checked data-field-checkbox
+            class="mt-0.5 h-4 w-4 rounded border-border-subtle bg-bg-base text-type-tv focus:ring-type-tv" />
+        </label>
+        <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 px-3 pb-3 text-xs">
+          <div class="rounded border border-border-subtle bg-bg-base px-2 py-1.5 text-text-secondary">{{currentValue}}
+          </div>
+          <div class="rounded border border-border-subtle bg-bg-base px-2 py-1.5 text-text-primary">{{proposedValue}}
+          </div>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+
+    <div class="rounded-lg border border-border-subtle bg-bg-elevated p-3">
+      <h4 class="font-heading text-sm font-semibold">Tags Preview</h4>
+      <p class="mt-1 text-xs text-text-secondary">Provider tags will sync on apply. Manual tags are preserved.</p>
+
+      <div class="mt-3 grid gap-2 text-xs sm:grid-cols-3">
+        <div>
+          <p class="mb-1 font-heading uppercase tracking-wide text-text-secondary">Current</p>
+          {{#if tagPreview.current.length}}
+          <p class="text-text-primary">{{tagPreview.currentText}}</p>
+          {{else}}
+          <p class="text-text-secondary">None</p>
+          {{/if}}
+        </div>
+        <div>
+          <p class="mb-1 font-heading uppercase tracking-wide text-text-secondary">Provider</p>
+          {{#if tagPreview.provider.length}}
+          <p class="text-text-primary">{{tagPreview.providerText}}</p>
+          {{else}}
+          <p class="text-text-secondary">None</p>
+          {{/if}}
+        </div>
+        <div>
+          <p class="mb-1 font-heading uppercase tracking-wide text-text-secondary">New additions</p>
+          {{#if tagPreview.additions.length}}
+          <p class="text-text-primary">{{tagPreview.additionsText}}</p>
+          {{else}}
+          <p class="text-text-secondary">None</p>
+          {{/if}}
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button type="submit"
+        class="inline-flex items-center gap-2 rounded-lg bg-text-primary px-4 py-2 font-heading text-sm font-semibold text-bg-base active:scale-[0.98]">
+        {{#if (eq mode "refetch")}}Apply refetch{{else}}Apply selected fields{{/if}}
+      </button>
+    </div>
   </form>
+
+  <script>
+    (() => {
+      const root = document.currentScript?.closest("section");
+      if (!root) {
+        return;
+      }
+
+      const rows = root.querySelectorAll("[data-field-row]");
+      for (const row of rows) {
+        const checkbox = row.querySelector("[data-field-checkbox]");
+        const label = row.querySelector("[data-keep-current-label]");
+        if (!(checkbox instanceof HTMLInputElement) || !(label instanceof HTMLElement)) {
+          continue;
+        }
+
+        const refreshLabel = () => {
+          if (checkbox.checked) {
+            label.textContent = "Apply change";
+            label.classList.remove("border-dashed");
+          } else {
+            label.textContent = "Keep current value";
+            label.classList.add("border-dashed");
+          }
+        };
+
+        checkbox.addEventListener("change", refreshLabel);
+        refreshLabel();
+      }
+    })();
+  </script>
 </section>

@@ -1,466 +1,228 @@
-import { ConflictException, Injectable, Optional } from "@nestjs/common";
+import { Injectable, Optional } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import {
-  type MediaAlias,
-  type MediaExternalAlias,
-  type MediaItem,
-  MediaType,
-  Prisma,
-} from "@prisma/client";
+import { MediaType } from "@prisma/client";
 import { PrismaService } from "../../infrastructure/database/prisma.service";
-import { Events } from "../../infrastructure/events/event-names";
-import { stripHtmlTags } from "../../infrastructure/security/sanitize-string";
+import type {
+  CreateIdentifiedMediaData,
+  CreateMediaData,
+  ExternalAliasInput,
+  UpdateMediaData,
+} from "./media-service-helpers/media.types";
 import {
-  type NormalizedExternalAlias,
-  normalizeExternalAlias,
-} from "./external-alias.validator";
+  computeMediaSortTitle,
+  normaliseMediaAlias,
+} from "./media-service-helpers/media.utils";
+import { MediaCatalogOperations } from "./media-service-helpers/media-catalog.operations";
+import { MediaIdentityOperations } from "./media-service-helpers/media-identity.operations";
+import { MediaTagsOperations } from "./media-service-helpers/media-tags.operations";
 
-export interface CreateMediaData {
-  type: MediaType;
-  title: string;
-  isSkeleton?: boolean;
-  createdByUserId?: string | null;
-  parentId?: string | null;
-  seasonNumber?: number | null;
-  episodeNumber?: number | null;
-  description?: string | null;
-  imageUrl?: string | null;
-  imageSourceUrl?: string | null;
-  year?: number | null;
-  duration?: number | null;
-}
-
-export interface CreateIdentifiedMediaData extends CreateMediaData {
-  provider: string;
-  externalId: string;
-}
-
-export interface ExternalAliasInput {
-  providerNamespace: string;
-  externalId: string;
-}
-
-export type UpdateMediaData = Partial<
-  Omit<CreateMediaData, "type" | "title">
-> & { title?: string };
+export type {
+  CreateIdentifiedMediaData,
+  CreateMediaData,
+  ExternalAliasInput,
+  UpdateMediaData,
+  UserMediaTag,
+} from "./media-service-helpers/media.types";
 
 @Injectable()
 export class MediaService {
-  constructor(
-    private readonly prisma: PrismaService,
-    @Optional() private readonly events?: EventEmitter2,
-  ) { }
+  private readonly catalog: MediaCatalogOperations;
+  private readonly identity: MediaIdentityOperations;
+  private readonly tags: MediaTagsOperations;
 
-  async findOrCreateSkeleton(
-    title: string,
-    type: MediaType,
+  constructor(prisma: PrismaService, @Optional() events?: EventEmitter2) {
+    this.catalog = new MediaCatalogOperations(prisma);
+    this.identity = new MediaIdentityOperations(prisma, events);
+    this.tags = new MediaTagsOperations(prisma);
+  }
+
+  findOrCreateSkeleton(title: string, type: MediaType, userId: string) {
+    return this.catalog.findOrCreateSkeleton(title, type, userId);
+  }
+
+  findByExternalId(userId: string, provider: string, externalId: string) {
+    return this.identity.findByExternalId(userId, provider, externalId);
+  }
+
+  findByExternalAlias(
     userId: string,
-  ): Promise<MediaItem> {
-    const sanitizedTitle = stripHtmlTags(title);
-    const alias = MediaService.normaliseAlias(sanitizedTitle);
-
-    return this.prisma.$transaction(async (transaction) => {
-      const existing = await transaction.mediaAlias.findUnique({
-        where: { alias },
-        include: { mediaItem: true },
-      });
-
-      if (existing) {
-        return existing.mediaItem;
-      }
-
-      const mediaItem = await transaction.mediaItem.create({
-        data: {
-          title: sanitizedTitle,
-          type,
-          sortTitle: MediaService.computeSortTitle(sanitizedTitle),
-          isSkeleton: true,
-          createdByUserId: userId,
-        },
-      });
-
-      await transaction.mediaAlias.create({
-        data: { alias, mediaItemId: mediaItem.id },
-      });
-
-      return mediaItem;
-    });
-  }
-
-  async findByExternalId(
-    provider: string,
-    externalId: string,
-  ): Promise<MediaItem | null> {
-    const result = await this.prisma.mediaExternalId.findUnique({
-      where: { provider_externalId: { provider, externalId } },
-      include: { mediaItem: true },
-    });
-
-    return result?.mediaItem ?? null;
-  }
-
-  async findByExternalAlias(
     providerNamespace: string,
     externalId: string,
-  ): Promise<MediaItem | null> {
-    const normalized = normalizeExternalAlias(providerNamespace, externalId);
-    const result = await this.prisma.mediaExternalAlias.findUnique({
-      where: {
-        providerNamespace_externalId: {
-          providerNamespace: normalized.providerNamespace,
-          externalId: normalized.externalId,
-        },
-      },
-      include: { mediaItem: true },
-    });
-
-    return result?.mediaItem ?? null;
+  ) {
+    return this.identity.findByExternalAlias(
+      userId,
+      providerNamespace,
+      externalId,
+    );
   }
 
-  async resolveByExternalLookup(
+  resolveByExternalLookup(
+    userId: string,
     providerNamespace: string,
     externalId: string,
-  ): Promise<MediaItem | null> {
-    const normalized = normalizeExternalAlias(providerNamespace, externalId);
-    const canonical = await this.findByExternalId(
-      normalized.providerNamespace,
-      normalized.externalId,
-    );
-    if (canonical) {
-      return canonical;
-    }
-
-    return this.findByExternalAlias(
-      normalized.providerNamespace,
-      normalized.externalId,
+  ) {
+    return this.identity.resolveByExternalLookup(
+      userId,
+      providerNamespace,
+      externalId,
     );
   }
 
-  async findOrCreateIdentified(
-    data: CreateIdentifiedMediaData,
-  ): Promise<MediaItem> {
-    const existing = await this.findByExternalId(
-      data.provider,
-      data.externalId,
-    );
-    if (existing) {
-      return existing;
-    }
-
-    const { provider, externalId, imageUrl, imageSourceUrl, ...mediaData } =
-      data;
-    const sourceUrl = imageSourceUrl ?? imageUrl ?? undefined;
-    const sanitizedMediaData = {
-      ...mediaData,
-      title: stripHtmlTags(mediaData.title),
-      imageUrl: null,
-      imageSourceUrl: sourceUrl,
-    };
-    const mediaItem = await this.prisma.$transaction(async (transaction) => {
-      const mediaItem = await transaction.mediaItem.create({
-        data: {
-          ...sanitizedMediaData,
-          isSkeleton: false,
-          createdByUserId: null,
-          sortTitle: MediaService.computeSortTitle(sanitizedMediaData.title),
-        },
-      });
-      await transaction.mediaExternalId.create({
-        data: { mediaItemId: mediaItem.id, provider, externalId },
-      });
-      return mediaItem;
-    });
-
-    if (sourceUrl) {
-      this.events?.emit(Events.IMAGE_CACHE, {
-        mediaItemId: mediaItem.id,
-        sourceUrl,
-      });
-    }
-
-    return mediaItem;
+  findOrCreateIdentified(data: CreateIdentifiedMediaData, userId: string) {
+    return this.identity.findOrCreateIdentified(data, userId);
   }
 
-  async findOrCreateEpisodeSkeleton(
+  findOrCreateEpisodeSkeleton(
     parentId: string,
     showTitle: string,
     seasonNumber: number,
     episodeNumber: number,
     userId: string,
-  ): Promise<MediaItem> {
-    const existing = await this.prisma.mediaItem.findFirst({
-      where: {
-        parentId,
-        seasonNumber,
-        episodeNumber,
-        type: MediaType.TV_EPISODE,
-      },
-    });
-
-    if (existing) {
-      return existing;
-    }
-
-    const title = `${showTitle} S${seasonNumber}E${episodeNumber}`;
-    return this.create({
-      title,
-      type: MediaType.TV_EPISODE,
-      isSkeleton: true,
-      createdByUserId: userId,
+  ) {
+    return this.catalog.findOrCreateEpisodeSkeleton(
       parentId,
+      showTitle,
       seasonNumber,
       episodeNumber,
-    });
+      userId,
+    );
   }
 
-  searchForUser(
-    userId: string,
-    query: string,
-    type?: MediaType,
-  ): Promise<MediaItem[]> {
-    return this.prisma.mediaItem.findMany({
-      where: {
-        type,
-        OR: [
-          { title: { contains: query } },
-          { aliases: { some: { alias: { contains: query } } } },
-        ],
-        AND: {
-          OR: [
-            { createdByUserId: userId },
-            { logEntries: { some: { userId } } },
-          ],
-        },
-      },
-      orderBy: { title: "asc" },
-      take: 20,
-    });
+  searchForUser(userId: string, query: string, type?: MediaType) {
+    return this.catalog.searchForUser(userId, query, type);
   }
 
-  findById(id: string): Promise<MediaItem | null> {
-    return this.prisma.mediaItem.findUnique({ where: { id } });
+  searchTvShowCandidatesForUser(userId: string, query: string) {
+    return this.catalog.searchTvShowCandidatesForUser(userId, query);
   }
 
-  async hasUserAccess(mediaItemId: string, userId: string): Promise<boolean> {
-    const mediaItem = await this.findById(mediaItemId);
-    if (!mediaItem) {
-      return false;
-    }
+  resolveByTitleForUser(userId: string, title: string) {
+    return this.catalog.resolveByTitleForUser(userId, title);
+  }
 
-    if (mediaItem.isSkeleton) {
-      return mediaItem.createdByUserId === userId;
-    }
+  findById(id: string) {
+    return this.catalog.findById(id);
+  }
 
-    if (mediaItem.createdByUserId === userId) {
-      return true;
-    }
-
-    const linkedLog = await this.prisma.logEntry.findFirst({
-      where: {
-        userId,
-        mediaItem:
-          mediaItem.type === MediaType.TV_SHOW
-            ? { OR: [{ id: mediaItem.id }, { parentId: mediaItem.id }] }
-            : { id: mediaItem.id },
-      },
-      select: { id: true },
-    });
-
-    return Boolean(linkedLog);
+  hasUserAccess(mediaItemId: string, userId: string) {
+    return this.catalog.hasUserAccess(mediaItemId, userId);
   }
 
   findByIdWithExternalIds(id: string) {
-    return this.prisma.mediaItem.findUnique({
-      where: { id },
-      include: {
-        externalIds: {
-          select: {
-            provider: true,
-            externalId: true,
-          },
-          orderBy: { provider: "asc" },
-        },
-      },
-    });
+    return this.catalog.findByIdWithExternalIds(id);
   }
 
-  create(data: CreateMediaData): Promise<MediaItem> {
-    const title = stripHtmlTags(data.title);
-    return this.prisma.mediaItem.create({
-      data: { ...data, title, sortTitle: MediaService.computeSortTitle(title) },
-    });
+  create(data: CreateMediaData) {
+    return this.catalog.create(data);
   }
 
-  update(id: string, data: UpdateMediaData): Promise<MediaItem> {
-    const updateData: Prisma.MediaItemUpdateInput = { ...data };
-
-    if (data.title !== undefined) {
-      updateData.title = stripHtmlTags(data.title);
-      updateData.sortTitle = MediaService.computeSortTitle(updateData.title);
-    }
-
-    return this.prisma.mediaItem.update({ where: { id }, data: updateData });
+  createSkeletonWithExternalAliases(input: {
+    title: string;
+    description?: string;
+    type: MediaType;
+    userId: string;
+    externalAliases?: ExternalAliasInput[];
+  }) {
+    return this.catalog.createSkeletonWithExternalAliases(input);
   }
 
-  async addAlias(mediaItemId: string, rawAlias: string): Promise<MediaAlias> {
-    const alias = MediaService.normaliseAlias(rawAlias);
-    const existing = await this.prisma.mediaAlias.findUnique({
-      where: { alias },
-    });
-
-    if (existing) {
-      return existing;
-    }
-
-    try {
-      return await this.prisma.mediaAlias.create({
-        data: { mediaItemId, alias },
-      });
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-      ) {
-        return this.prisma.mediaAlias.findUniqueOrThrow({ where: { alias } });
-      }
-
-      throw error;
-    }
+  update(id: string, data: UpdateMediaData) {
+    return this.catalog.update(id, data);
   }
 
-  async addExternalId(
+  addAlias(mediaItemId: string, userId: string, rawAlias: string) {
+    return this.identity.addAlias(mediaItemId, userId, rawAlias);
+  }
+
+  addExternalId(
     mediaItemId: string,
+    userId: string,
     provider: string,
     externalId: string,
-  ): Promise<MediaItem> {
-    const result = await this.prisma.mediaExternalId.upsert({
-      where: { provider_externalId: { provider, externalId } },
-      create: { mediaItemId, provider, externalId },
-      update: { mediaItemId },
-    });
-
-    return await this.prisma.mediaItem.findUniqueOrThrow({
-      where: { id: result.mediaItemId },
-    });
+  ) {
+    return this.identity.addExternalId(
+      mediaItemId,
+      userId,
+      provider,
+      externalId,
+    );
   }
 
-  async listExternalAliases(
-    mediaItemId: string,
-  ): Promise<MediaExternalAlias[]> {
-    return this.prisma.mediaExternalAlias.findMany({
-      where: { mediaItemId },
-      orderBy: [{ providerNamespace: "asc" }, { externalId: "asc" }],
-    });
+  listExternalAliases(mediaItemId: string) {
+    return this.identity.listExternalAliases(mediaItemId);
   }
 
-  async addExternalAlias(
+  addExternalAlias(
     mediaItemId: string,
+    userId: string,
     providerNamespace: string,
     externalId: string,
-  ): Promise<MediaExternalAlias> {
-    const normalized = normalizeExternalAlias(providerNamespace, externalId);
-    const existing = await this.prisma.mediaExternalAlias.findUnique({
-      where: {
-        providerNamespace_externalId: {
-          providerNamespace: normalized.providerNamespace,
-          externalId: normalized.externalId,
-        },
-      },
-    });
-
-    if (existing?.mediaItemId && existing.mediaItemId !== mediaItemId) {
-      throw new ConflictException(
-        "Alias is already assigned to another media item",
-      );
-    }
-
-    if (existing) {
-      return existing;
-    }
-
-    try {
-      return await this.prisma.mediaExternalAlias.create({
-        data: {
-          mediaItemId,
-          providerNamespace: normalized.providerNamespace,
-          externalId: normalized.externalId,
-        },
-      });
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-      ) {
-        throw new ConflictException(
-          "Alias is already assigned to another media item",
-        );
-      }
-
-      throw error;
-    }
+  ) {
+    return this.identity.addExternalAlias(
+      mediaItemId,
+      userId,
+      providerNamespace,
+      externalId,
+    );
   }
 
-  async addExternalAliases(
+  addExternalAliases(
     mediaItemId: string,
+    userId: string,
     aliases: ExternalAliasInput[],
-  ): Promise<MediaExternalAlias[]> {
-    const deduped = new Map<string, NormalizedExternalAlias>();
-    for (const alias of aliases) {
-      const normalized = normalizeExternalAlias(
-        alias.providerNamespace,
-        alias.externalId,
-      );
-      deduped.set(
-        `${normalized.providerNamespace}::${normalized.externalId}`,
-        normalized,
-      );
-    }
-
-    const added: MediaExternalAlias[] = [];
-    for (const alias of deduped.values()) {
-      added.push(
-        await this.addExternalAlias(
-          mediaItemId,
-          alias.providerNamespace,
-          alias.externalId,
-        ),
-      );
-    }
-
-    return added;
+  ) {
+    return this.identity.addExternalAliases(mediaItemId, userId, aliases);
   }
 
-  async removeExternalAlias(
+  removeExternalAlias(
     mediaItemId: string,
     providerNamespace: string,
     externalId: string,
-  ): Promise<boolean> {
-    const normalized = normalizeExternalAlias(providerNamespace, externalId);
-    const deleted = await this.prisma.mediaExternalAlias.deleteMany({
-      where: {
-        mediaItemId,
-        providerNamespace: normalized.providerNamespace,
-        externalId: normalized.externalId,
-      },
-    });
+  ) {
+    return this.identity.removeExternalAlias(
+      mediaItemId,
+      providerNamespace,
+      externalId,
+    );
+  }
 
-    return deleted.count > 0;
+  listTagsForItem(mediaItemId: string, userId: string) {
+    return this.tags.listTagsForItem(mediaItemId, userId);
+  }
+
+  replaceProviderTagsForItem(
+    mediaItemId: string,
+    userId: string,
+    providerNamespace: string,
+    tags: string[],
+  ) {
+    return this.tags.replaceProviderTagsForItem(
+      mediaItemId,
+      userId,
+      providerNamespace,
+      tags,
+    );
+  }
+
+  syncManualTagsForItem(
+    mediaItemId: string,
+    userId: string,
+    tagsToAdd: string[],
+    tagIdsToRemove: string[],
+  ) {
+    return this.tags.syncManualTagsForItem(
+      mediaItemId,
+      userId,
+      tagsToAdd,
+      tagIdsToRemove,
+    );
   }
 
   static normaliseAlias(title: string): string {
-    return title
-      .toLowerCase()
-      .trim()
-      .replace(/\s*\(\d{4}\)\s*$/, "")
-      .replace(/[^a-z0-9\s]/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
+    return normaliseMediaAlias(title);
   }
 
   static computeSortTitle(title: string): string {
-    const withoutArticle = title.trim().replace(/^(the|a|an)\s+/i, "");
-    return /^[^\p{Script=Latin}]|^\d/u.test(withoutArticle)
-      ? `#${withoutArticle.toLowerCase()}`
-      : withoutArticle.toLowerCase();
+    return computeMediaSortTitle(title);
   }
 }

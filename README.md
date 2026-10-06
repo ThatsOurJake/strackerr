@@ -56,6 +56,11 @@ You should change these before sharing or deploying:
 - `JWT_SECRET`
 - `ENCRYPTION_KEY`
 
+Optional API throttling overrides:
+
+- `API_V1_THROTTLE_LIMIT` (default `300` requests)
+- `API_V1_THROTTLE_TTL_MS` (default `60000` ms window)
+
 If you want a fresh encryption key, run:
 
 ```bash

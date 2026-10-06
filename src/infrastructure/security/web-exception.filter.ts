@@ -40,12 +40,18 @@ export class WebExceptionFilter implements ExceptionFilter {
     }
 
     if (request.path.startsWith("/api/")) {
+      const message =
+        statusCode >= HttpStatus.INTERNAL_SERVER_ERROR
+          ? "Internal server error"
+          : this.getExceptionMessage(exception);
+      const details = this.getExceptionDetails(exception);
+
       response.status(statusCode).json({
-        statusCode,
-        message:
-          statusCode >= HttpStatus.INTERNAL_SERVER_ERROR
-            ? "Internal server error"
-            : this.getExceptionMessage(exception),
+        error: {
+          statusCode,
+          message,
+          ...(details ? { details } : {}),
+        },
       });
       return;
     }
@@ -77,5 +83,19 @@ export class WebExceptionFilter implements ExceptionFilter {
 
     const message = (exceptionResponse as { message: string | string[] }).message;
     return Array.isArray(message) ? message.join(", ") : message;
+  }
+
+  private getExceptionDetails(exception: unknown): string[] | undefined {
+    if (!(exception instanceof HttpException)) {
+      return undefined;
+    }
+
+    const exceptionResponse = exception.getResponse();
+    if (typeof exceptionResponse === "string") {
+      return undefined;
+    }
+
+    const message = (exceptionResponse as { message?: string | string[] }).message;
+    return Array.isArray(message) ? message : undefined;
   }
 }

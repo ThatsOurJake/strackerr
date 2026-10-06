@@ -1,7 +1,7 @@
 import { MediaType } from "@prisma/client";
-import type { LogEntryWithMedia } from "../modules/activity/log.service";
+import type { ActivityEntryWithMedia } from "../modules/activity/activity.service";
 
-export interface LogEntryOverrides {
+export interface ActivityEntryOverrides {
   userId?: string;
   mediaItemId?: string;
   loggedAt?: Date;
@@ -12,25 +12,26 @@ export interface LogEntryOverrides {
   title?: string;
   imageUrl?: string | null;
   parentImageUrl?: string | null;
+  parentId?: string;
   seasonNumber?: number | null;
   episodeNumber?: number | null;
   parentTitle?: string;
 }
 
-export const createLogEntry = (
+export const createActivityEntry = (
   id: string,
   type: MediaType,
-  overrides: LogEntryOverrides = {},
-): LogEntryWithMedia => {
+  overrides: ActivityEntryOverrides = {},
+): ActivityEntryWithMedia => {
   const loggedAt = overrides.loggedAt ?? new Date(2026, 7, 24, 12);
   const mediaItemId = overrides.mediaItemId ?? `media-${id}`;
   const parent = overrides.parentTitle ? {
-    id: `parent-${id}`,
+    id: overrides.parentId ?? `parent-${id}`,
     type: MediaType.TV_SHOW,
     title: overrides.parentTitle,
     sortTitle: overrides.parentTitle.toLowerCase(),
     isSkeleton: false,
-    createdByUserId: null,
+    createdByUserId: overrides.userId ?? "user-1",
     parentId: null,
     seasonNumber: null,
     episodeNumber: null,
@@ -49,7 +50,7 @@ export const createLogEntry = (
     mediaItemId,
     loggedAt,
     duration: overrides.duration ?? null,
-    notes: null,
+    description: null,
     platform: overrides.platform ?? null,
     playerCount: overrides.playerCount ?? null,
     won: overrides.won ?? null,
@@ -61,7 +62,7 @@ export const createLogEntry = (
       title: overrides.title ?? `Title ${id}`,
       sortTitle: `title ${id}`,
       isSkeleton: false,
-      createdByUserId: null,
+      createdByUserId: overrides.userId ?? "user-1",
       parentId: parent?.id ?? null,
       seasonNumber: overrides.seasonNumber ?? null,
       episodeNumber: overrides.episodeNumber ?? null,

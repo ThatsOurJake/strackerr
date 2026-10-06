@@ -2,7 +2,7 @@ import { Controller, Get, Query, Res, UseGuards } from "@nestjs/common";
 import type { Response } from "express";
 import { AppCacheService } from "../../infrastructure/cache/app-cache.service";
 import { CacheKeys } from "../../infrastructure/cache/cache-keys";
-import { LogService } from "../../modules/activity/log.service";
+import { ActivityService } from "../../modules/activity/activity.service";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
 import { CurrentUser } from "../../modules/auth/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../../modules/auth/guards/jwt-auth.guard";
@@ -29,7 +29,7 @@ interface HistoryPageModel {
 @UseGuards(JwtAuthGuard)
 export class HistoryController {
   constructor(
-    private readonly logService: LogService,
+    private readonly activityService: ActivityService,
     private readonly cacheService: AppCacheService,
   ) { }
 
@@ -64,12 +64,12 @@ export class HistoryController {
       return cached;
     }
 
-    const entries = await this.logService.findByUser(userId, {
+    const entries = await this.activityService.findByUser(userId, {
       dateFrom: selectedMonth.start,
       dateBefore: selectedMonth.end,
     });
     const model = {
-      days: toDayViewModels(this.logService.groupByDay(entries)),
+      days: toDayViewModels(this.activityService.groupByDay(entries)),
       month: selectedMonth.key,
       monthHeading: selectedMonth.heading,
       previousMonth: selectedMonth.previousKey,

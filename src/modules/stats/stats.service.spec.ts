@@ -1,6 +1,6 @@
 import { MediaType } from "@prisma/client";
-import { createLogEntry } from "../../test-utils/log-entry.factory";
-import type { LogService } from "../activity/log.service";
+import { createActivityEntry } from "../../test-utils/activity-entry.factory";
+import type { ActivityService } from "../activity/activity.service";
 import { DateRange, StatsPeriodSlug, StatsService } from "./stats.service";
 
 describe("StatsService", () => {
@@ -9,7 +9,7 @@ describe("StatsService", () => {
 
   beforeEach(() => {
     findByUser = jest.fn().mockResolvedValue([]);
-    service = new StatsService({ findByUser } as unknown as LogService);
+    service = new StatsService({ findByUser } as unknown as ActivityService);
   });
 
   describe("resolveDateRange", () => {
@@ -54,9 +54,9 @@ describe("StatsService", () => {
 
   it("totals time by media type", async () => {
     findByUser.mockResolvedValue([
-      createLogEntry("movie-1", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 18), duration: 90 }),
-      createLogEntry("movie-2", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 19), duration: 30 }),
-      createLogEntry("game", MediaType.GAME, { loggedAt: new Date(2026, 7, 19), duration: 60 }),
+      createActivityEntry("movie-1", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 18), duration: 90 }),
+      createActivityEntry("movie-2", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 19), duration: 30 }),
+      createActivityEntry("game", MediaType.GAME, { loggedAt: new Date(2026, 7, 19), duration: 60 }),
     ]);
 
     await expect(service.totalTimeByType("user-1", null)).resolves.toEqual({
@@ -67,15 +67,55 @@ describe("StatsService", () => {
 
   it("orders and limits top items by total time", async () => {
     findByUser.mockResolvedValue([
-      createLogEntry("movie-1", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 18), duration: 50, mediaItemId: "movie" }),
-      createLogEntry("movie-2", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 19), duration: 60, mediaItemId: "movie" }),
-      createLogEntry("game", MediaType.GAME, { loggedAt: new Date(2026, 7, 19), duration: 100, mediaItemId: "game" }),
+      createActivityEntry("movie-1", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 18), duration: 50, mediaItemId: "movie" }),
+      createActivityEntry("movie-2", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 19), duration: 60, mediaItemId: "movie" }),
+      createActivityEntry("game", MediaType.GAME, { loggedAt: new Date(2026, 7, 19), duration: 100, mediaItemId: "game" }),
     ]);
 
     const items = await service.topItems("user-1", null, 1);
 
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({ totalMinutes: 110, mediaItem: { id: "movie" } });
+  });
+
+  it("aggregates tv episodes under their parent show in top items", async () => {
+    findByUser.mockResolvedValue([
+      createActivityEntry("episode-1", MediaType.TV_EPISODE, {
+        loggedAt: new Date(2026, 7, 18),
+        duration: 40,
+        mediaItemId: "episode-1",
+        parentId: "show-severance",
+        parentTitle: "Severance",
+      }),
+      createActivityEntry("episode-2", MediaType.TV_EPISODE, {
+        loggedAt: new Date(2026, 7, 19),
+        duration: 50,
+        mediaItemId: "episode-2",
+        parentId: "show-severance",
+        parentTitle: "Severance",
+      }),
+      createActivityEntry("movie", MediaType.MOVIE, {
+        loggedAt: new Date(2026, 7, 19),
+        duration: 80,
+        mediaItemId: "movie-1",
+      }),
+    ]);
+
+    const items = await service.topItems("user-1", null, 2);
+
+    expect(items).toHaveLength(2);
+    expect(items[0]).toMatchObject({
+      totalMinutes: 90,
+      mediaItem: {
+        id: "show-severance",
+        type: MediaType.TV_SHOW,
+        title: "Severance",
+      },
+    });
+    expect(items[1]).toMatchObject({
+      totalMinutes: 80,
+      mediaItem: { id: "movie-1" },
+    });
   });
 
   describe("formatRangeLabel", () => {
@@ -96,9 +136,9 @@ describe("StatsService", () => {
   describe("averageSessionDurationByType", () => {
     it("calculates average session minutes by media type", async () => {
       findByUser.mockResolvedValue([
-        createLogEntry("movie-1", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 18), duration: 90 }),
-        createLogEntry("movie-2", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 19), duration: 30 }),
-        createLogEntry("game", MediaType.GAME, { loggedAt: new Date(2026, 7, 19), duration: 45 }),
+        createActivityEntry("movie-1", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 18), duration: 90 }),
+        createActivityEntry("movie-2", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 19), duration: 30 }),
+        createActivityEntry("game", MediaType.GAME, { loggedAt: new Date(2026, 7, 19), duration: 45 }),
       ]);
 
       const averages = await service.averageSessionDurationByType("user-1", null);
@@ -113,7 +153,7 @@ describe("StatsService", () => {
   describe("thisWeekPriorYearsInsight", () => {
     it("returns null when no prior-year equivalent-week activity exists", async () => {
       findByUser.mockResolvedValue([
-        createLogEntry("current", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 18), duration: 30 }),
+        createActivityEntry("current", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 18), duration: 30 }),
       ]);
 
       await expect(
@@ -123,9 +163,9 @@ describe("StatsService", () => {
 
     it("returns aggregated prior-year week data with a stable throwback entry", async () => {
       findByUser.mockResolvedValue([
-        createLogEntry("yr-2025-a", MediaType.GAME, { loggedAt: new Date(2025, 7, 11), duration: 70, mediaItemId: "game-2025" }),
-        createLogEntry("yr-2024-a", MediaType.MOVIE, { loggedAt: new Date(2024, 7, 12), duration: 80, mediaItemId: "movie-2024" }),
-        createLogEntry("yr-2024-b", MediaType.MOVIE, { loggedAt: new Date(2024, 7, 13), duration: 40, mediaItemId: "movie-2024" }),
+        createActivityEntry("yr-2025-a", MediaType.GAME, { loggedAt: new Date(2025, 7, 11), duration: 70, mediaItemId: "game-2025" }),
+        createActivityEntry("yr-2024-a", MediaType.MOVIE, { loggedAt: new Date(2024, 7, 12), duration: 80, mediaItemId: "movie-2024" }),
+        createActivityEntry("yr-2024-b", MediaType.MOVIE, { loggedAt: new Date(2024, 7, 13), duration: 40, mediaItemId: "movie-2024" }),
       ]);
 
       const first = await service.thisWeekPriorYearsInsight("user-1", new Date(2026, 7, 19, 12, 0));
@@ -144,7 +184,7 @@ describe("StatsService", () => {
 
     it("falls back to full-week matching when current n-day window has no prior-year activity", async () => {
       findByUser.mockResolvedValue([
-        createLogEntry("yr-2025-late-week", MediaType.GAME, { loggedAt: new Date(2025, 7, 15), duration: 50, mediaItemId: "game-2025" }),
+        createActivityEntry("yr-2025-late-week", MediaType.GAME, { loggedAt: new Date(2025, 7, 15), duration: 50, mediaItemId: "game-2025" }),
       ]);
 
       const insight = await service.thisWeekPriorYearsInsight("user-1", new Date(2026, 7, 18, 12, 0));
@@ -159,9 +199,9 @@ describe("StatsService", () => {
   describe("thisWeekAcrossYears", () => {
     it("builds year slices for each represented activity year", async () => {
       findByUser.mockResolvedValue([
-        createLogEntry("y2026", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 18), duration: 60, mediaItemId: "y2026" }),
-        createLogEntry("y2025", MediaType.GAME, { loggedAt: new Date(2025, 0, 10), duration: 20, mediaItemId: "y2025" }),
-        createLogEntry("y2024", MediaType.TV_SHOW, { loggedAt: new Date(2024, 7, 14), duration: 45, mediaItemId: "y2024" }),
+        createActivityEntry("y2026", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 18), duration: 60, mediaItemId: "y2026" }),
+        createActivityEntry("y2025", MediaType.GAME, { loggedAt: new Date(2025, 0, 10), duration: 20, mediaItemId: "y2025" }),
+        createActivityEntry("y2024", MediaType.TV_SHOW, { loggedAt: new Date(2024, 7, 14), duration: 45, mediaItemId: "y2024" }),
       ]);
 
       const result = await service.thisWeekAcrossYears("user-1", new Date(2026, 7, 19, 12, 0));
@@ -183,8 +223,8 @@ describe("StatsService", () => {
 
     it("buckets weekly periods by day", async () => {
       findByUser.mockResolvedValue([
-        createLogEntry("monday", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 17), duration: 30 }),
-        createLogEntry("sunday", MediaType.GAME, { loggedAt: new Date(2026, 7, 23), duration: 60 }),
+        createActivityEntry("monday", MediaType.MOVIE, { loggedAt: new Date(2026, 7, 17), duration: 30 }),
+        createActivityEntry("sunday", MediaType.GAME, { loggedAt: new Date(2026, 7, 23), duration: 60 }),
       ]);
 
       const chart = await service.activityChart("user-1", "this-week", range(new Date(2026, 7, 17), new Date(2026, 7, 23)));
@@ -197,8 +237,8 @@ describe("StatsService", () => {
 
     it("buckets multi-month periods by week", async () => {
       findByUser.mockResolvedValue([
-        createLogEntry("week-1", MediaType.MOVIE, { loggedAt: new Date(2026, 4, 20), duration: 20 }),
-        createLogEntry("week-2", MediaType.GAME, { loggedAt: new Date(2026, 4, 27), duration: 40 }),
+        createActivityEntry("week-1", MediaType.MOVIE, { loggedAt: new Date(2026, 4, 20), duration: 20 }),
+        createActivityEntry("week-2", MediaType.GAME, { loggedAt: new Date(2026, 4, 27), duration: 40 }),
       ]);
 
       const chart = await service.activityChart("user-1", "last-3-months", range(new Date(2026, 4, 19), new Date(2026, 5, 1)));
@@ -211,8 +251,8 @@ describe("StatsService", () => {
 
     it("buckets yearly periods by month", async () => {
       findByUser.mockResolvedValue([
-        createLogEntry("jan", MediaType.MOVIE, { loggedAt: new Date(2026, 0, 5), duration: 20 }),
-        createLogEntry("aug", MediaType.GAME, { loggedAt: new Date(2026, 7, 19), duration: 40 }),
+        createActivityEntry("jan", MediaType.MOVIE, { loggedAt: new Date(2026, 0, 5), duration: 20 }),
+        createActivityEntry("aug", MediaType.GAME, { loggedAt: new Date(2026, 7, 19), duration: 40 }),
       ]);
 
       const chart = await service.activityChart("user-1", "this-year", range(new Date(2026, 0, 1), new Date(2026, 11, 31)));
@@ -226,7 +266,7 @@ describe("StatsService", () => {
 
     it("omits media type series with zero total time", async () => {
       findByUser.mockResolvedValue([
-        createLogEntry("movie", MediaType.MOVIE, { loggedAt: new Date(2026, 0, 5), duration: 20 }),
+        createActivityEntry("movie", MediaType.MOVIE, { loggedAt: new Date(2026, 0, 5), duration: 20 }),
       ]);
 
       const chart = await service.activityChart(
@@ -241,8 +281,8 @@ describe("StatsService", () => {
     it("buckets all-time activity by year", async () => {
       jest.useFakeTimers().setSystemTime(new Date(2026, 7, 19));
       findByUser.mockResolvedValue([
-        createLogEntry("old", MediaType.MOVIE, { loggedAt: new Date(2024, 1, 1), duration: 20 }),
-        createLogEntry("new", MediaType.GAME, { loggedAt: new Date(2026, 7, 19), duration: 40 }),
+        createActivityEntry("old", MediaType.MOVIE, { loggedAt: new Date(2024, 1, 1), duration: 20 }),
+        createActivityEntry("new", MediaType.GAME, { loggedAt: new Date(2026, 7, 19), duration: 40 }),
       ]);
 
       const chart = await service.activityChart("user-1", "all-time", null);

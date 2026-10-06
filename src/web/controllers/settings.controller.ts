@@ -13,6 +13,7 @@ import { Response } from "express";
 import { AppCacheService } from "../../infrastructure/cache/app-cache.service";
 import { ImageCleanupService } from "../../infrastructure/jobs/image-cleanup.service";
 import { OrphanedItemCleanupService } from "../../infrastructure/jobs/orphaned-item-cleanup.service";
+import { OrphanedTagCleanupService } from "../../infrastructure/jobs/orphaned-tag-cleanup.service";
 import { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
 import { CurrentUser } from "../../modules/auth/decorators/current-user.decorator";
 import { AdminGuard } from "../../modules/auth/guards/admin.guard";
@@ -46,6 +47,7 @@ export class SettingsWebController {
     private readonly metadataService: MetadataService,
     private readonly imageCleanupService: ImageCleanupService,
     private readonly orphanedItemCleanupService: OrphanedItemCleanupService,
+    private readonly orphanedTagCleanupService: OrphanedTagCleanupService,
   ) { }
 
   @Get()
@@ -294,6 +296,23 @@ export class SettingsWebController {
     );
   }
 
+  @Post("tags/cleanup-orphaned")
+  @UseGuards(AdminGuard)
+  async cleanupOrphanedTags(
+    @Res() res: Response,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const started = this.orphanedTagCleanupService.startCleanup();
+    return this.renderSettings(
+      res,
+      user,
+      "maintenance",
+      started
+        ? { success: "Orphaned tag cleanup started" }
+        : { error: "Orphaned tag cleanup is already running" },
+    );
+  }
+
   private async saveProviderCredential(
     res: Response,
     user: AuthenticatedUser,
@@ -349,6 +368,7 @@ export class SettingsWebController {
       providerPreferences,
       imageCleanup: this.imageCleanupService.getStatus(),
       orphanedItemCleanup: this.orphanedItemCleanupService.getStatus(),
+      orphanedTagCleanup: this.orphanedTagCleanupService.getStatus(),
       ...feedback,
     });
   }

@@ -33,6 +33,21 @@ const createDetail = () => ({
       createdAt: new Date("2026-08-01T00:00:00Z"),
     },
   ],
+  mediaTags: [
+    {
+      tagId: "tag-1",
+      source: "MANUAL",
+      providerNamespace: "",
+      tag: {
+        id: "tag-1",
+        userId: "user-7",
+        normalizedKey: "sci-fi",
+        displayName: "Sci-Fi",
+        createdAt: new Date("2026-08-01T00:00:00Z"),
+        updatedAt: new Date("2026-08-01T00:00:00Z"),
+      },
+    },
+  ],
   logEntries: [
     {
       id: "log-1",
@@ -40,7 +55,7 @@ const createDetail = () => ({
       mediaItemId: "item-1",
       loggedAt: new Date("2026-09-01T12:00:00Z"),
       duration: 120,
-      notes: null,
+      description: null,
       platform: null,
       playerCount: null,
       won: null,
@@ -53,6 +68,9 @@ const createDetail = () => ({
 
 describe("ItemController", () => {
   let findDetail: jest.Mock;
+  let resolveItemId: jest.Mock;
+  let findMergeCandidates: jest.Mock;
+  let mergeItemsForUser: jest.Mock;
   let bulkEditItem: jest.Mock;
   let removeItemForUser: jest.Mock;
   let controller: ItemController;
@@ -60,10 +78,16 @@ describe("ItemController", () => {
 
   beforeEach(() => {
     findDetail = jest.fn().mockResolvedValue(createDetail());
+    resolveItemId = jest.fn().mockResolvedValue("item-1");
+    findMergeCandidates = jest.fn().mockResolvedValue([]);
+    mergeItemsForUser = jest.fn().mockResolvedValue({ targetItemId: "item-2" });
     bulkEditItem = jest.fn().mockResolvedValue({ itemId: "item-1", stillAccessible: true });
     removeItemForUser = jest.fn().mockResolvedValue({ removed: true, itemTitle: "Arrival" });
     controller = new ItemController({
       findDetail,
+      resolveItemId,
+      findMergeCandidates,
+      mergeItemsForUser,
       bulkEditItem,
       removeItemForUser,
     } as unknown as CollectionService);
@@ -108,6 +132,50 @@ describe("ItemController", () => {
     );
   });
 
+  it("redirects a retired item URL to its surviving item", async () => {
+    resolveItemId.mockResolvedValueOnce("item-2");
+
+    await controller.detail(
+      "retired-item",
+      undefined,
+      undefined,
+      user,
+      response as unknown as Response,
+    );
+
+    expect(response.redirect).toHaveBeenCalledWith("/items/item-2");
+    expect(findDetail).not.toHaveBeenCalled();
+  });
+
+  it("confirms a merge using only source-selected metadata fields", async () => {
+    const target = { ...createDetail(), id: "item-2", title: "Moonquest" };
+    findDetail.mockResolvedValueOnce(target);
+    resolveItemId.mockResolvedValueOnce("item-1");
+
+    await controller.confirmMerge(
+      "item-1",
+      user,
+      {
+        targetId: "item-2",
+        confirmTitle: "Moonquest",
+        fieldSelection_title: "source:title",
+        fieldSelection_description: "target:description",
+        fieldSelection_year: "target:year",
+        fieldSelection_duration: "target:duration",
+        fieldSelection_artwork: "source:artwork",
+        fieldSelection_isSkeleton: "target:isSkeleton",
+      },
+      response as unknown as Response,
+    );
+
+    expect(mergeItemsForUser).toHaveBeenCalledWith("user-7", {
+      sourceId: "item-1",
+      targetId: "item-2",
+      sourceFields: ["title", "artwork"],
+    });
+    expect(response.redirect).toHaveBeenCalledWith("/items/item-2?success=Items%20merged");
+  });
+
   it("saves metadata, selected removals, and aliases in one bulk call", async () => {
     await controller.save(
       "item-1",
@@ -115,6 +183,8 @@ describe("ItemController", () => {
       {
         title: "Arrival (2016)",
         description: "Updated",
+        addTags: "sci-fi, first contact",
+        removeTagIds: ["tag-1"],
         removeLogEntryIds: ["log-1", "log-2"],
         aliasRowKey: ["alias-1", "new-0"],
         aliasId: ["alias-1", ""],
@@ -128,6 +198,8 @@ describe("ItemController", () => {
     expect(bulkEditItem).toHaveBeenCalledWith("user-7", "item-1", {
       title: "Arrival (2016)",
       description: "Updated",
+      addTags: ["sci-fi", "first contact"],
+      removeTagIds: ["tag-1"],
       removeLogEntryIds: ["log-1", "log-2"],
       aliases: [
         {
@@ -187,6 +259,7 @@ describe("ItemController", () => {
       {
         title: "Arrival",
         description: "",
+        addTags: "",
       },
       response as unknown as Response,
     );

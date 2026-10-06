@@ -10,7 +10,7 @@ import {
 } from "@nestjs/common";
 import { LogSource, MediaType } from "@prisma/client";
 import type { Response } from "express";
-import { LogService } from "../../modules/activity/log.service";
+import { ActivityService } from "../../modules/activity/activity.service";
 import type { AuthenticatedUser } from "../../modules/auth/authenticated-user.interface";
 import { CurrentUser } from "../../modules/auth/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../../modules/auth/guards/jwt-auth.guard";
@@ -25,6 +25,7 @@ import {
   parseType,
   resolveSubmissionMediaItem,
   type SubmitAddBody,
+  type TvShowCandidate,
   TYPE_DETAILS,
   validateSubmission,
 } from "./add.controller.helpers";
@@ -35,7 +36,7 @@ export class AddController {
   constructor(
     private readonly metadataService: MetadataService,
     private readonly mediaService: MediaService,
-    private readonly logService: LogService,
+    private readonly activityService: ActivityService,
   ) { }
 
   @Get()
@@ -55,9 +56,12 @@ export class AddController {
   ) {
     const type = parseType(rawType);
     if (manual === "true") {
+      const showCandidates = type === MediaType.TV_EPISODE
+        ? await this.mediaService.searchTvShowCandidatesForUser(user.userId, "")
+        : [];
       return response.render("partials/add-entry-form", {
         layout: false,
-        ...buildEntryFormModel(type),
+        ...buildEntryFormModel(type, {}, undefined, undefined, showCandidates),
       });
     }
 
@@ -73,6 +77,27 @@ export class AddController {
       missingKey:
         ["tmdb", "igdb", "bgg"].includes(resolved.provider.name) &&
         !resolved.apiKey,
+    });
+  }
+
+  @Get("tv-show-candidates")
+  async tvShowCandidates(
+    @Query("title") rawTitle: string | undefined,
+    @Query("existingShowId") existingShowId: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+    @Res() response: Response,
+  ) {
+    const title = rawTitle?.trim() ?? "";
+    const showCandidates = title
+      ? await this.mediaService.searchTvShowCandidatesForUser(user.userId, title)
+      : [];
+
+    return response.render("partials/add-tv-show-candidates", {
+      layout: false,
+      hasShowQuery: title.length > 0,
+      hasShowCandidates: showCandidates.length > 0,
+      showCandidates,
+      existingShowId,
     });
   }
 
@@ -165,7 +190,7 @@ export class AddController {
         duration: metadata.duration,
         provider: providerName,
         externalId: body.externalId,
-      });
+      }, user.userId);
       return response.render("partials/add-entry-form", {
         layout: false,
         ...buildEntryFormModel(type, {
@@ -193,6 +218,7 @@ export class AddController {
     @Res() response: Response,
   ) {
     let type: (typeof ADD_TYPES)[number];
+    let showCandidates: TvShowCandidate[] = [];
     try {
       type = parseType(body.type);
       const validated = validateSubmission(type, body);
@@ -202,12 +228,12 @@ export class AddController {
         body,
         user.userId,
       );
-      await this.logService.create(
+      await this.activityService.create(
         {
           mediaItemId: mediaItem.id,
           loggedAt: validated.loggedAt,
           duration: validated.duration ?? mediaItem.duration ?? undefined,
-          notes: body.notes?.trim() || undefined,
+          description: body.description?.trim() || undefined,
           platform: body.platform?.trim() || undefined,
           playerCount: validated.playerCount,
           won:
@@ -230,6 +256,14 @@ export class AddController {
       )
         ? (body.type as (typeof ADD_TYPES)[number])
         : MediaType.MOVIE;
+
+      if (fallbackType === MediaType.TV_EPISODE && !body.mediaItemId) {
+        showCandidates = await this.mediaService.searchTvShowCandidatesForUser(
+          user.userId,
+          body.title?.trim() ?? "",
+        );
+      }
+
       return response.status(400).render("add", {
         title: "Add activity",
         types: ADD_TYPES.map((itemType) => ({
@@ -243,6 +277,7 @@ export class AddController {
           error instanceof AddFormValidationError
             ? { [error.field]: error.message }
             : undefined,
+          showCandidates,
         ),
       });
     }

@@ -11,6 +11,7 @@ describe("EpisodeSyncService", () => {
   let prisma: PrismaService;
   let service: EpisodeSyncService;
   let upsert: jest.Mock;
+  let findUnique: jest.Mock;
   let findMany: jest.Mock;
   let updateMany: jest.Mock;
   let deleteMediaItem: jest.Mock;
@@ -28,11 +29,12 @@ describe("EpisodeSyncService", () => {
       getEpisodes: jest.fn(),
     };
     upsert = jest.fn();
+    findUnique = jest.fn().mockResolvedValue({ createdByUserId: "user-1" });
     findMany = jest.fn().mockResolvedValue([]);
     updateMany = jest.fn().mockResolvedValue({ count: 1 });
     deleteMediaItem = jest.fn().mockResolvedValue({});
     prisma = {
-      mediaItem: { upsert, findMany, delete: deleteMediaItem },
+      mediaItem: { upsert, findUnique, findMany, delete: deleteMediaItem },
       logEntry: { updateMany },
       $transaction: jest.fn((operations: Promise<unknown>[]) =>
         Promise.all(operations),
@@ -86,6 +88,12 @@ describe("EpisodeSyncService", () => {
         update: expect.objectContaining({ imageSourceUrl: null }),
       }),
     );
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ createdByUserId: "user-1" }),
+        update: expect.objectContaining({ createdByUserId: "user-1" }),
+      }),
+    );
   });
 
   it("continues with later seasons after a provider error", async () => {
@@ -133,7 +141,7 @@ describe("EpisodeSyncService", () => {
     await service.syncShow("show-1", "tmdb", "tv:1");
 
     expect(updateMany).toHaveBeenCalledWith({
-      where: { mediaItemId: "skeleton-episode" },
+      where: { mediaItemId: "skeleton-episode", userId: "user-1" },
       data: { mediaItemId: "canonical-episode" },
     });
     expect(deleteMediaItem).toHaveBeenCalledWith({

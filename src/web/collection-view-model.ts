@@ -107,6 +107,9 @@ export const toMediaDetailViewModel = (item: MediaDetail) => {
     durationLabel: entry.duration === null ? null : formatDuration(entry.duration),
     outcome: entry.won === null ? null : entry.won ? "Won" : "Lost",
   }));
+  const latestSessionDescription = sessions.find(
+    (entry) => Boolean(entry.description?.trim()),
+  )?.description ?? null;
   const seasons = new Map<number, Array<MediaDetail["episodes"][number]>>();
   for (const episode of item.episodes) {
     const seasonNumber = episode.seasonNumber ?? 0;
@@ -126,9 +129,13 @@ export const toMediaDetailViewModel = (item: MediaDetail) => {
     title: item.title,
     itemUrl: `/items/${item.id}`,
     editUrl: `/items/${item.id}/edit`,
-    identifyUrl: `/collection/${details.path}/${item.id}/identify`,
-    identifyActionLabel: item.isSkeleton ? "Identify" : "Reidentify",
-    artist: item.type === MediaType.MUSIC_TRACK ? item.description : null,
+    identifyUrl: item.isSkeleton ? `/collection/${details.path}/${item.id}/identify` : null,
+    refetchUrl: !item.isSkeleton && Array.isArray(item.externalIds) && item.externalIds.length > 0
+      ? `/collection/${details.path}/${item.id}/identify/refetch`
+      : null,
+    artist: item.type === MediaType.MUSIC_TRACK
+      ? item.description ?? latestSessionDescription
+      : null,
     description: item.type === MediaType.MUSIC_TRACK ? null : item.description,
     totalCount: item.logEntries.length,
     totalDuration: formatDuration(directDuration),
@@ -143,10 +150,14 @@ export const toMediaDetailViewModel = (item: MediaDetail) => {
           (total, entry) => total + (entry.duration ?? 0),
           0,
         );
+        const latestDescription = episode.logEntries.find(
+          (entry) => Boolean(entry.description?.trim()),
+        )?.description ?? null;
         return {
           ...episode,
           watchCount: episode.logEntries.length,
           watched: episode.logEntries.length > 0,
+          latestDescription,
           totalDuration: formatDuration(totalMinutes),
         };
       }),
@@ -160,6 +171,8 @@ export const toItemEditViewModel = (
     title?: string;
     description?: string;
     removeLogEntryIds?: string[];
+    removeTagIds?: string[];
+    addTags?: string;
     aliases?: Array<{ rowKey: string; id?: string; providerNamespace: string; externalId: string; remove: boolean }>;
   },
 ) => {
@@ -185,6 +198,7 @@ export const toItemEditViewModel = (
   ].sort((left, right) => right.loggedAt.getTime() - left.loggedAt.getTime());
 
   const selectedRemovals = new Set(values?.removeLogEntryIds ?? []);
+  const selectedTagRemovals = new Set(values?.removeTagIds ?? []);
   const aliases = values?.aliases ?? item.externalAliases.map((alias) => ({
     rowKey: alias.id,
     id: alias.id,
@@ -198,6 +212,7 @@ export const toItemEditViewModel = (
     ...details,
     itemUrl: `/items/${item.id}`,
     saveUrl: `/items/${item.id}/edit`,
+    mergeUrl: `/items/${item.id}/merge`,
     deleteUrl: `/items/${item.id}/delete`,
     cancelUrl: `/items/${item.id}`,
     itemId: item.id,
@@ -214,7 +229,75 @@ export const toItemEditViewModel = (
     hasHistoryRows: historyRows.length > 0,
     aliases,
     hasAliases: aliases.length > 0,
+    addTagsValue: values?.addTags ?? "",
+    tags: (item.mediaTags ?? []).map((mediaTag) => ({
+      id: mediaTag.tagId,
+      label: mediaTag.tag.displayName,
+      source: mediaTag.source,
+      sourceLabel: mediaTag.source === "MANUAL" ? "Manual" : `Provider (${mediaTag.providerNamespace})`,
+      providerNamespace: mediaTag.providerNamespace || null,
+      selected: selectedTagRemovals.has(mediaTag.tagId),
+    })),
+    hasTags: (item.mediaTags ?? []).length > 0,
     selectedHistoryCount: [...selectedRemovals].length,
+    selectedTagRemovalCount: [...selectedTagRemovals].length,
     selectedAliasRemovalCount: aliases.filter((alias) => alias.remove).length,
+  };
+};
+
+export const toItemMergeViewModel = (
+  source: MediaDetail,
+  candidates: Array<{ id: string; title: string; year: number | null }>,
+  options: {
+    query?: string;
+    target?: MediaDetail;
+    sourceFields?: string[];
+    error?: string;
+  } = {},
+) => {
+  const sourceFields = new Set(options.sourceFields ?? []);
+  const target = options.target;
+  const activityCount = (item: MediaDetail): number =>
+    item.logEntries.length + item.episodes.reduce(
+      (total, episode) => total + episode.logEntries.length,
+      0,
+    );
+  const fieldRows = target ? [
+    { key: "title", label: "Title", sourceValue: source.title, targetValue: target.title },
+    { key: "description", label: "Description", sourceValue: source.description || "None", targetValue: target.description || "None" },
+    { key: "year", label: "Year", sourceValue: source.year ? String(source.year) : "None", targetValue: target.year ? String(target.year) : "None" },
+    { key: "duration", label: "Duration", sourceValue: source.duration ? formatDuration(source.duration) : "None", targetValue: target.duration ? formatDuration(target.duration) : "None" },
+    { key: "artwork", label: "Artwork", sourceValue: source.imageSourceUrl || source.imageUrl || "None", targetValue: target.imageSourceUrl || target.imageUrl || "None" },
+    { key: "isSkeleton", label: "Identification state", sourceValue: source.isSkeleton ? "Unidentified" : "Identified", targetValue: target.isSkeleton ? "Unidentified" : "Identified" },
+  ].map((field) => ({
+    ...field,
+    sourceSelected: sourceFields.has(field.key),
+    targetSelected: !sourceFields.has(field.key),
+  })) : [];
+
+  return {
+    source,
+    sourceTitle: source.title,
+    sourceItemId: source.id,
+    searchUrl: `/items/${source.id}/merge`,
+    mergeUrl: `/items/${source.id}/merge`,
+    cancelUrl: `/items/${source.id}/edit`,
+    query: options.query ?? "",
+    candidates: candidates.map((candidate) => ({
+      ...candidate,
+      selectUrl: `/items/${source.id}/merge?targetId=${encodeURIComponent(candidate.id)}`,
+      yearLabel: candidate.year ? String(candidate.year) : null,
+    })),
+    hasCandidates: candidates.length > 0,
+    target,
+    hasTarget: Boolean(target),
+    targetTitle: target?.title ?? "",
+    targetItemId: target?.id ?? "",
+    targetLogCount: target ? activityCount(target) : 0,
+    sourceLogCount: activityCount(source),
+    sourceEpisodeCount: source.episodes.length,
+    targetEpisodeCount: target?.episodes.length ?? 0,
+    fieldRows,
+    error: options.error,
   };
 };

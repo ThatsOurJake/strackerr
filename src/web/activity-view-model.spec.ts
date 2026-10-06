@@ -1,5 +1,5 @@
 import { MediaType } from "@prisma/client";
-import { createLogEntry } from "../test-utils/log-entry.factory";
+import { createActivityEntry } from "../test-utils/activity-entry.factory";
 import {
   formatDuration,
   mediaTypeDetails,
@@ -15,6 +15,8 @@ describe("activity view model", () => {
       [45, "45m"],
       [60, "1h"],
       [125, "2h 5m"],
+      [1440, "1d 0h 0m"],
+      [1505, "1d 1h 5m"],
     ])("formats %i minutes as %s", (minutes, expected) => {
       expect(formatDuration(minutes)).toBe(expected);
     });
@@ -32,7 +34,7 @@ describe("activity view model", () => {
   });
 
   it("maps a TV episode to its parent show and episode subtitle", () => {
-    const entry = createLogEntry("episode", MediaType.TV_EPISODE, {
+    const entry = createActivityEntry("episode", MediaType.TV_EPISODE, {
       duration: 47,
       title: "International Assassin",
       parentTitle: "The Leftovers",
@@ -60,7 +62,7 @@ describe("activity view model", () => {
   });
 
   it("uses the game platform as its subtitle", () => {
-    const model = toEntryViewModel(createLogEntry("game", MediaType.GAME, {
+    const model = toEntryViewModel(createActivityEntry("game", MediaType.GAME, {
       duration: 90,
       platform: "Steam Deck",
     }));
@@ -78,7 +80,7 @@ describe("activity view model", () => {
     [false, "Lost"],
     [null, null],
   ])("maps board-game result %s to %s", (won, wonLabel) => {
-    const model = toEntryViewModel(createLogEntry("board-game", MediaType.BOARD_GAME, {
+    const model = toEntryViewModel(createActivityEntry("board-game", MediaType.BOARD_GAME, {
       won,
       playerCount: 4,
     }));
@@ -87,9 +89,9 @@ describe("activity view model", () => {
   });
 
   it("maps day headings, combined totals, entries, and music groups", () => {
-    const movie = createLogEntry("movie", MediaType.MOVIE, { duration: 120 });
-    const game = createLogEntry("game", MediaType.GAME, { duration: 35 });
-    const track = createLogEntry("track", MediaType.MUSIC_TRACK, { duration: 5 });
+    const movie = createActivityEntry("movie", MediaType.MOVIE, { duration: 120 });
+    const game = createActivityEntry("game", MediaType.GAME, { duration: 35 });
+    const track = createActivityEntry("track", MediaType.MUSIC_TRACK, { duration: 5 });
 
     const days = toDayViewModels([{
       date: "2026-08-24",
@@ -112,7 +114,7 @@ describe("activity view model", () => {
   });
 
   it("uses zero duration and no music group when values are absent", () => {
-    const entry = createLogEntry("movie", MediaType.MOVIE);
+    const entry = createActivityEntry("movie", MediaType.MOVIE);
 
     const [day] = toDayViewModels([{
       date: "2026-08-24",

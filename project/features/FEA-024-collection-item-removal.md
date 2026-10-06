@@ -42,9 +42,9 @@ Users can permanently remove an item from their own collection from the existing
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-069](../backlog/todo/TICKET-069.md) | Add user-scoped item removal service with ownership checks and transactional deletion |
-| [TICKET-070](../backlog/todo/TICKET-070.md) | Add delete action, confirmation flow, and post-delete redirect to the item edit screen |
-| [TICKET-071](../backlog/todo/TICKET-071.md) | Add admin Maintenance action that clears orphaned collection items no user references |
+| [TICKET-069](../backlog/done/TICKET-069.md) | Add user-scoped item removal service with ownership checks and transactional deletion |
+| [TICKET-070](../backlog/done/TICKET-070.md) | Add delete action, confirmation flow, and post-delete redirect to the item edit screen |
+| [TICKET-071](../backlog/done/TICKET-071.md) | Add admin Maintenance action that clears orphaned collection items no user references |
 
 ## Done Signal
 - A user can delete an item from their collection via the item edit screen after confirming.
