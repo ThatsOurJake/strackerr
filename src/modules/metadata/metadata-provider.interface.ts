@@ -23,6 +23,7 @@ export interface SearchResult {
 export interface MediaItemDetail extends SearchResult {
   duration?: number;
   seasonCount?: number;
+  seasonNumbers?: number[];
 }
 
 export interface Episode {

@@ -32,5 +32,5 @@ Every ticket that touches a Handlebars view must follow `design.md`.
 - **API auth**: `X-API-Key` header · single regeneratable key per user
 - **Media items**: shared global catalog once identified · skeletons scoped by `createdByUserId`
 - **Search**: always user-scoped via LogEntry join · Fuse.js fuzzy for web UI · prefix-only for API
-- **Metadata providers**: BYOK for TMDB + IGDB · public for AniList, BGG, MusicBrainz
+- **Metadata providers**: BYOK for TMDB, IGDB, and BoardGameGeek · public for AniList and MusicBrainz
 - **Deployment**: Docker + docker-compose · SQLite (dev) / Postgres (prod) · migrate on boot

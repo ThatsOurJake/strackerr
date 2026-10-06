@@ -8,13 +8,16 @@ import { Test } from "@nestjs/testing";
 import { ActivityService } from "../activity/activity.service";
 import { IdentificationService } from "../media/identification.service";
 import { MediaService } from "../media/media.service";
+import { MetadataService } from "../metadata/metadata.service";
 import { UsersService } from "../users/users.service";
 import { ApiV1ActivityController } from "./api-v1-activity.controller";
 import { ApiV1MediaController } from "./api-v1-media.controller";
 import { ApiV1ProfileController } from "./api-v1-profile.controller";
+import { ApiV1ProviderSearchController } from "./api-v1-provider-search.controller";
 import { ApiKeyGuard } from "./guards/api-key.guard";
 import { ApiKeyNotFoundGuard } from "./guards/api-key-not-found.guard";
 import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
+import { ProviderSearchService } from "./provider-search.service";
 
 jest.mock("@paralleldrive/cuid2", () => ({ createId: jest.fn() }));
 
@@ -31,21 +34,24 @@ class InternalController {
     ApiV1ActivityController,
     ApiV1MediaController,
     ApiV1ProfileController,
+    ApiV1ProviderSearchController,
   ],
   providers: [
     { provide: MediaService, useValue: {} },
     { provide: ActivityService, useValue: {} },
     { provide: IdentificationService, useValue: {} },
     { provide: UsersService, useValue: {} },
+    { provide: MetadataService, useValue: {} },
+    { provide: ProviderSearchService, useValue: {} },
   ],
 })
-class ApiDocsPublicModule { }
+class ApiDocsPublicModule {}
 
 @Module({
   imports: [ApiDocsPublicModule],
   controllers: [InternalController],
 })
-class ApiDocsRootModule { }
+class ApiDocsRootModule {}
 
 describe("API v1 OpenAPI responses", () => {
   let app: INestApplication | undefined;
@@ -147,7 +153,9 @@ describe("API v1 OpenAPI responses", () => {
       "title",
       "type",
     ]);
-    expect(properties.every((property) => allowedProperties.has(property))).toBe(true);
+    expect(
+      properties.every((property) => allowedProperties.has(property)),
+    ).toBe(true);
   });
 
   it("documents only /api/ paths and excludes internal routes", () => {
@@ -158,6 +166,10 @@ describe("API v1 OpenAPI responses", () => {
         "/api/v1/activity/movie",
         "/api/v1/media/search",
         "/api/v1/profile",
+        "/api/v1/providers/tmdb/movies/search",
+        "/api/v1/providers/tmdb/tv/search",
+        "/api/v1/providers/igdb/search",
+        "/api/v1/providers/bgg/search",
       ]),
     );
     expect(documentedPaths.length).toBeGreaterThan(0);

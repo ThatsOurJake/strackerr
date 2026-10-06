@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { ActivityModule } from "../activity/activity.module";
 import { MediaModule } from "../media/media.module";
+import { MetadataModule } from "../metadata/metadata.module";
 import { StatsModule } from "../stats/stats.module";
 import { UsersModule } from "../users/users.module";
 import {
@@ -13,10 +14,12 @@ import {
 import { ApiV1ActivityController } from "./api-v1-activity.controller";
 import { ApiV1MediaController } from "./api-v1-media.controller";
 import { ApiV1ProfileController } from "./api-v1-profile.controller";
+import { ApiV1ProviderSearchController } from "./api-v1-provider-search.controller";
 import { ApiV1StatsController } from "./api-v1-stats.controller";
 import { ApiKeyGuard } from "./guards/api-key.guard";
 import { ApiKeyNotFoundGuard } from "./guards/api-key-not-found.guard";
 import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
+import { ProviderSearchService } from "./provider-search.service";
 
 @Module({
   imports: [
@@ -38,6 +41,7 @@ import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
     }),
     ActivityModule,
     MediaModule,
+    MetadataModule,
     StatsModule,
     UsersModule,
   ],
@@ -45,8 +49,14 @@ import { ApiThrottlerGuard } from "./guards/api-throttler.guard";
     ApiV1ActivityController,
     ApiV1MediaController,
     ApiV1ProfileController,
+    ApiV1ProviderSearchController,
     ApiV1StatsController,
   ],
-  providers: [ApiKeyGuard, ApiKeyNotFoundGuard, ApiThrottlerGuard],
+  providers: [
+    ApiKeyGuard,
+    ApiKeyNotFoundGuard,
+    ApiThrottlerGuard,
+    ProviderSearchService,
+  ],
 })
 export class ApiV1Module { }

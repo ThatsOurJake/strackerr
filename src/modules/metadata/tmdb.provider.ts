@@ -19,6 +19,7 @@ interface TmdbItem {
   runtime?: number | null;
   episode_run_time?: number[];
   number_of_seasons?: number;
+  seasons?: Array<{ season_number?: number }>;
   genres?: Array<{ id: number; name: string }>;
   keywords?:
   | { keywords?: Array<{ id: number; name: string }> }
@@ -153,6 +154,11 @@ export class TmdbProvider implements IMetadataProvider {
       ...(tags.length > 0 ? { tags } : {}),
       duration: item.runtime ?? item.episode_run_time?.[0] ?? undefined,
       seasonCount: item.number_of_seasons,
+      seasonNumbers: item.seasons
+        ?.map((season) => season.season_number)
+        .filter((seasonNumber): seasonNumber is number =>
+          Number.isInteger(seasonNumber),
+        ),
       type: mediaType,
     };
   }

@@ -47,10 +47,10 @@ Import tools can search a user's configured TMDB, IGDB, and BoardGameGeek metada
 ## Tickets
 | Ticket | Purpose |
 |---|---|
-| [TICKET-081](../backlog/todo/TICKET-081.md) | Add authenticated provider-search API infrastructure and TMDB movie search |
-| [TICKET-082](../backlog/todo/TICKET-082.md) | Add TMDB TV search with complete nested episode results |
-| [TICKET-083](../backlog/todo/TICKET-083.md) | Add authenticated IGDB game search |
-| [TICKET-084](../backlog/todo/TICKET-084.md) | Add authenticated BoardGameGeek board-game search |
+| [TICKET-081](../backlog/done/TICKET-081.md) | Add authenticated provider-search API infrastructure and TMDB movie search |
+| [TICKET-082](../backlog/done/TICKET-082.md) | Add TMDB TV search with complete nested episode results |
+| [TICKET-083](../backlog/done/TICKET-083.md) | Add authenticated IGDB game search |
+| [TICKET-084](../backlog/done/TICKET-084.md) | Add authenticated BoardGameGeek board-game search |
 
 ## Done Signal
 - Import tools can use only a user's STrackerr API key to search the user's configured TMDB, IGDB, and BoardGameGeek accounts.
