@@ -33,6 +33,7 @@ This folder defines the product-level features for STrackerr. Each feature file 
 | [FEA-025: Permission-Based Settings Access](./FEA-025-permission-based-settings-access.md) | Open Settings to all authenticated users for password, API key, and provider credentials while keeping global maintenance actions administrator-only | TICKET-072, TICKET-073 |
 | [FEA-026: Manual TV Episode Parent Selection](./FEA-026-manual-tv-episode-parent-selection.md) | Manual TV episode add flow that allows attaching episodes to existing collection shows (identified or not) before creating a new parent item | TICKET-074, TICKET-075, TICKET-076 |
 | [FEA-027: User-Scoped Media Identity and Enrichment](./FEA-027-user-scoped-media-identity.md) | User-owned media items with per-user provider ids and aliases, selective field application on identify/refetch, and user-scoped API and episode sync | TICKET-077, TICKET-078, TICKET-079, TICKET-080 |
+| [FEA-028: Authenticated Metadata Provider Search API](./FEA-028-authenticated-metadata-provider-search-api.md) | Credential-backed TMDB, IGDB, and BoardGameGeek search endpoints that keep provider secrets server-side and return normalized importer results, including full TMDB TV episode mappings | TICKET-081, TICKET-082, TICKET-083, TICKET-084 |
 
 ## Agent Workflow
 
